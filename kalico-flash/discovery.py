@@ -1,0 +1,101 @@
+"""USB serial scanning and pattern matching."""
+from __future__ import annotations
+
+import fnmatch
+import re
+from pathlib import Path
+from typing import Optional
+
+from models import DiscoveredDevice, DeviceEntry
+
+
+SERIAL_BY_ID = "/dev/serial/by-id"
+
+
+def scan_serial_devices() -> list:
+    """Scan /dev/serial/by-id/ and return all USB serial devices."""
+    serial_dir = Path(SERIAL_BY_ID)
+    if not serial_dir.is_dir():
+        return []
+    devices = []
+    for entry in sorted(serial_dir.iterdir()):
+        devices.append(DiscoveredDevice(
+            path=str(entry),
+            filename=entry.name,
+        ))
+    return devices
+
+
+def match_device(pattern: str, devices: list) -> Optional[DiscoveredDevice]:
+    """Find first device whose filename matches a glob pattern."""
+    for device in devices:
+        if fnmatch.fnmatch(device.filename, pattern):
+            return device
+    return None
+
+
+def find_registered_devices(
+    devices: list,
+    registry_devices: dict
+) -> tuple:
+    """Cross-reference discovered devices against registry.
+
+    Args:
+        devices: List of DiscoveredDevice from scan_serial_devices()
+        registry_devices: Dict of key -> DeviceEntry from registry
+
+    Returns:
+        (matched, unmatched) where:
+          matched = list of (DeviceEntry, DiscoveredDevice) tuples
+          unmatched = list of DiscoveredDevice not matching any pattern
+    """
+    matched = []
+    unmatched_devices = list(devices)  # copy
+
+    for entry in registry_devices.values():
+        for device in devices:
+            if fnmatch.fnmatch(device.filename, entry.serial_pattern):
+                matched.append((entry, device))
+                if device in unmatched_devices:
+                    unmatched_devices.remove(device)
+                break
+
+    return matched, unmatched_devices
+
+
+def extract_mcu_from_serial(filename: str) -> Optional[str]:
+    """Extract MCU type from a /dev/serial/by-id/ filename.
+
+    Examples:
+        usb-Klipper_stm32h723xx_290... -> stm32h723
+        usb-Klipper_rp2040_303...      -> rp2040
+        usb-katapult_stm32h723xx_290.. -> stm32h723
+        usb-Klipper_stm32f411xe_600... -> stm32f411
+        usb-Beacon_Beacon_RevH_FC2...  -> None (not a Klipper/Katapult device)
+
+    Returns the MCU type without variant suffix (xx, xe, etc.) or None if
+    pattern does not match.
+    """
+    m = re.match(
+        r"usb-(?:Klipper|katapult)_([a-z0-9]+?)(?:x[a-z0-9]*)?_",
+        filename,
+        re.IGNORECASE
+    )
+    if m:
+        return m.group(1).lower()
+    return None
+
+
+def generate_serial_pattern(filename: str) -> str:
+    """Generate a serial glob pattern from a full device filename.
+
+    Takes the full filename up to (but not including) the interface suffix,
+    then appends a wildcard.
+
+    Example:
+        usb-Klipper_stm32h723xx_29001A001151313531383332-if00
+        -> usb-Klipper_stm32h723xx_29001A001151313531383332*
+    """
+    # Strip -ifNN suffix, add wildcard
+    base = re.sub(r"-if\d+$", "", filename)
+    return base + "*"

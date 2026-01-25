@@ -1,0 +1,30 @@
+# Claude Code local settings
+.claude/
+
+# GSD planning documents (development only)
+.planning/
+
+# Windows null device artifact
+nul
+
+# Development planning docs
+flash_script_plan.md
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Device registry (user-specific, created on first use)
+kalico-flash/devices.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db

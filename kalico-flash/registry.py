@@ -1,0 +1,122 @@
+"""Device registry backed by devices.json."""
+from __future__ import annotations
+
+import json
+import os
+import tempfile
+from pathlib import Path
+from typing import Optional
+
+from models import DeviceEntry, GlobalConfig, RegistryData
+from errors import RegistryError
+
+
+class Registry:
+    """Device registry with JSON CRUD and atomic writes."""
+
+    def __init__(self, registry_path: str):
+        self.path = registry_path
+
+    def load(self) -> RegistryData:
+        """Load registry from disk. Returns default if file missing."""
+        p = Path(self.path)
+        if not p.exists():
+            return RegistryData()
+        try:
+            raw = json.loads(p.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as e:
+            raise RegistryError(f"Corrupt registry file: {e}")
+
+        global_raw = raw.get("global", {})
+        global_config = GlobalConfig(
+            klipper_dir=global_raw.get("klipper_dir", "~/klipper"),
+            katapult_dir=global_raw.get("katapult_dir", "~/katapult"),
+            default_flash_method=global_raw.get("default_flash_method", "katapult"),
+        )
+        devices = {}
+        for key, data in raw.get("devices", {}).items():
+            devices[key] = DeviceEntry(
+                key=key,
+                name=data["name"],
+                mcu=data["mcu"],
+                serial_pattern=data["serial_pattern"],
+                flash_method=data.get("flash_method"),
+            )
+        return RegistryData(global_config=global_config, devices=devices)
+
+    def save(self, registry: RegistryData) -> None:
+        """Save registry to disk atomically."""
+        data = {
+            "global": {
+                "klipper_dir": registry.global_config.klipper_dir,
+                "katapult_dir": registry.global_config.katapult_dir,
+                "default_flash_method": registry.global_config.default_flash_method,
+            },
+            "devices": {}
+        }
+        for key, device in sorted(registry.devices.items()):
+            data["devices"][key] = {
+                "name": device.name,
+                "mcu": device.mcu,
+                "serial_pattern": device.serial_pattern,
+                "flash_method": device.flash_method,
+            }
+        _atomic_write_json(self.path, data)
+
+    def add(self, entry: DeviceEntry) -> None:
+        """Add a device to the registry. Raises RegistryError if key exists."""
+        registry = self.load()
+        if entry.key in registry.devices:
+            raise RegistryError(f"Device '{entry.key}' already registered")
+        registry.devices[entry.key] = entry
+        self.save(registry)
+
+    def remove(self, key: str) -> bool:
+        """Remove a device from the registry. Returns False if not found."""
+        registry = self.load()
+        if key not in registry.devices:
+            return False
+        del registry.devices[key]
+        self.save(registry)
+        return True
+
+    def get(self, key: str) -> Optional[DeviceEntry]:
+        """Get a device by key. Returns None if not found."""
+        registry = self.load()
+        return registry.devices.get(key)
+
+    def list_all(self) -> list:
+        """List all registered devices."""
+        registry = self.load()
+        return list(registry.devices.values())
+
+    def load_global(self) -> GlobalConfig:
+        """Load global configuration."""
+        registry = self.load()
+        return registry.global_config
+
+    def save_global(self, config: GlobalConfig) -> None:
+        """Update global configuration."""
+        registry = self.load()
+        registry.global_config = config
+        self.save(registry)
+
+
+def _atomic_write_json(path: str, data: dict) -> None:
+    """Write JSON atomically: write to temp file, fsync, rename."""
+    dir_name = os.path.dirname(os.path.abspath(path))
+    os.makedirs(dir_name, exist_ok=True)
+    with tempfile.NamedTemporaryFile(
+        mode="w", dir=dir_name, delete=False, suffix=".tmp",
+        encoding="utf-8"
+    ) as tf:
+        tmp_path = tf.name
+        try:
+            json.dump(data, tf, indent=2, sort_keys=True)
+            tf.write("\n")
+            tf.flush()
+            os.fsync(tf.fileno())
+        except BaseException:
+            os.unlink(tmp_path)
+            raise
+    os.replace(tmp_path, path)
