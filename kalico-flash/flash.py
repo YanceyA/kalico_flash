@@ -117,7 +117,13 @@ def cmd_build(registry, device_key: str, out) -> int:
     # Load device entry
     entry = registry.get(device_key)
     if entry is None:
-        out.error(f"Device '{device_key}' not found.")
+        template = ERROR_TEMPLATES["device_not_registered"]
+        out.error_with_recovery(
+            template["error_type"],
+            template["message_template"].format(device=device_key),
+            context={"device": device_key},
+            recovery=template["recovery_template"],
+        )
         return 1
 
     # Load global config for klipper_dir
@@ -269,11 +275,14 @@ def cmd_flash(registry, device_key, out, skip_menuconfig: bool = False) -> int:
         matched, unmatched = find_registered_devices(usb_devices, data.devices)
 
         if not matched:
-            out.error("No registered devices connected.")
+            out.error_with_recovery(
+                "Device not found",
+                "No registered devices connected",
+                recovery="1. List registered devices: python flash.py --list-devices\n2. Check USB connections\n3. Register new device: python flash.py --add-device",
+            )
             out.phase("Discovery", "Found USB devices but none are registered:")
             for device in usb_devices:
                 out.device_line("??", device.filename, "")
-            out.phase("Discovery", "Run --add-device to register a board first.")
             return 1
 
         # Filter to only flashable devices for selection
@@ -287,7 +296,12 @@ def cmd_flash(registry, device_key, out, skip_menuconfig: bool = False) -> int:
                 out.device_line("--", f"{entry.key} ({entry.mcu}) [excluded]", device.path)
 
         if not flashable_matched:
-            out.error("No flashable devices connected. All connected devices are excluded.")
+            template = ERROR_TEMPLATES["device_excluded"]
+            out.error_with_recovery(
+                template["error_type"],
+                "All connected devices are excluded from flashing",
+                recovery=template["recovery_template"],
+            )
             return 1
 
         # Show numbered list of connected flashable devices
@@ -325,7 +339,13 @@ def cmd_flash(registry, device_key, out, skip_menuconfig: bool = False) -> int:
         # Explicit --device KEY mode: verify device exists and is connected
         entry = registry.get(device_key)
         if entry is None:
-            out.error(f"Device '{device_key}' not found in registry.")
+            template = ERROR_TEMPLATES["device_not_registered"]
+            out.error_with_recovery(
+                template["error_type"],
+                template["message_template"].format(device=device_key),
+                context={"device": device_key},
+                recovery=template["recovery_template"],
+            )
             return 1
 
         # Check if device is excluded from flashing
@@ -342,8 +362,13 @@ def cmd_flash(registry, device_key, out, skip_menuconfig: bool = False) -> int:
         # Find matching USB device
         usb_device = match_device(entry.serial_pattern, usb_devices)
         if usb_device is None:
-            out.error(f"Device '{device_key}' is not connected.")
-            out.phase("Discovery", f"Looking for: {entry.serial_pattern}")
+            template = ERROR_TEMPLATES["device_not_connected"]
+            out.error_with_recovery(
+                template["error_type"],
+                template["message_template"].format(device=device_key),
+                context={"device": device_key},
+                recovery=template["recovery_template"],
+            )
             return 1
 
         device_path = usb_device.path
@@ -496,9 +521,17 @@ def cmd_flash(registry, device_key, out, skip_menuconfig: bool = False) -> int:
 
 def cmd_remove_device(registry, device_key: str, out) -> int:
     """Remove a device from the registry with optional config cleanup."""
+    from errors import ERROR_TEMPLATES
+
     entry = registry.get(device_key)
     if entry is None:
-        out.error(f"Device '{device_key}' not found in registry")
+        template = ERROR_TEMPLATES["device_not_registered"]
+        out.error_with_recovery(
+            template["error_type"],
+            template["message_template"].format(device=device_key),
+            context={"device": device_key},
+            recovery=template["recovery_template"],
+        )
         return 1
 
     if not out.confirm(f"Remove '{device_key}' ({entry.name})?"):
@@ -531,9 +564,17 @@ def cmd_remove_device(registry, device_key: str, out) -> int:
 
 def cmd_exclude_device(registry, device_key: str, out) -> int:
     """Mark a device as non-flashable."""
+    from errors import ERROR_TEMPLATES
+
     entry = registry.get(device_key)
     if entry is None:
-        out.error(f"Device '{device_key}' not found in registry")
+        template = ERROR_TEMPLATES["device_not_registered"]
+        out.error_with_recovery(
+            template["error_type"],
+            template["message_template"].format(device=device_key),
+            context={"device": device_key},
+            recovery=template["recovery_template"],
+        )
         return 1
     if not entry.flashable:
         out.warn(f"Device '{device_key}' is already excluded")
@@ -545,9 +586,17 @@ def cmd_exclude_device(registry, device_key: str, out) -> int:
 
 def cmd_include_device(registry, device_key: str, out) -> int:
     """Mark a device as flashable."""
+    from errors import ERROR_TEMPLATES
+
     entry = registry.get(device_key)
     if entry is None:
-        out.error(f"Device '{device_key}' not found in registry")
+        template = ERROR_TEMPLATES["device_not_registered"]
+        out.error_with_recovery(
+            template["error_type"],
+            template["message_template"].format(device=device_key),
+            context={"device": device_key},
+            recovery=template["recovery_template"],
+        )
         return 1
     if entry.flashable:
         out.warn(f"Device '{device_key}' is already flashable")
