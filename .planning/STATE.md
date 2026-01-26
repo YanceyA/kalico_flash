@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-01-26)
 ## Current Position
 
 Milestone: v2.0 Public Release
-Phase: 4 - Foundation
-Plan: Not started
-Status: Roadmap created, ready for Phase 4 planning
-Last activity: 2026-01-26 — Roadmap created
+Phase: 4 of 4 (Foundation)
+Plan: 2 of 5 complete
+Status: In progress
+Last activity: 2026-01-26 — Completed 04-02-PLAN.md (Device Exclusion Schema)
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [██░░░░░░░░] ~10% (Plan 2 of ~20 total plans across phases)
 
 ## v2.0 Roadmap Summary
 
 | Phase | Name | Requirements | Status |
 |-------|------|--------------|--------|
-| 4 | Foundation | 16 | Pending |
+| 4 | Foundation | 16 | In Progress (Plan 2/5) |
 | 5 | Moonraker Integration | 13 | Pending |
 | 6 | User Experience | 14 | Pending |
 | 7 | Release Polish | 12 | Pending |
@@ -57,6 +57,15 @@ All v1.0 decisions marked "Good" in PROJECT.md. Key patterns established:
 - Registry schema adds flashable flag for device exclusion
 - Graceful degradation philosophy: warn but don't block on informational failures
 
+### Phase 4 Decisions
+
+| Decision | Rationale | Plan |
+|----------|-----------|------|
+| flashable field defaults to True | Backward compatibility - existing devices remain flashable | 04-02 |
+| flashable at END of DeviceEntry | Dataclass field ordering (non-default after default) | 04-02 |
+| .get("flashable", True) in load() | Schema evolution pattern for backward compatibility | 04-02 |
+| Always persist flashable in JSON | Consistency and debuggability | 04-02 |
+
 ### Tech Debt (from v1.0 audit)
 
 - cmd_build() orphaned (no --build-only argparse flag)
@@ -65,11 +74,19 @@ All v1.0 decisions marked "Good" in PROJECT.md. Key patterns established:
 
 ### Todos
 
-- None yet (Phase 4 planning not started)
+- Plan 03: Add --exclude-device and --include-device CLI commands
+- Plan 04: Update --list-devices to show excluded status
+- Plan 05: Filter excluded devices from flash selection
 
 ### Blockers
 
 - None
 
+## Session Continuity
+
+Last session: 2026-01-26T07:24:20Z
+Stopped at: Completed 04-02-PLAN.md
+Resume file: None
+
 ---
-*Last updated: 2026-01-26 after roadmap creation*
+*Last updated: 2026-01-26 after 04-02-PLAN.md completion*
