@@ -11,17 +11,17 @@ See: .planning/PROJECT.md (updated 2026-01-26)
 
 Milestone: v2.0 Public Release
 Phase: 4 of 4 (Foundation)
-Plan: 3 of 5 complete (04-01, 04-02, 04-03)
+Plan: 4 of 5 complete (04-01, 04-02, 04-03, 04-05)
 Status: In progress
-Last activity: 2026-01-26 — Completed 04-03-PLAN.md (Skip-Menuconfig and Device Exclusion CLI)
+Last activity: 2026-01-26 — Completed 04-05-PLAN.md (Error Framework Integration)
 
-Progress: [███░░░░░░░] ~15% (Plan 3 of ~20 total plans across phases)
+Progress: [████░░░░░░] ~20% (Plan 4 of ~20 total plans across phases)
 
 ## v2.0 Roadmap Summary
 
 | Phase | Name | Requirements | Status |
 |-------|------|--------------|--------|
-| 4 | Foundation | 16 | In Progress (Plan 3/5) |
+| 4 | Foundation | 16 | In Progress (Plan 4/5) |
 | 5 | Moonraker Integration | 13 | Pending |
 | 6 | User Experience | 14 | Pending |
 | 7 | Release Polish | 12 | Pending |
@@ -73,6 +73,8 @@ All v1.0 decisions marked "Good" in PROJECT.md. Key patterns established:
 | MCU validation always runs | Safety check even when skipping menuconfig | 04-03 |
 | Excluded devices shown but not selectable | Users see excluded devices with [excluded] marker in interactive mode | 04-03 |
 | Add-device asks about flashable | Registration wizard includes flashable question (default: True) | 04-03 |
+| ERROR_TEMPLATES for service errors | Use pre-defined templates for service_stop_failed, service_start_failed | 04-05 |
+| Inline format_error for config/flasher | Context varies per call site, inline is clearer | 04-05 |
 
 ### Tech Debt (from v1.0 audit)
 
@@ -82,8 +84,8 @@ All v1.0 decisions marked "Good" in PROJECT.md. Key patterns established:
 
 ### Todos
 
-- Plan 04: Additional CLI polish or integration tests
-- Plan 05: Error message integration across all modules
+- Plan 04-04: flash.py error integration (if not already complete)
+- Phase 5: Moonraker integration
 
 ### Blockers
 
@@ -91,9 +93,9 @@ All v1.0 decisions marked "Good" in PROJECT.md. Key patterns established:
 
 ## Session Continuity
 
-Last session: 2026-01-26T07:38:00Z
-Stopped at: Completed 04-03-PLAN.md
+Last session: 2026-01-26
+Stopped at: Completed 04-05-PLAN.md
 Resume file: None
 
 ---
-*Last updated: 2026-01-26 after 04-03-PLAN.md completion*
+*Last updated: 2026-01-26 after 04-05-PLAN.md completion*
