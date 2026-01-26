@@ -21,6 +21,7 @@ class DeviceEntry:
     mcu: str                    # "stm32h723" (extracted from serial path)
     serial_pattern: str         # "usb-Klipper_stm32h723xx_29001A*"
     flash_method: Optional[str] = None  # None = use global default
+    flashable: bool = True      # Non-flashable devices excluded from flash selection
 
 
 @dataclass
