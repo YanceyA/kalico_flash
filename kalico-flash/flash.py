@@ -409,6 +409,41 @@ def cmd_flash(registry, device_key, out, skip_menuconfig: bool = False) -> int:
         # Safe state - show status and continue
         out.phase("Safety", f"Printer state: {print_status.state} - OK to flash")
 
+    # === Version Information ===
+    host_version = get_host_klipper_version(data.global_config.klipper_dir)
+    mcu_versions = get_mcu_versions()
+
+    if host_version:
+        out.phase("Version", f"Host Klipper: {host_version}")
+
+        if mcu_versions:
+            # Display all MCU versions, mark target with asterisk
+            # Map device MCU type to Moonraker MCU name by checking mcu_constants
+            target_mcu = None
+            for mcu_name in mcu_versions:
+                # Simple heuristic: if device mcu contains the mcu_name or vice versa
+                if entry.mcu.lower() in mcu_name.lower() or mcu_name.lower() in entry.mcu.lower():
+                    target_mcu = mcu_name
+                    break
+            # If no match found by name, use "main" as default for primary MCU
+            if target_mcu is None and "main" in mcu_versions:
+                target_mcu = "main"
+
+            for mcu_name, mcu_version in sorted(mcu_versions.items()):
+                marker = "*" if mcu_name == target_mcu else " "
+                out.phase("Version", f"  [{marker}] MCU {mcu_name}: {mcu_version}")
+
+            # Check if target MCU is outdated
+            if target_mcu and target_mcu in mcu_versions:
+                if is_mcu_outdated(host_version, mcu_versions[target_mcu]):
+                    out.warn("MCU firmware is behind host Klipper - update recommended")
+        else:
+            out.warn("MCU versions unavailable (Klipper may not be running)")
+    elif mcu_versions:
+        # Have MCU versions but not host version (unusual)
+        out.warn("Host Klipper version unavailable")
+    # If neither available, skip version display silently (Moonraker down case handled above)
+
     # === Phase 2: Config ===
     out.phase("Config", f"Loading config for {entry.name}...")
     config_mgr = ConfigManager(device_key, klipper_dir)
