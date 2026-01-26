@@ -40,13 +40,16 @@ def find_registered_devices(
 ) -> tuple:
     """Cross-reference discovered devices against registry.
 
+    Returns ALL matching devices including non-flashable ones. Filtering for
+    flashable devices should be done by the caller (flash.py) at selection time.
+
     Args:
         devices: List of DiscoveredDevice from scan_serial_devices()
         registry_devices: Dict of key -> DeviceEntry from registry
 
     Returns:
         (matched, unmatched) where:
-          matched = list of (DeviceEntry, DiscoveredDevice) tuples
+          matched = list of (DeviceEntry, DiscoveredDevice) tuples (includes non-flashable)
           unmatched = list of DiscoveredDevice not matching any pattern
     """
     matched = []

@@ -252,14 +252,28 @@ def cmd_flash(registry, device_key, out, skip_menuconfig: bool = False) -> int:
             out.phase("Discovery", "Run --add-device to register a board first.")
             return 1
 
-        # Show numbered list of connected registered devices
-        out.phase("Discovery", f"Found {len(matched)} registered device(s):")
-        for i, (entry, device) in enumerate(matched):
+        # Filter to only flashable devices for selection
+        flashable_matched = [(e, d) for e, d in matched if e.flashable]
+        excluded_matched = [(e, d) for e, d in matched if not e.flashable]
+
+        # Show excluded devices with note if any
+        if excluded_matched:
+            out.phase("Discovery", f"Excluded devices (not selectable):")
+            for entry, device in excluded_matched:
+                out.device_line("--", f"{entry.key} ({entry.mcu}) [excluded]", device.path)
+
+        if not flashable_matched:
+            out.error("No flashable devices connected. All connected devices are excluded.")
+            return 1
+
+        # Show numbered list of connected flashable devices
+        out.phase("Discovery", f"Found {len(flashable_matched)} flashable device(s):")
+        for i, (entry, device) in enumerate(flashable_matched):
             out.device_line(str(i + 1), f"{entry.key} ({entry.mcu})", device.path)
 
         # Single device: auto-select with confirmation
-        if len(matched) == 1:
-            entry, usb_device = matched[0]
+        if len(flashable_matched) == 1:
+            entry, usb_device = flashable_matched[0]
             if out.confirm(f"Flash {entry.name}?", default=True):
                 device_key = entry.key
                 device_path = usb_device.path
@@ -272,12 +286,12 @@ def cmd_flash(registry, device_key, out, skip_menuconfig: bool = False) -> int:
                 choice = out.prompt("Select device number", default="1")
                 try:
                     idx = int(choice) - 1
-                    if 0 <= idx < len(matched):
-                        entry, usb_device = matched[idx]
+                    if 0 <= idx < len(flashable_matched):
+                        entry, usb_device = flashable_matched[idx]
                         device_key = entry.key
                         device_path = usb_device.path
                         break
-                    out.warn(f"Invalid selection. Choose 1-{len(matched)}.")
+                    out.warn(f"Invalid selection. Choose 1-{len(flashable_matched)}.")
                 except ValueError:
                     out.warn("Please enter a number.")
             else:
@@ -288,6 +302,17 @@ def cmd_flash(registry, device_key, out, skip_menuconfig: bool = False) -> int:
         entry = registry.get(device_key)
         if entry is None:
             out.error(f"Device '{device_key}' not found in registry.")
+            return 1
+
+        # Check if device is excluded from flashing
+        if not entry.flashable:
+            out.error_with_recovery(
+                "Device excluded",
+                device_key,
+                {"device": device_key, "name": entry.name},
+                f"The device '{device_key}' is marked as non-flashable. "
+                f"To make it flashable, run `python flash.py --include-device {device_key}`."
+            )
             return 1
 
         # Find matching USB device
@@ -457,6 +482,34 @@ def cmd_remove_device(registry, device_key: str, out) -> int:
     return 0
 
 
+def cmd_exclude_device(registry, device_key: str, out) -> int:
+    """Mark a device as non-flashable."""
+    entry = registry.get(device_key)
+    if entry is None:
+        out.error(f"Device '{device_key}' not found in registry")
+        return 1
+    if not entry.flashable:
+        out.warn(f"Device '{device_key}' is already excluded")
+        return 0
+    registry.set_flashable(device_key, False)
+    out.success(f"Excluded '{device_key}' from flashing")
+    return 0
+
+
+def cmd_include_device(registry, device_key: str, out) -> int:
+    """Mark a device as flashable."""
+    entry = registry.get(device_key)
+    if entry is None:
+        out.error(f"Device '{device_key}' not found in registry")
+        return 1
+    if entry.flashable:
+        out.warn(f"Device '{device_key}' is already flashable")
+        return 0
+    registry.set_flashable(device_key, True)
+    out.success(f"Included '{device_key}' for flashing")
+    return 0
+
+
 def cmd_list_devices(registry, out) -> int:
     """List all registered devices with connection status.
 
@@ -495,13 +548,18 @@ def cmd_list_devices(registry, out) -> int:
 
     for key in sorted(data.devices.keys()):
         entry = data.devices[key]
+        # Build name with optional [excluded] marker
+        name_str = f"{entry.key}: {entry.name} ({entry.mcu})"
+        if not entry.flashable:
+            name_str += " [excluded]"
+
         if key in connected_map:
             # Connected: show path
             device = connected_map[key]
-            out.device_line("OK", f"{entry.key}: {entry.name} ({entry.mcu})", device.path)
+            out.device_line("OK", name_str, device.path)
         else:
             # Disconnected
-            out.device_line("--", f"{entry.key}: {entry.name} ({entry.mcu})", "(disconnected)")
+            out.device_line("--", name_str, "(disconnected)")
 
     # Show unmatched (unknown) USB devices if any
     if unmatched:
@@ -635,13 +693,17 @@ def cmd_add_device(registry, out) -> int:
         out.error("Too many invalid inputs.")
         return 1
 
-    # Step 9: Create and save
+    # Step 9: Ask if device is flashable
+    is_flashable = out.confirm("Is this device flashable?", default=True)
+
+    # Step 10: Create and save
     entry = DeviceEntry(
         key=device_key,
         name=display_name,
         mcu=mcu,
         serial_pattern=serial_pattern,
         flash_method=flash_method,
+        flashable=is_flashable,
     )
     registry.add(entry)
     out.success(f"Registered '{device_key}' ({display_name})")
@@ -672,6 +734,10 @@ def main() -> int:
             return cmd_list_devices(registry, out)
         elif args.remove_device:
             return cmd_remove_device(registry, args.remove_device, out)
+        elif args.exclude_device:
+            return cmd_exclude_device(registry, args.exclude_device, out)
+        elif args.include_device:
+            return cmd_include_device(registry, args.include_device, out)
 
         # Handle flash workflow (explicit --device or interactive selection)
         else:
