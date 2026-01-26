@@ -206,9 +206,10 @@ class RegistryError(KlipperFlashError):
 class DeviceNotFoundError(KlipperFlashError):
     """Named device not in registry or not physically connected."""
 
-    def __init__(self, identifier: str):
+    def __init__(self, identifier: str, *, connected: bool = False):
         super().__init__(f"Device not found: {identifier}")
         self.identifier = identifier
+        self.connected = connected  # True if in registry but not physically connected
 
 
 class DiscoveryError(KlipperFlashError):
@@ -234,3 +235,23 @@ class ServiceError(KlipperFlashError):
 class FlashError(KlipperFlashError):
     """Flash operation failures: Katapult, make flash, device not found."""
     pass
+
+
+class ConfigMismatchError(KlipperFlashError):
+    """Cached config MCU does not match registered device MCU."""
+
+    def __init__(self, expected_mcu: str, actual_mcu: str, device_key: str):
+        super().__init__(
+            f"MCU mismatch for {device_key}: expected {expected_mcu}, got {actual_mcu}"
+        )
+        self.expected_mcu = expected_mcu
+        self.actual_mcu = actual_mcu
+        self.device_key = device_key
+
+
+class ExcludedDeviceError(KlipperFlashError):
+    """Device is marked as non-flashable (excluded from flashing)."""
+
+    def __init__(self, device_key: str):
+        super().__init__(f"Device '{device_key}' is excluded from flashing")
+        self.device_key = device_key
