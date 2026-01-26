@@ -13,6 +13,13 @@ class Output(Protocol):
     def success(self, message: str) -> None: ...
     def warn(self, message: str) -> None: ...
     def error(self, message: str) -> None: ...
+    def error_with_recovery(
+        self,
+        error_type: str,
+        message: str,
+        context: dict[str, str] | None = None,
+        recovery: str | None = None,
+    ) -> None: ...
     def device_line(self, marker: str, name: str, detail: str) -> None: ...
     def prompt(self, message: str, default: str = "") -> str: ...
     def confirm(self, message: str, default: bool = False) -> bool: ...
@@ -33,6 +40,19 @@ class CliOutput:
 
     def error(self, message: str) -> None:
         print(f"[FAIL] {message}", file=sys.stderr)
+
+    def error_with_recovery(
+        self,
+        error_type: str,
+        message: str,
+        context: dict[str, str] | None = None,
+        recovery: str | None = None,
+    ) -> None:
+        """Print formatted error with context and recovery guidance to stderr."""
+        from errors import format_error
+
+        formatted = format_error(error_type, message, context, recovery)
+        print(formatted, file=sys.stderr)
 
     def device_line(self, marker: str, name: str, detail: str) -> None:
         print(f"  [{marker}] {name:<24s} {detail}")
@@ -61,6 +81,13 @@ class NullOutput:
     def success(self, message: str) -> None: pass
     def warn(self, message: str) -> None: pass
     def error(self, message: str) -> None: pass
+    def error_with_recovery(
+        self,
+        error_type: str,
+        message: str,
+        context: dict[str, str] | None = None,
+        recovery: str | None = None,
+    ) -> None: pass
     def device_line(self, marker: str, name: str, detail: str) -> None: pass
     def prompt(self, message: str, default: str = "") -> str: return default
     def confirm(self, message: str, default: bool = False) -> bool: return default
