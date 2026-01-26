@@ -55,3 +55,11 @@ class FlashResult:
     method: str  # "katapult" or "make_flash"
     elapsed_seconds: float = 0.0
     error_message: Optional[str] = None
+
+
+@dataclass
+class PrintStatus:
+    """Current print job status from Moonraker."""
+    state: str              # standby, printing, paused, complete, error, cancelled
+    filename: Optional[str] # None if no file loaded
+    progress: float         # 0.0 to 1.0
