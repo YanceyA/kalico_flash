@@ -51,7 +51,12 @@ def format_error(
 
     if recovery:
         lines.append("")
-        lines.append(textwrap.fill(recovery, width=80))
+        # Preserve newlines in numbered lists: wrap each line individually
+        for line in recovery.split('\n'):
+            if line.strip():
+                lines.append(textwrap.fill(line, width=80))
+            else:
+                lines.append('')  # Preserve blank lines
 
     return "\n".join(lines)
 
