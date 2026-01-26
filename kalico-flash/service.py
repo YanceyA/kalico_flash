@@ -5,7 +5,7 @@ import subprocess
 from contextlib import contextmanager
 from typing import Generator
 
-from errors import ServiceError
+from errors import ServiceError, format_error, ERROR_TEMPLATES
 
 # Default timeout for systemctl operations
 TIMEOUT_SERVICE = 30
@@ -48,9 +48,22 @@ def _stop_klipper(timeout: int = TIMEOUT_SERVICE) -> None:
             timeout=timeout,
         )
         if result.returncode != 0:
-            raise ServiceError(f"Failed to stop Klipper: {result.stderr.strip()}")
+            template = ERROR_TEMPLATES["service_stop_failed"]
+            msg = format_error(
+                template["error_type"],
+                template["message_template"],
+                context={"stderr": result.stderr.strip()},
+                recovery=template["recovery_template"],
+            )
+            raise ServiceError(msg)
     except subprocess.TimeoutExpired:
-        raise ServiceError(f"Timeout ({timeout}s) stopping Klipper service")
+        template = ERROR_TEMPLATES["service_stop_failed"]
+        msg = format_error(
+            template["error_type"],
+            f"Timeout ({timeout}s) stopping Klipper service",
+            recovery=template["recovery_template"],
+        )
+        raise ServiceError(msg)
 
 
 def _start_klipper(timeout: int = TIMEOUT_SERVICE) -> None:
@@ -70,14 +83,27 @@ def _start_klipper(timeout: int = TIMEOUT_SERVICE) -> None:
             timeout=timeout,
         )
         if result.returncode != 0:
-            print(f"[Warning] Failed to restart Klipper: {result.stderr.strip()}")
-            print("[Warning] Run 'sudo systemctl start klipper' manually.")
+            template = ERROR_TEMPLATES["service_start_failed"]
+            print(format_error(
+                template["error_type"],
+                template["message_template"],
+                context={"stderr": result.stderr.strip()},
+                recovery=template["recovery_template"],
+            ))
     except subprocess.TimeoutExpired:
-        print(f"[Warning] Timeout ({timeout}s) starting Klipper service")
-        print("[Warning] Run 'sudo systemctl start klipper' manually.")
+        template = ERROR_TEMPLATES["service_start_failed"]
+        print(format_error(
+            template["error_type"],
+            f"Timeout ({timeout}s) starting Klipper service",
+            recovery=template["recovery_template"],
+        ))
     except Exception as e:
-        print(f"[Warning] Error starting Klipper: {e}")
-        print("[Warning] Run 'sudo systemctl start klipper' manually.")
+        template = ERROR_TEMPLATES["service_start_failed"]
+        print(format_error(
+            template["error_type"],
+            f"Error starting Klipper: {e}",
+            recovery=template["recovery_template"],
+        ))
 
 
 @contextmanager
