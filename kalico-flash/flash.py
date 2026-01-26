@@ -477,8 +477,12 @@ def cmd_flash(registry, device_key, out, skip_menuconfig: bool = False) -> int:
     try:
         verify_device_path(device_path)
     except DiscoveryError as e:
-        out.error(str(e))
-        out.error("Recovery: Reconnect the device and try again.")
+        out.error_with_recovery(
+            "Device disconnected",
+            str(e),
+            context={"device": device_key, "path": device_path},
+            recovery="1. Check USB connection and board power\n2. List devices: ls /dev/serial/by-id/\n3. Reconnect and retry flash",
+        )
         return 1
 
     # Check passwordless sudo (informational only - let sudo prompt if needed)
@@ -500,8 +504,13 @@ def cmd_flash(registry, device_key, out, skip_menuconfig: bool = False) -> int:
             )
         out.phase("Flash", "Klipper restarted")
     except Exception as e:
-        out.error(f"Flash operation error: {e}")
-        out.error("Recovery: Power cycle the board and try again.")
+        template = ERROR_TEMPLATES["flash_failed"]
+        out.error_with_recovery(
+            template["error_type"],
+            f"Flash operation error: {e}",
+            context={"device": device_key},
+            recovery=template["recovery_template"],
+        )
         return 1
 
     flash_elapsed = time.monotonic() - flash_start
@@ -513,9 +522,13 @@ def cmd_flash(registry, device_key, out, skip_menuconfig: bool = False) -> int:
         )
         return 0
     else:
-        out.error(f"Flash failed: {flash_result.error_message}")
-        out.error(f"Method attempted: {flash_result.method}")
-        out.error("Recovery: Power cycle the board and try again.")
+        template = ERROR_TEMPLATES["flash_failed"]
+        out.error_with_recovery(
+            template["error_type"],
+            template["message_template"].format(device=device_key),
+            context={"device": device_key, "method": flash_result.method, "error": flash_result.error_message},
+            recovery=template["recovery_template"],
+        )
         return 1
 
 
