@@ -25,3 +25,6 @@ kalico-flash/devices.json
 # OS
 .DS_Store
 Thumbs.db
+
+# User Working
+.working/
