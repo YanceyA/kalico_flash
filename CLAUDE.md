@@ -67,19 +67,37 @@ python flash.py --remove-device octopus-pro
 3. **[Build]** — `make clean` + `make -j$(nproc)` with timeout (300s)
 4. **[Flash]** — Stop Klipper, try Katapult first, fallback to `make flash`, restart Klipper
 
-## Development Commands
+## Development Environment
 
-**Run the tool:**
+Claude Code has SSH access to the target Raspberry Pi for live testing.
+
+**Connection Details:**
+- **Host:** `192.168.50.50`
+- **User:** `yanceya`
+- **Auth:** SSH key (passwordless)
+- **Remote path:** `~/kalico-flash/`
+
+**Pi Environment:**
+- Python 3.11.2
+- Kalico at `~/klipper/`
+- Katapult at `~/katapult/`
+- Connected boards: STM32H723 (Octopus Pro), RP2040 (Nitehawk), Beacon probe
+
+**Sync code to Pi:**
+```bash
+scp /c/dev_projects/kalico_flash/kalico-flash/*.py yanceya@192.168.50.50:~/kalico-flash/
+```
+
+**Run commands on Pi:**
+```bash
+ssh yanceya@192.168.50.50 "cd ~/kalico-flash && python3 flash.py --help"
+ssh yanceya@192.168.50.50 "cd ~/kalico-flash && python3 flash.py --list-devices"
+```
+
+**Local development (Windows):**
 ```bash
 cd kalico-flash
 python flash.py --help
-```
-
-**Test on target Pi:**
-```bash
-scp -r kalico-flash/ pi@your-pi:~/kalico-flash/
-ssh pi@your-pi
-cd ~/kalico-flash && python3 flash.py --list-devices
 ```
 
 No automated tests — validation is manual on live hardware.
