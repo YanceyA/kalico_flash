@@ -11,18 +11,18 @@ See: .planning/PROJECT.md (updated 2026-01-26)
 
 Milestone: v2.0 Public Release
 Phase: 5 of 4 (Moonraker Integration)
-Plan: 1 of 4 complete
+Plan: 2 of 4 complete
 Status: Phase 5 in progress
-Last activity: 2026-01-27 — Completed 05-01-PLAN.md (Moonraker API client)
+Last activity: 2026-01-27 — Completed 05-02-PLAN.md (Print safety and version integration)
 
-Progress: [█████░░░░░] ~31% (17/55 requirements addressed)
+Progress: [██████░░░░] ~38% (21/55 requirements addressed)
 
 ## v2.0 Roadmap Summary
 
 | Phase | Name | Requirements | Status |
 |-------|------|--------------|--------|
 | 4 | Foundation | 16 | Complete |
-| 5 | Moonraker Integration | 13 | In Progress (Plan 1/4 done) |
+| 5 | Moonraker Integration | 13 | In Progress (Plan 2/4 done) |
 | 6 | User Experience | 14 | Pending |
 | 7 | Release Polish | 12 | Pending |
 
@@ -34,7 +34,7 @@ Progress: [█████░░░░░] ~31% (17/55 requirements addressed)
 
 **Plans:**
 - 05-01: Moonraker API client module (Complete)
-- 05-02: Print safety integration (Pending)
+- 05-02: Print safety integration (Complete)
 - 05-03: Version display integration (Pending)
 - 05-04: Graceful degradation flow (Pending)
 
@@ -42,6 +42,14 @@ Progress: [█████░░░░░] ~31% (17/55 requirements addressed)
 - Created moonraker.py with 4 API functions
 - Added PrintStatus dataclass to models.py
 - Implemented graceful degradation pattern (return None, not raise)
+
+**Completed in 05-02:**
+- Print safety check blocks flash during printing/paused
+- Shows "Print in progress: filename (45%)" when blocked
+- Moonraker unreachable prompts Y/N confirmation (default=No)
+- Version display shows host and all MCU versions
+- Target MCU marked with asterisk in version list
+- Version mismatch warning (informational only)
 
 ## Accumulated Context
 
@@ -90,6 +98,10 @@ All v1.0 decisions marked "Good" in PROJECT.md. Key patterns established:
 | PrintStatus in models.py | Hub-and-spoke consistency - all dataclasses in models.py | 05-01 |
 | MCU name normalization | "mcu" -> "main", "mcu nhk" -> "nhk" for clarity | 05-01 |
 | Catch OSError in exception handling | Covers socket errors and low-level network failures | 05-01 |
+| No --force flag for print blocking | Per CONTEXT.md: "no force-override for print safety" | 05-02 |
+| Version check informational only | Per CONTEXT.md: "Version comparison is informational only - never blocks flash" | 05-02 |
+| Target MCU marked with asterisk | User can identify which MCU is being flashed in version table | 05-02 |
+| Moonraker unreachable default=No | Conservative default - user must explicitly opt to continue without safety checks | 05-02 |
 
 ### Tech Debt (from v1.0 audit)
 
@@ -103,9 +115,9 @@ All v1.0 decisions marked "Good" in PROJECT.md. Key patterns established:
 
 ## Session Continuity
 
-Last session: 2026-01-27T10:08:00Z
-Stopped at: Completed 05-01-PLAN.md
+Last session: 2026-01-27T10:40:00Z
+Stopped at: Completed 05-02-PLAN.md
 Resume file: None
 
 ---
-*Last updated: 2026-01-27 after 05-01 completion*
+*Last updated: 2026-01-27 after 05-02 completion*
