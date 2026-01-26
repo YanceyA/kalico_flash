@@ -153,25 +153,23 @@ ERROR_TEMPLATES: dict[str, dict[str, str]] = {
             "3. Verify: `ls ~/katapult/scripts/flashtool.py`"
         ),
     },
-    # Moonraker errors (placeholder for Phase 5)
+    # Moonraker errors (Phase 5)
     "moonraker_unavailable": {
         "error_type": "Moonraker unavailable",
         "message_template": "Could not connect to Moonraker API",
         "recovery_template": (
             "1. Check Moonraker status: `sudo systemctl status moonraker`\n"
-            "2. Restart Moonraker: `sudo systemctl restart moonraker`\n"
-            "3. Verify API: `curl http://localhost:7125/server/info`\n"
-            "4. Flash proceeds without print status check if unavailable"
+            "2. Verify API: `curl http://localhost:7125/server/info`\n"
+            "3. Proceed with caution - print status check unavailable"
         ),
     },
     "printer_busy": {
         "error_type": "Printer busy",
-        "message_template": "Printer is currently {state}",
+        "message_template": "Cannot flash during active print",
         "recovery_template": (
-            "1. Wait for current print/operation to complete\n"
-            "2. Check printer status in Fluidd/Mainsail dashboard\n"
-            "3. Use `--force` flag only if safe to interrupt operation\n"
-            "4. Cancel print first if flashing is urgent"
+            "1. Wait for current print to complete\n"
+            "2. Or cancel print in Fluidd/Mainsail dashboard\n"
+            "3. Then re-run flash command"
         ),
     },
     # Excluded device error
