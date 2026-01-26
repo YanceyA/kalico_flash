@@ -6,7 +6,7 @@ import time
 from pathlib import Path
 from typing import Optional
 
-from errors import DiscoveryError
+from errors import DiscoveryError, format_error
 from models import FlashResult
 
 # Default timeout for flash operations (from CONTEXT.md)
@@ -23,10 +23,18 @@ def verify_device_path(device_path: str) -> None:
         DiscoveryError: If the device is not found.
     """
     if not Path(device_path).exists():
-        raise DiscoveryError(
-            f"Device no longer connected: {device_path}\n"
-            "The device may have been unplugged during build."
+        msg = format_error(
+            "Device disconnected",
+            "Device no longer connected after build",
+            context={"path": device_path},
+            recovery=(
+                "1. Check USB cable connection\n"
+                "2. Verify board power LED is on\n"
+                "3. List devices: ls /dev/serial/by-id/\n"
+                "4. Reconnect and retry flash"
+            ),
         )
+        raise DiscoveryError(msg)
 
 
 def _try_katapult_flash(
