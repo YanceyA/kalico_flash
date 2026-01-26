@@ -13,7 +13,7 @@ Four phases move from foundation (skip-menuconfig, device exclusion, error messa
 
 ---
 
-## Phase 4: Foundation
+## Phase 4: Foundation ✓
 
 **Goal:** Establish core infrastructure for power users and error handling
 
@@ -21,22 +21,24 @@ Four phases move from foundation (skip-menuconfig, device exclusion, error messa
 
 **Requirements:** SKIP-01, SKIP-02, SKIP-03, SKIP-04, SKIP-05, EXCL-01, EXCL-02, EXCL-03, EXCL-04, EXCL-05, ERR-01, ERR-02, ERR-03, ERR-04, ERR-05, ERR-06
 
+**Status:** Complete (verified 2026-01-26)
+
 **Plans:** 5 plans
 
 Plans:
 - [x] 04-01-PLAN.md — Error message framework with context and recovery guidance
 - [x] 04-02-PLAN.md — Device exclusion schema with backward-compatible registry
 - [x] 04-03-PLAN.md — Skip-menuconfig flag and device exclusion CLI commands
-- [ ] 04-04-PLAN.md — [Gap closure] Integrate error framework into flash.py error paths
-- [ ] 04-05-PLAN.md — [Gap closure] Update supporting modules with format_error()
+- [x] 04-04-PLAN.md — [Gap closure] Integrate error framework into flash.py error paths
+- [x] 04-05-PLAN.md — [Gap closure] Update supporting modules with format_error()
 
-**Success Criteria:**
+**Success Criteria:** All verified ✓
 
-1. User can run `kflash --device octopus-pro -s` and skip menuconfig when cached config exists
-2. User sees helpful error with recovery steps when running `--skip-menuconfig` without cached config
-3. User can register Beacon probe as non-flashable and it appears in list but not flash selection
-4. User sees numbered recovery steps with copy-paste diagnostic commands on any error
-5. All error messages fit on 80-column terminal and include context (device name, MCU type, path)
+1. ✓ User can run `kflash --device octopus-pro -s` and skip menuconfig when cached config exists
+2. ✓ User sees helpful error with recovery steps when running `--skip-menuconfig` without cached config
+3. ✓ User can register Beacon probe as non-flashable and it appears in list but not flash selection
+4. ✓ User sees numbered recovery steps with copy-paste diagnostic commands on any error
+5. ✓ All error messages fit on 80-column terminal and include context (device name, MCU type, path)
 
 ---
 
@@ -98,12 +100,12 @@ Plans:
 
 | Phase | Name | Requirements | Status |
 |-------|------|--------------|--------|
-| 4 | Foundation | 16 | In Progress (5 plans, 3 complete) |
+| 4 | Foundation | 16 | Complete ✓ |
 | 5 | Moonraker Integration | 13 | Pending |
 | 6 | User Experience | 14 | Pending |
 | 7 | Release Polish | 12 | Pending |
 
-**Total:** 55 requirements mapped, 0 complete
+**Total:** 55 requirements mapped, 16 complete (29%)
 
 ---
 

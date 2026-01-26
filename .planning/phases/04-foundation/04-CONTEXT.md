@@ -30,7 +30,7 @@ Core infrastructure for power users: skip-menuconfig workflow (bypass menuconfig
 ### Error message format
 - Plain ASCII only — no Unicode box-drawing characters (maximum compatibility)
 - No color — plain text only, no ANSI escape codes
-- Recovery steps as prose paragraphs, not numbered lists or bullets
+- Recovery steps as numbered lists (1., 2., 3.) per ERR-04 requirement
 - Diagnostic commands included inline as copy-paste snippets (e.g., "Run `ls /dev/serial/by-id/` to see connected devices")
 - All error messages must fit 80-column terminal and include context (device name, MCU type, path)
 
