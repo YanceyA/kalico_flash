@@ -11,9 +11,9 @@ See: .planning/PROJECT.md (updated 2026-01-26)
 
 Milestone: v2.0 Public Release
 Phase: 4 of 4 (Foundation)
-Plan: 2 of 5 complete
+Plan: 2 of 5 complete (04-01, 04-02)
 Status: In progress
-Last activity: 2026-01-26 — Completed 04-02-PLAN.md (Device Exclusion Schema)
+Last activity: 2026-01-26 — Completed 04-01-PLAN.md (Error Message Framework)
 
 Progress: [██░░░░░░░░] ~10% (Plan 2 of ~20 total plans across phases)
 
@@ -61,6 +61,10 @@ All v1.0 decisions marked "Good" in PROJECT.md. Key patterns established:
 
 | Decision | Rationale | Plan |
 |----------|-----------|------|
+| format_error() for all error output | Consistent 80-column wrapped output with context and recovery | 04-01 |
+| ERROR_TEMPLATES dict | Centralized error messages for consistency | 04-01 |
+| ConfigMismatchError exception | Distinguish MCU mismatch from generic ConfigError | 04-01 |
+| ExcludedDeviceError exception | Clear error type for excluded device attempts | 04-01 |
 | flashable field defaults to True | Backward compatibility - existing devices remain flashable | 04-02 |
 | flashable at END of DeviceEntry | Dataclass field ordering (non-default after default) | 04-02 |
 | .get("flashable", True) in load() | Schema evolution pattern for backward compatibility | 04-02 |
@@ -84,9 +88,9 @@ All v1.0 decisions marked "Good" in PROJECT.md. Key patterns established:
 
 ## Session Continuity
 
-Last session: 2026-01-26T07:24:20Z
-Stopped at: Completed 04-02-PLAN.md
+Last session: 2026-01-26T07:24:46Z
+Stopped at: Completed 04-01-PLAN.md
 Resume file: None
 
 ---
-*Last updated: 2026-01-26 after 04-02-PLAN.md completion*
+*Last updated: 2026-01-26 after 04-01-PLAN.md completion*
