@@ -10,48 +10,38 @@ See: .planning/PROJECT.md (updated 2026-01-26)
 ## Current Position
 
 Milestone: v2.0 Public Release
-Phase: 4 of 4 complete (Foundation)
-Plan: All 5 plans complete + 1 critical fix
-Status: Phase 4 verified, ready for Phase 5
-Last activity: 2026-01-26 — Completed Phase 4: Foundation (all success criteria verified)
+Phase: 5 of 4 (Moonraker Integration)
+Plan: 1 of 4 complete
+Status: Phase 5 in progress
+Last activity: 2026-01-27 — Completed 05-01-PLAN.md (Moonraker API client)
 
-Progress: [████░░░░░░] ~29% (16/55 requirements complete)
+Progress: [█████░░░░░] ~31% (17/55 requirements addressed)
 
 ## v2.0 Roadmap Summary
 
 | Phase | Name | Requirements | Status |
 |-------|------|--------------|--------|
-| 4 | Foundation | 16 | Complete ✓ |
-| 5 | Moonraker Integration | 13 | Pending |
+| 4 | Foundation | 16 | Complete |
+| 5 | Moonraker Integration | 13 | In Progress (Plan 1/4 done) |
 | 6 | User Experience | 14 | Pending |
 | 7 | Release Polish | 12 | Pending |
 
 **Total:** 55 requirements, 4 phases
 
-## Phase 4 Completion Summary
+## Phase 5 Progress
 
-**Goal:** Establish core infrastructure for power users and error handling
+**Goal:** Users have safety checks and version awareness before flashing
 
-**Requirements Completed:**
-- Skip Menuconfig: SKIP-01 to SKIP-05 (5) ✓
-- Device Exclusion: EXCL-01 to EXCL-05 (5) ✓
-- Error Messages: ERR-01 to ERR-06 (6) ✓
+**Plans:**
+- 05-01: Moonraker API client module (Complete)
+- 05-02: Print safety integration (Pending)
+- 05-03: Version display integration (Pending)
+- 05-04: Graceful degradation flow (Pending)
 
-**Plans Executed:**
-- 04-01: Error message framework (format_error, ERROR_TEMPLATES)
-- 04-02: Device exclusion schema (flashable field)
-- 04-03: Skip-menuconfig flag and CLI commands
-- 04-04: Flash.py error integration (22 error_with_recovery calls)
-- 04-05: Supporting modules error integration
-
-**Critical Fix Applied:** commit b03e9cc — format_error() now preserves numbered list formatting
-
-**Success Criteria:** All 5 verified ✓
-1. ✓ Skip-menuconfig with cached config
-2. ✓ Graceful fallback when no cached config
-3. ✓ Device exclusion end-to-end
-4. ✓ Numbered recovery steps display correctly
-5. ✓ 80-column wrapping with context
+**Completed in 05-01:**
+- Created moonraker.py with 4 API functions
+- Added PrintStatus dataclass to models.py
+- Implemented graceful degradation pattern (return None, not raise)
 
 ## Accumulated Context
 
@@ -91,6 +81,16 @@ All v1.0 decisions marked "Good" in PROJECT.md. Key patterns established:
 | Inline format_error for config/flasher | Context varies per call site, inline is clearer | 04-05 |
 | Split recovery text for wrapping | Preserve newlines in numbered lists when wrapping to 80 cols | Fix |
 
+### Phase 5 Decisions
+
+| Decision | Rationale | Plan |
+|----------|-----------|------|
+| Hardcoded localhost:7125 URL | Per CONTEXT.md: "no custom URL support - keep it simple" | 05-01 |
+| Simple string comparison for versions | Informational only, never blocks flash | 05-01 |
+| PrintStatus in models.py | Hub-and-spoke consistency - all dataclasses in models.py | 05-01 |
+| MCU name normalization | "mcu" -> "main", "mcu nhk" -> "nhk" for clarity | 05-01 |
+| Catch OSError in exception handling | Covers socket errors and low-level network failures | 05-01 |
+
 ### Tech Debt (from v1.0 audit)
 
 - cmd_build() orphaned (no --build-only argparse flag)
@@ -101,23 +101,11 @@ All v1.0 decisions marked "Good" in PROJECT.md. Key patterns established:
 
 - None
 
-## Next Phase Preview
-
-**Phase 5: Moonraker Integration**
-
-Goal: Users have safety checks and version awareness before flashing
-
-Key features:
-- Print status check (block flash during active print)
-- Klipper version detection
-- MCU firmware version comparison
-- Graceful degradation when Moonraker unavailable
-
 ## Session Continuity
 
-Last session: 2026-01-26T08:35:00Z
-Stopped at: Phase 4 complete, verified
+Last session: 2026-01-27T10:08:00Z
+Stopped at: Completed 05-01-PLAN.md
 Resume file: None
 
 ---
-*Last updated: 2026-01-26 after Phase 4 completion*
+*Last updated: 2026-01-27 after 05-01 completion*
