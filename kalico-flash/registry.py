@@ -41,6 +41,7 @@ class Registry:
                 mcu=data["mcu"],
                 serial_pattern=data["serial_pattern"],
                 flash_method=data.get("flash_method"),
+                flashable=data.get("flashable", True),  # Default to True if missing
             )
         return RegistryData(global_config=global_config, devices=devices)
 
