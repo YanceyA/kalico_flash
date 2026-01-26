@@ -43,9 +43,10 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="flash.py",
         description="Build and flash Klipper firmware for USB-connected MCU boards.",
-        epilog="Run without args for interactive device selection, or use --device KEY "
-               "to flash a specific board. Device management: --add-device, --list-devices, "
-               "--remove-device.",
+        epilog="Run without args for interactive device selection, or use -d KEY "
+               "to flash a specific board. Use -s to skip menuconfig when cached config exists. "
+               "Device management: --add-device, --list-devices, --remove-device, "
+               "--exclude-device, --include-device.",
     )
     parser.add_argument(
         "--version",
@@ -53,9 +54,14 @@ def build_parser() -> argparse.ArgumentParser:
         version=f"kalico-flash v{VERSION}",
     )
     parser.add_argument(
-        "--device",
+        "-d", "--device",
         metavar="KEY",
         help="Device key to build and flash (run without --device for interactive selection)",
+    )
+    parser.add_argument(
+        "-s", "--skip-menuconfig",
+        action="store_true",
+        help="Skip menuconfig if cached config exists",
     )
 
     # Management commands (mutually exclusive)
@@ -74,6 +80,18 @@ def build_parser() -> argparse.ArgumentParser:
         "--remove-device",
         metavar="NAME",
         help="Remove a registered device by key",
+    )
+
+    # Device exclusion commands (not mutually exclusive with management group)
+    parser.add_argument(
+        "--exclude-device",
+        metavar="KEY",
+        help="Mark a device as non-flashable",
+    )
+    parser.add_argument(
+        "--include-device",
+        metavar="KEY",
+        help="Mark a device as flashable",
     )
 
     # Future flags (Phase 2/3):
