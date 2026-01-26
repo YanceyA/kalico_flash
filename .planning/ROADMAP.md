@@ -42,7 +42,7 @@ Plans:
 
 ---
 
-## Phase 5: Moonraker Integration
+## Phase 5: Moonraker Integration ✓
 
 **Goal:** Users have safety checks and version awareness before flashing
 
@@ -50,19 +50,21 @@ Plans:
 
 **Requirements:** SAFE-01, SAFE-02, SAFE-03, SAFE-04, SAFE-05, SAFE-06, VER-01, VER-02, VER-03, VER-04, VER-05, VER-06, VER-07
 
+**Status:** Complete (verified 2026-01-27)
+
 **Plans:** 2 plans
 
 Plans:
-- [ ] 05-01-PLAN.md — Create moonraker.py module with API client and version functions
-- [ ] 05-02-PLAN.md — Integrate Moonraker safety checks into flash workflow
+- [x] 05-01-PLAN.md — Create moonraker.py module with API client and version functions
+- [x] 05-02-PLAN.md — Integrate Moonraker safety checks into flash workflow
 
-**Success Criteria:**
+**Success Criteria:** All verified ✓
 
-1. User attempting to flash during active print sees "Print in progress: filename (45%)" and flash is blocked
-2. User can flash when Moonraker reports idle, complete, cancelled, or error state
-3. User sees warning and confirmation prompt when Moonraker is unreachable (not blocked)
-4. User sees host Klipper version vs MCU firmware version before flash, with indication if update needed
-5. User with multiple MCUs sees version info for the specific MCU being flashed
+1. ✓ User attempting to flash during active print sees "Print in progress: filename (45%)" and flash is blocked
+2. ✓ User can flash when Moonraker reports idle, complete, cancelled, or error state
+3. ✓ User sees warning and confirmation prompt when Moonraker is unreachable (not blocked)
+4. ✓ User sees host Klipper version vs MCU firmware version before flash, with indication if update needed
+5. ✓ User with multiple MCUs sees version info for the specific MCU being flashed
 
 ---
 
@@ -107,11 +109,11 @@ Plans:
 | Phase | Name | Requirements | Status |
 |-------|------|--------------|--------|
 | 4 | Foundation | 16 | Complete ✓ |
-| 5 | Moonraker Integration | 13 | Pending |
+| 5 | Moonraker Integration | 13 | Complete ✓ |
 | 6 | User Experience | 14 | Pending |
 | 7 | Release Polish | 12 | Pending |
 
-**Total:** 55 requirements mapped, 16 complete (29%)
+**Total:** 55 requirements mapped, 29 complete (53%)
 
 ---
 

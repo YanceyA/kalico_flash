@@ -5,51 +5,48 @@
 See: .planning/PROJECT.md (updated 2026-01-26)
 
 **Core value:** One command to build and flash any registered board — no remembering serial paths, flash commands, or config locations.
-**Current focus:** v2.0 Public Release — Phase 5 (Moonraker Integration)
+**Current focus:** v2.0 Public Release — Phase 6 (User Experience)
 
 ## Current Position
 
 Milestone: v2.0 Public Release
-Phase: 5 of 4 (Moonraker Integration)
-Plan: 2 of 4 complete
-Status: Phase 5 in progress
-Last activity: 2026-01-27 — Completed 05-02-PLAN.md (Print safety and version integration)
+Phase: 5 of 4 complete (Moonraker Integration)
+Plan: All 2 plans complete
+Status: Phase 5 verified, ready for Phase 6
+Last activity: 2026-01-27 — Completed Phase 5: Moonraker Integration (all success criteria verified)
 
-Progress: [██████░░░░] ~38% (21/55 requirements addressed)
+Progress: [█████░░░░░] ~53% (29/55 requirements complete)
 
 ## v2.0 Roadmap Summary
 
 | Phase | Name | Requirements | Status |
 |-------|------|--------------|--------|
-| 4 | Foundation | 16 | Complete |
-| 5 | Moonraker Integration | 13 | In Progress (Plan 2/4 done) |
+| 4 | Foundation | 16 | Complete ✓ |
+| 5 | Moonraker Integration | 13 | Complete ✓ |
 | 6 | User Experience | 14 | Pending |
 | 7 | Release Polish | 12 | Pending |
 
 **Total:** 55 requirements, 4 phases
 
-## Phase 5 Progress
+## Phase 5 Completion Summary
 
 **Goal:** Users have safety checks and version awareness before flashing
 
-**Plans:**
-- 05-01: Moonraker API client module (Complete)
-- 05-02: Print safety integration (Complete)
-- 05-03: Version display integration (Pending)
-- 05-04: Graceful degradation flow (Pending)
+**Requirements Completed:**
+- Safety Checks: SAFE-01 to SAFE-05 (5) ✓
+- Version Detection: VER-01, VER-02, VER-03, VER-05, VER-06, VER-07 (6) ✓
+- N/A: SAFE-06 (out of scope), VER-04 (informational only)
 
-**Completed in 05-01:**
-- Created moonraker.py with 4 API functions
-- Added PrintStatus dataclass to models.py
-- Implemented graceful degradation pattern (return None, not raise)
+**Plans Executed:**
+- 05-01: Moonraker API client (moonraker.py, PrintStatus dataclass)
+- 05-02: Flash workflow integration (safety check, version display)
 
-**Completed in 05-02:**
-- Print safety check blocks flash during printing/paused
-- Shows "Print in progress: filename (45%)" when blocked
-- Moonraker unreachable prompts Y/N confirmation (default=No)
-- Version display shows host and all MCU versions
-- Target MCU marked with asterisk in version list
-- Version mismatch warning (informational only)
+**Success Criteria:** All 5 verified ✓
+1. ✓ Print blocking during active prints with filename and progress
+2. ✓ Flash allowed when printer idle/complete/cancelled/error
+3. ✓ Graceful degradation when Moonraker unreachable (warn + confirm)
+4. ✓ Version display with host and MCU versions, mismatch warning
+5. ✓ Multi-MCU support with target MCU marked
 
 ## Accumulated Context
 
@@ -96,12 +93,11 @@ All v1.0 decisions marked "Good" in PROJECT.md. Key patterns established:
 | Hardcoded localhost:7125 URL | Per CONTEXT.md: "no custom URL support - keep it simple" | 05-01 |
 | Simple string comparison for versions | Informational only, never blocks flash | 05-01 |
 | PrintStatus in models.py | Hub-and-spoke consistency - all dataclasses in models.py | 05-01 |
-| MCU name normalization | "mcu" -> "main", "mcu nhk" -> "nhk" for clarity | 05-01 |
-| Catch OSError in exception handling | Covers socket errors and low-level network failures | 05-01 |
-| No --force flag for print blocking | Per CONTEXT.md: "no force-override for print safety" | 05-02 |
-| Version check informational only | Per CONTEXT.md: "Version comparison is informational only - never blocks flash" | 05-02 |
-| Target MCU marked with asterisk | User can identify which MCU is being flashed in version table | 05-02 |
-| Moonraker unreachable default=No | Conservative default - user must explicitly opt to continue without safety checks | 05-02 |
+| MCU name normalization | "mcu" -> "main" for clarity, "mcu nhk" -> "nhk" for brevity | 05-01 |
+| Graceful degradation pattern | All API functions return None on error, never raise | 05-01 |
+| No --force flag for print blocking | Safety first - wait or cancel print, no override | 05-02 |
+| Version check is informational only | Never blocks flash, just shows warning if outdated | 05-02 |
+| Target MCU marked with asterisk | Clear indication which MCU is being flashed in multi-MCU setups | 05-02 |
 
 ### Tech Debt (from v1.0 audit)
 
@@ -113,11 +109,23 @@ All v1.0 decisions marked "Good" in PROJECT.md. Key patterns established:
 
 - None
 
+## Next Phase Preview
+
+**Phase 6: User Experience**
+
+Goal: Interactive users have menu-driven workflow and flash verification
+
+Key features:
+- TUI menu with numbered options
+- Post-flash device verification
+- Unicode/ASCII terminal detection
+- Non-TTY environment handling
+
 ## Session Continuity
 
-Last session: 2026-01-27T10:40:00Z
-Stopped at: Completed 05-02-PLAN.md
+Last session: 2026-01-27T11:00:00Z
+Stopped at: Phase 5 complete, verified
 Resume file: None
 
 ---
-*Last updated: 2026-01-27 after 05-02 completion*
+*Last updated: 2026-01-27 after Phase 5 completion*

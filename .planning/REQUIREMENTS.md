@@ -117,36 +117,36 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TUI-06 | Phase 6 | Pending |
 | TUI-07 | Phase 6 | Pending |
 | TUI-08 | Phase 6 | Pending |
-| SAFE-01 | Phase 5 | Pending |
-| SAFE-02 | Phase 5 | Pending |
-| SAFE-03 | Phase 5 | Pending |
-| SAFE-04 | Phase 5 | Pending |
-| SAFE-05 | Phase 5 | Pending |
-| SAFE-06 | Phase 5 | Pending |
+| SAFE-01 | Phase 5 | Complete |
+| SAFE-02 | Phase 5 | Complete |
+| SAFE-03 | Phase 5 | Complete |
+| SAFE-04 | Phase 5 | Complete |
+| SAFE-05 | Phase 5 | Complete |
+| SAFE-06 | Phase 5 | N/A (out of scope) |
 | VERIFY-01 | Phase 6 | Pending |
 | VERIFY-02 | Phase 6 | Pending |
 | VERIFY-03 | Phase 6 | Pending |
 | VERIFY-04 | Phase 6 | Pending |
 | VERIFY-05 | Phase 6 | Pending |
 | VERIFY-06 | Phase 6 | Pending |
-| SKIP-01 | Phase 4 | Pending |
-| SKIP-02 | Phase 4 | Pending |
-| SKIP-03 | Phase 4 | Pending |
-| SKIP-04 | Phase 4 | Pending |
-| SKIP-05 | Phase 4 | Pending |
-| ERR-01 | Phase 4 | Pending |
-| ERR-02 | Phase 4 | Pending |
-| ERR-03 | Phase 4 | Pending |
-| ERR-04 | Phase 4 | Pending |
-| ERR-05 | Phase 4 | Pending |
-| ERR-06 | Phase 4 | Pending |
-| VER-01 | Phase 5 | Pending |
-| VER-02 | Phase 5 | Pending |
-| VER-03 | Phase 5 | Pending |
-| VER-04 | Phase 5 | Pending |
-| VER-05 | Phase 5 | Pending |
-| VER-06 | Phase 5 | Pending |
-| VER-07 | Phase 5 | Pending |
+| SKIP-01 | Phase 4 | Complete |
+| SKIP-02 | Phase 4 | Complete |
+| SKIP-03 | Phase 4 | Complete |
+| SKIP-04 | Phase 4 | Complete |
+| SKIP-05 | Phase 4 | Complete |
+| ERR-01 | Phase 4 | Complete |
+| ERR-02 | Phase 4 | Complete |
+| ERR-03 | Phase 4 | Complete |
+| ERR-04 | Phase 4 | Complete |
+| ERR-05 | Phase 4 | Complete |
+| ERR-06 | Phase 4 | Complete |
+| VER-01 | Phase 5 | Complete |
+| VER-02 | Phase 5 | Complete |
+| VER-03 | Phase 5 | Complete |
+| VER-04 | Phase 5 | N/A (informational only) |
+| VER-05 | Phase 5 | Complete |
+| VER-06 | Phase 5 | Complete |
+| VER-07 | Phase 5 | Complete |
 | INST-01 | Phase 7 | Pending |
 | INST-02 | Phase 7 | Pending |
 | INST-03 | Phase 7 | Pending |
@@ -159,11 +159,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DOC-04 | Phase 7 | Pending |
 | DOC-05 | Phase 7 | Pending |
 | DOC-06 | Phase 7 | Pending |
-| EXCL-01 | Phase 4 | Pending |
-| EXCL-02 | Phase 4 | Pending |
-| EXCL-03 | Phase 4 | Pending |
-| EXCL-04 | Phase 4 | Pending |
-| EXCL-05 | Phase 4 | Pending |
+| EXCL-01 | Phase 4 | Complete |
+| EXCL-02 | Phase 4 | Complete |
+| EXCL-03 | Phase 4 | Complete |
+| EXCL-04 | Phase 4 | Complete |
+| EXCL-05 | Phase 4 | Complete |
 
 **Coverage:**
 - v2.0 requirements: 55 total
@@ -172,4 +172,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-01-26*
-*Last updated: 2026-01-26 after roadmap creation*
+*Last updated: 2026-01-27 after Phase 5 completion*
