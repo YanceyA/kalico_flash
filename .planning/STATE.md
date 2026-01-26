@@ -11,17 +11,17 @@ See: .planning/PROJECT.md (updated 2026-01-26)
 
 Milestone: v2.0 Public Release
 Phase: 4 of 4 (Foundation)
-Plan: 2 of 5 complete (04-01, 04-02)
+Plan: 3 of 5 complete (04-01, 04-02, 04-03)
 Status: In progress
-Last activity: 2026-01-26 — Completed 04-01-PLAN.md (Error Message Framework)
+Last activity: 2026-01-26 — Completed 04-03-PLAN.md (Skip-Menuconfig and Device Exclusion CLI)
 
-Progress: [██░░░░░░░░] ~10% (Plan 2 of ~20 total plans across phases)
+Progress: [███░░░░░░░] ~15% (Plan 3 of ~20 total plans across phases)
 
 ## v2.0 Roadmap Summary
 
 | Phase | Name | Requirements | Status |
 |-------|------|--------------|--------|
-| 4 | Foundation | 16 | In Progress (Plan 2/5) |
+| 4 | Foundation | 16 | In Progress (Plan 3/5) |
 | 5 | Moonraker Integration | 13 | Pending |
 | 6 | User Experience | 14 | Pending |
 | 7 | Release Polish | 12 | Pending |
@@ -69,6 +69,10 @@ All v1.0 decisions marked "Good" in PROJECT.md. Key patterns established:
 | flashable at END of DeviceEntry | Dataclass field ordering (non-default after default) | 04-02 |
 | .get("flashable", True) in load() | Schema evolution pattern for backward compatibility | 04-02 |
 | Always persist flashable in JSON | Consistency and debuggability | 04-02 |
+| skip_menuconfig warns if no cache | User-friendly fallback - warn and launch menuconfig anyway | 04-03 |
+| MCU validation always runs | Safety check even when skipping menuconfig | 04-03 |
+| Excluded devices shown but not selectable | Users see excluded devices with [excluded] marker in interactive mode | 04-03 |
+| Add-device asks about flashable | Registration wizard includes flashable question (default: True) | 04-03 |
 
 ### Tech Debt (from v1.0 audit)
 
@@ -78,9 +82,8 @@ All v1.0 decisions marked "Good" in PROJECT.md. Key patterns established:
 
 ### Todos
 
-- Plan 03: Add --exclude-device and --include-device CLI commands
-- Plan 04: Update --list-devices to show excluded status
-- Plan 05: Filter excluded devices from flash selection
+- Plan 04: Additional CLI polish or integration tests
+- Plan 05: Error message integration across all modules
 
 ### Blockers
 
@@ -88,9 +91,9 @@ All v1.0 decisions marked "Good" in PROJECT.md. Key patterns established:
 
 ## Session Continuity
 
-Last session: 2026-01-26T07:24:46Z
-Stopped at: Completed 04-01-PLAN.md
+Last session: 2026-01-26T07:38:00Z
+Stopped at: Completed 04-03-PLAN.md
 Resume file: None
 
 ---
-*Last updated: 2026-01-26 after 04-01-PLAN.md completion*
+*Last updated: 2026-01-26 after 04-03-PLAN.md completion*
