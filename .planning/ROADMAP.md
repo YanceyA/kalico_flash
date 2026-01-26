@@ -21,12 +21,14 @@ Four phases move from foundation (skip-menuconfig, device exclusion, error messa
 
 **Requirements:** SKIP-01, SKIP-02, SKIP-03, SKIP-04, SKIP-05, EXCL-01, EXCL-02, EXCL-03, EXCL-04, EXCL-05, ERR-01, ERR-02, ERR-03, ERR-04, ERR-05, ERR-06
 
-**Plans:** 3 plans
+**Plans:** 5 plans
 
 Plans:
-- [ ] 04-01-PLAN.md — Error message framework with context and recovery guidance
-- [ ] 04-02-PLAN.md — Device exclusion schema with backward-compatible registry
-- [ ] 04-03-PLAN.md — Skip-menuconfig flag and device exclusion CLI commands
+- [x] 04-01-PLAN.md — Error message framework with context and recovery guidance
+- [x] 04-02-PLAN.md — Device exclusion schema with backward-compatible registry
+- [x] 04-03-PLAN.md — Skip-menuconfig flag and device exclusion CLI commands
+- [ ] 04-04-PLAN.md — [Gap closure] Integrate error framework into flash.py error paths
+- [ ] 04-05-PLAN.md — [Gap closure] Update supporting modules with format_error()
 
 **Success Criteria:**
 
@@ -96,7 +98,7 @@ Plans:
 
 | Phase | Name | Requirements | Status |
 |-------|------|--------------|--------|
-| 4 | Foundation | 16 | Planned (3 plans) |
+| 4 | Foundation | 16 | In Progress (5 plans, 3 complete) |
 | 5 | Moonraker Integration | 13 | Pending |
 | 6 | User Experience | 14 | Pending |
 | 7 | Release Polish | 12 | Pending |
