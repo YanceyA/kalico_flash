@@ -8,7 +8,7 @@ import tempfile
 from pathlib import Path
 from typing import Optional
 
-from errors import ConfigError
+from errors import ConfigError, format_error
 
 
 def get_config_dir(device_key: str) -> Path:
@@ -111,9 +111,17 @@ class ConfigManager:
         Raises ConfigError if klipper .config doesn't exist.
         """
         if not self.klipper_config_path.exists():
-            raise ConfigError(
-                f"No .config file in klipper directory: {self.klipper_dir}"
+            msg = format_error(
+                "Config error",
+                "No .config file found after menuconfig",
+                context={"path": str(self.klipper_dir)},
+                recovery=(
+                    "1. Run make menuconfig first\n"
+                    "2. Save config before exiting menuconfig\n"
+                    "3. Check path: ls {klipper_dir}/.config"
+                ).format(klipper_dir=self.klipper_dir),
             )
+            raise ConfigError(msg)
 
         _atomic_copy(str(self.klipper_config_path), str(self.cache_path))
 
@@ -132,15 +140,31 @@ class ConfigManager:
             ConfigError: If .config doesn't exist or has no CONFIG_MCU
         """
         if not self.klipper_config_path.exists():
-            raise ConfigError(
-                f"No .config file in klipper directory: {self.klipper_dir}"
+            msg = format_error(
+                "Config error",
+                "No .config file for MCU validation",
+                context={"path": str(self.klipper_dir)},
+                recovery=(
+                    "1. Run make menuconfig to create .config\n"
+                    "2. Or use --skip-menuconfig with existing cached config\n"
+                    "3. Check: ls {klipper_dir}/.config"
+                ).format(klipper_dir=self.klipper_dir),
             )
+            raise ConfigError(msg)
 
         actual_mcu = parse_mcu_from_config(str(self.klipper_config_path))
         if actual_mcu is None:
-            raise ConfigError(
-                f"No CONFIG_MCU found in .config: {self.klipper_config_path}"
+            msg = format_error(
+                "Config error",
+                "No CONFIG_MCU found in .config file",
+                context={"path": str(self.klipper_config_path)},
+                recovery=(
+                    "1. Run make menuconfig and select MCU type\n"
+                    "2. Save config before exiting\n"
+                    "3. Verify: grep CONFIG_MCU {config_path}"
+                ).format(config_path=self.klipper_config_path),
             )
+            raise ConfigError(msg)
 
         # Prefix match: device registry may have 'stm32h723', config has 'stm32h723xx'
         is_match = (
