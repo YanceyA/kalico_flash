@@ -380,6 +380,35 @@ def cmd_flash(registry, device_key, out, skip_menuconfig: bool = False) -> int:
 
     out.phase("Discovery", f"Target: {entry.name} ({entry.mcu}) at {device_path}")
 
+    # === Moonraker Safety Check ===
+    from moonraker import get_print_status, get_mcu_versions, get_host_klipper_version, is_mcu_outdated
+
+    print_status = get_print_status()
+
+    if print_status is None:
+        # Moonraker unreachable - warn and require confirmation
+        out.warn("Moonraker unreachable - print status and version check unavailable")
+        if not out.confirm("Continue without safety checks?", default=False):
+            out.phase("Flash", "Cancelled")
+            return 0
+    elif print_status.state in ("printing", "paused"):
+        # Block flash during active print
+        progress_pct = int(print_status.progress * 100)
+        filename = print_status.filename or "unknown"
+        out.error_with_recovery(
+            "Printer busy",
+            f"Print in progress: {filename} ({progress_pct}%)",
+            recovery=(
+                "1. Wait for current print to complete\n"
+                "2. Or cancel print in Fluidd/Mainsail dashboard\n"
+                "3. Then re-run flash command"
+            ),
+        )
+        return 1
+    else:
+        # Safe state - show status and continue
+        out.phase("Safety", f"Printer state: {print_status.state} - OK to flash")
+
     # === Phase 2: Config ===
     out.phase("Config", f"Loading config for {entry.name}...")
     config_mgr = ConfigManager(device_key, klipper_dir)
