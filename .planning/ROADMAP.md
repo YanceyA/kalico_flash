@@ -50,6 +50,12 @@ Plans:
 
 **Requirements:** SAFE-01, SAFE-02, SAFE-03, SAFE-04, SAFE-05, SAFE-06, VER-01, VER-02, VER-03, VER-04, VER-05, VER-06, VER-07
 
+**Plans:** 2 plans
+
+Plans:
+- [ ] 05-01-PLAN.md — Create moonraker.py module with API client and version functions
+- [ ] 05-02-PLAN.md — Integrate Moonraker safety checks into flash workflow
+
 **Success Criteria:**
 
 1. User attempting to flash during active print sees "Print in progress: filename (45%)" and flash is blocked
@@ -129,4 +135,4 @@ All 55 v2.0 requirements mapped to exactly one phase:
 
 ---
 *Roadmap created: 2026-01-26*
-*Last updated: 2026-01-26*
+*Last updated: 2026-01-27*
