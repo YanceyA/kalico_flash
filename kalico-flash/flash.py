@@ -112,7 +112,7 @@ def cmd_build(registry, device_key: str, out) -> int:
     # Late imports for fast startup
     from config import ConfigManager
     from build import run_menuconfig, run_build
-    from errors import ConfigError
+    from errors import ConfigError, ERROR_TEMPLATES
 
     # Load device entry
     entry = registry.get(device_key)
@@ -143,7 +143,13 @@ def cmd_build(registry, device_key: str, out) -> int:
     ret_code, was_saved = run_menuconfig(klipper_dir, str(config_mgr.klipper_config_path))
 
     if ret_code != 0:
-        out.error(f"menuconfig exited with code {ret_code}")
+        template = ERROR_TEMPLATES["menuconfig_failed"]
+        out.error_with_recovery(
+            template["error_type"],
+            template["message_template"],
+            context={"device": device_key},
+            recovery=template["recovery_template"],
+        )
         return 1
 
     if not was_saved:
@@ -157,22 +163,34 @@ def cmd_build(registry, device_key: str, out) -> int:
         config_mgr.save_cached_config()
         out.info("Config", f"Cached config for '{device_key}'")
     except ConfigError as e:
-        out.error(f"Failed to cache config: {e}")
+        out.error_with_recovery(
+            "Config error",
+            f"Failed to cache config: {e}",
+            context={"device": device_key},
+            recovery="1. Verify Klipper directory is writable\n2. Check disk space\n3. Re-run menuconfig",
+        )
         return 1
 
     # Step 4: MCU validation
     try:
         is_match, actual_mcu = config_mgr.validate_mcu(entry.mcu)
         if not is_match:
-            out.error(
-                f"MCU mismatch: config has '{actual_mcu}' but device "
-                f"'{device_key}' expects '{entry.mcu}'"
+            template = ERROR_TEMPLATES["mcu_mismatch"]
+            out.error_with_recovery(
+                template["error_type"],
+                template["message_template"].format(actual=actual_mcu, expected=entry.mcu),
+                context={"device": device_key, "expected": entry.mcu, "actual": actual_mcu},
+                recovery=template["recovery_template"],
             )
-            out.error("Refusing to build wrong firmware. Fix .config and try again.")
             return 1
         out.info("Config", f"MCU validated: {actual_mcu}")
     except ConfigError as e:
-        out.error(f"MCU validation failed: {e}")
+        out.error_with_recovery(
+            "Config error",
+            f"MCU validation failed: {e}",
+            context={"device": device_key},
+            recovery="1. Run menuconfig and verify MCU selection\n2. Check .config file exists\n3. Ensure CONFIG_MCU is set",
+        )
         return 1
 
     # Step 5: Build
@@ -180,7 +198,13 @@ def cmd_build(registry, device_key: str, out) -> int:
     result = run_build(klipper_dir)
 
     if not result.success:
-        out.error(f"Build failed: {result.error_message}")
+        template = ERROR_TEMPLATES["build_failed"]
+        out.error_with_recovery(
+            template["error_type"],
+            template["message_template"].format(device=device_key),
+            context={"device": device_key},
+            recovery=template["recovery_template"],
+        )
         return 1
 
     # Success
@@ -218,7 +242,7 @@ def cmd_flash(registry, device_key, out, skip_menuconfig: bool = False) -> int:
     from build import run_menuconfig, run_build, TIMEOUT_BUILD
     from service import klipper_service_stopped, verify_passwordless_sudo
     from flasher import flash_device, verify_device_path, TIMEOUT_FLASH
-    from errors import ConfigError, DiscoveryError
+    from errors import ConfigError, DiscoveryError, ERROR_TEMPLATES
 
     # TTY check for interactive mode
     if device_key is None and not sys.stdin.isatty():
@@ -355,7 +379,13 @@ def cmd_flash(registry, device_key, out, skip_menuconfig: bool = False) -> int:
         ret_code, was_saved = run_menuconfig(klipper_dir, str(config_mgr.klipper_config_path))
 
         if ret_code != 0:
-            out.error(f"menuconfig exited with code {ret_code}")
+            template = ERROR_TEMPLATES["menuconfig_failed"]
+            out.error_with_recovery(
+                template["error_type"],
+                template["message_template"],
+                context={"device": device_key},
+                recovery=template["recovery_template"],
+            )
             return 1
 
         if not was_saved:
@@ -369,22 +399,34 @@ def cmd_flash(registry, device_key, out, skip_menuconfig: bool = False) -> int:
             config_mgr.save_cached_config()
             out.phase("Config", f"Cached config for '{device_key}'")
         except ConfigError as e:
-            out.error(f"Failed to cache config: {e}")
+            out.error_with_recovery(
+                "Config error",
+                f"Failed to cache config: {e}",
+                context={"device": device_key},
+                recovery="1. Verify Klipper directory is writable\n2. Check disk space\n3. Re-run menuconfig",
+            )
             return 1
 
     # MCU validation (always runs, even with skip_menuconfig)
     try:
         is_match, actual_mcu = config_mgr.validate_mcu(entry.mcu)
         if not is_match:
-            out.error(
-                f"MCU mismatch: config has '{actual_mcu}' but device "
-                f"'{device_key}' expects '{entry.mcu}'"
+            template = ERROR_TEMPLATES["mcu_mismatch"]
+            out.error_with_recovery(
+                template["error_type"],
+                template["message_template"].format(actual=actual_mcu, expected=entry.mcu),
+                context={"device": device_key, "expected": entry.mcu, "actual": actual_mcu},
+                recovery=template["recovery_template"],
             )
-            out.error("Refusing to build wrong firmware. Fix .config and try again.")
             return 1
         out.phase("Config", f"MCU validated: {actual_mcu}")
     except ConfigError as e:
-        out.error(f"MCU validation failed: {e}")
+        out.error_with_recovery(
+            "Config error",
+            f"MCU validation failed: {e}",
+            context={"device": device_key},
+            recovery="1. Run menuconfig and verify MCU selection\n2. Check .config file exists\n3. Ensure CONFIG_MCU is set",
+        )
         return 1
 
     # === Phase 3: Build ===
@@ -392,8 +434,13 @@ def cmd_flash(registry, device_key, out, skip_menuconfig: bool = False) -> int:
     build_result = run_build(klipper_dir, timeout=TIMEOUT_BUILD)
 
     if not build_result.success:
-        out.error(f"Build failed: {build_result.error_message}")
-        out.error("Recovery: Check build output above for errors.")
+        template = ERROR_TEMPLATES["build_failed"]
+        out.error_with_recovery(
+            template["error_type"],
+            template["message_template"].format(device=device_key),
+            context={"device": device_key},
+            recovery=template["recovery_template"],
+        )
         return 1
 
     firmware_path = build_result.firmware_path
