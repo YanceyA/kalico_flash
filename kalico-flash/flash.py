@@ -192,7 +192,7 @@ def cmd_build(registry, device_key: str, out) -> int:
     return 0
 
 
-def cmd_flash(registry, device_key, out) -> int:
+def cmd_flash(registry, device_key, out, skip_menuconfig: bool = False) -> int:
     """Build and flash firmware for a registered device.
 
     Orchestrates the full workflow:
@@ -205,6 +205,7 @@ def cmd_flash(registry, device_key, out) -> int:
         registry: Registry instance for device lookup
         device_key: Device key to flash (None for interactive selection)
         out: Output interface for user messages
+        skip_menuconfig: If True, skip menuconfig when cached config exists
 
     Returns:
         0 on success, 1 on failure
@@ -314,28 +315,39 @@ def cmd_flash(registry, device_key, out) -> int:
     else:
         out.phase("Config", "No cached config found, starting fresh")
 
-    out.phase("Config", "Launching menuconfig...")
-    ret_code, was_saved = run_menuconfig(klipper_dir, str(config_mgr.klipper_config_path))
+    # Skip menuconfig if flag is set AND cached config exists
+    if skip_menuconfig:
+        if config_mgr.has_cached_config():
+            out.phase("Config", f"Using cached config for {device_key}")
+            # Skip menuconfig but still validate MCU
+        else:
+            # Per CONTEXT.md: warn and launch menuconfig anyway
+            out.warn(f"No cached config for '{device_key}', launching menuconfig")
+            skip_menuconfig = False  # Fall through to menuconfig
 
-    if ret_code != 0:
-        out.error(f"menuconfig exited with code {ret_code}")
-        return 1
+    if not skip_menuconfig:
+        out.phase("Config", "Launching menuconfig...")
+        ret_code, was_saved = run_menuconfig(klipper_dir, str(config_mgr.klipper_config_path))
 
-    if not was_saved:
-        out.warn("Config was not saved in menuconfig")
-        if not out.confirm("Continue build anyway?"):
-            out.phase("Config", "Cancelled")
-            return 0
+        if ret_code != 0:
+            out.error(f"menuconfig exited with code {ret_code}")
+            return 1
 
-    # Save config to cache
-    try:
-        config_mgr.save_cached_config()
-        out.phase("Config", f"Cached config for '{device_key}'")
-    except ConfigError as e:
-        out.error(f"Failed to cache config: {e}")
-        return 1
+        if not was_saved:
+            out.warn("Config was not saved in menuconfig")
+            if not out.confirm("Continue build anyway?"):
+                out.phase("Config", "Cancelled")
+                return 0
 
-    # MCU validation
+        # Save config to cache
+        try:
+            config_mgr.save_cached_config()
+            out.phase("Config", f"Cached config for '{device_key}'")
+        except ConfigError as e:
+            out.error(f"Failed to cache config: {e}")
+            return 1
+
+    # MCU validation (always runs, even with skip_menuconfig)
     try:
         is_match, actual_mcu = config_mgr.validate_mcu(entry.mcu)
         if not is_match:
@@ -664,7 +676,7 @@ def main() -> int:
         # Handle flash workflow (explicit --device or interactive selection)
         else:
             # args.device is None for interactive mode, or a specific key
-            return cmd_flash(registry, args.device, out)
+            return cmd_flash(registry, args.device, out, skip_menuconfig=args.skip_menuconfig)
 
     except KeyboardInterrupt:
         print("\nAborted.")
