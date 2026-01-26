@@ -61,6 +61,7 @@ class Registry:
                 "mcu": device.mcu,
                 "serial_pattern": device.serial_pattern,
                 "flash_method": device.flash_method,
+                "flashable": device.flashable,
             }
         _atomic_write_json(self.path, data)
 
@@ -101,6 +102,15 @@ class Registry:
         registry = self.load()
         registry.global_config = config
         self.save(registry)
+
+    def set_flashable(self, key: str, flashable: bool) -> bool:
+        """Set flashable status for a device. Returns False if device not found."""
+        registry = self.load()
+        if key not in registry.devices:
+            return False
+        registry.devices[key].flashable = flashable
+        self.save(registry)
+        return True
 
 
 def _atomic_write_json(path: str, data: dict) -> None:
