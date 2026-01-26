@@ -1,9 +1,6 @@
 # Claude Code local settings
 .claude/
 
-# GSD planning documents (development only)
-.planning/
-
 # Windows null device artifact
 nul
 
