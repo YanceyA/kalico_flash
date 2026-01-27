@@ -1,7 +1,8 @@
 """Interactive TUI menu for kalico-flash.
 
-Provides a numbered menu loop when running without arguments.
-Handles Unicode/ASCII terminal detection and non-TTY fallback.
+Provides a numbered main menu and settings submenu when running without
+arguments.  Handles Unicode/ASCII terminal detection, non-TTY fallback,
+invalid-input retry logic, and error-resilient action dispatch.
 
 Exports:
     run_menu: Main menu loop entry point.
