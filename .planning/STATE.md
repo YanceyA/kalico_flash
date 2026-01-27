@@ -11,11 +11,11 @@ See: .planning/PROJECT.md (updated 2026-01-26)
 
 Milestone: v2.0 Public Release
 Phase: 6 of 4 phases (User Experience)
-Plan: 1 of 3 complete in Phase 6
+Plan: 2 of 3 complete in Phase 6
 Status: In progress
-Last activity: 2026-01-27 — Completed 06-01-PLAN.md (TUI Core)
+Last activity: 2026-01-27 — Completed 06-02-PLAN.md (Menu Handlers + Settings)
 
-Progress: [██████░░░░] ~56% (34/55 requirements complete)
+Progress: [███████░░░] ~62% (40/55 requirements complete)
 
 ## v2.0 Roadmap Summary
 
@@ -23,7 +23,7 @@ Progress: [██████░░░░] ~56% (34/55 requirements complete)
 |-------|------|--------------|--------|
 | 4 | Foundation | 16 | Complete |
 | 5 | Moonraker Integration | 13 | Complete |
-| 6 | User Experience | 14 | In Progress (Plan 1/3 done) |
+| 6 | User Experience | 14 | In Progress (Plan 2/3 done) |
 | 7 | Release Polish | 12 | Pending |
 
 **Total:** 55 requirements, 4 phases
@@ -37,7 +37,13 @@ Progress: [██████░░░░] ~56% (34/55 requirements complete)
 - Wired flash.py entry point to route no-args to TUI
 - Commits: 28ba5ff, 4922127
 
-**Plan 06-02:** Pending
+**Plan 06-02: Menu Handlers + Settings (Complete)**
+- Improved remove handler with numbered device selection
+- Implemented settings submenu with path editing and view
+- Added _get_menu_choice() with 3-attempt retry logic
+- Wrapped action dispatches in error-resilient try/except
+- Commits: 7e2be87, 8839335, b89757f
+
 **Plan 06-03:** Pending
 
 ## Accumulated Context
@@ -99,6 +105,10 @@ All v1.0 decisions marked "Good" in PROJECT.md. Key patterns established:
 | Late imports in action handlers | Fast startup; tui.py imports flash.py functions only when needed | 06-01 |
 | TTY guard in both tui.py and flash.py | Defense in depth: flash.py checks before routing, tui.py at entry | 06-01 |
 | Settings is a stub | Settings UI comes in a later plan; menu slot reserved now | 06-01 |
+| Numbered list for remove device | Better UX than raw key entry; user sees available devices | 06-02 |
+| Generic _update_path() for settings | DRY: same logic for klipper_dir and katapult_dir | 06-02 |
+| Nested try/except in menu dispatch | Inner catches action errors, outer catches Ctrl+C | 06-02 |
+| _get_menu_choice() returns None on exhaustion | Caller decides exit behavior (main menu exits, submenus return) | 06-02 |
 
 ### Tech Debt (from v1.0 audit)
 
@@ -112,9 +122,9 @@ All v1.0 decisions marked "Good" in PROJECT.md. Key patterns established:
 
 ## Session Continuity
 
-Last session: 2026-01-27T07:08:00Z
-Stopped at: Completed 06-01-PLAN.md
+Last session: 2026-01-27T07:14:50Z
+Stopped at: Completed 06-02-PLAN.md
 Resume file: None
 
 ---
-*Last updated: 2026-01-27 after Plan 06-01 completion*
+*Last updated: 2026-01-27 after Plan 06-02 completion*
