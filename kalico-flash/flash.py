@@ -10,7 +10,7 @@ Usage:
     python flash.py --list-devices      # Show registered boards and status
     python flash.py --remove-device KEY # Remove a registered board
     python flash.py --device KEY        # Build and flash the named device
-    python flash.py                     # Interactive: select device to flash
+    python flash.py                     # Interactive menu (TTY) or help (non-TTY)
 
 This is the CLI entry point. Core logic lives in:
     - registry.py: Device registry persistence
@@ -22,6 +22,7 @@ This is the CLI entry point. Core logic lives in:
     - build.py: Menuconfig and firmware compilation
     - service.py: Klipper service lifecycle management
     - flasher.py: Dual-method flash operations
+    - tui.py: Interactive menu for no-args mode
 """
 from __future__ import annotations
 
@@ -43,7 +44,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="flash.py",
         description="Build and flash Klipper firmware for USB-connected MCU boards.",
-        epilog="Run without args for interactive device selection, or use -d KEY "
+        epilog="Run without args for interactive menu, or use -d KEY "
                "to flash a specific board. Use -s to skip menuconfig when cached config exists. "
                "Device management: --add-device, --list-devices, --remove-device, "
                "--exclude-device, --include-device.",
@@ -912,10 +913,18 @@ def main() -> int:
         elif args.include_device:
             return cmd_include_device(registry, args.include_device, out)
 
-        # Handle flash workflow (explicit --device or interactive selection)
-        else:
-            # args.device is None for interactive mode, or a specific key
+        # Handle explicit --device flash
+        elif args.device:
             return cmd_flash(registry, args.device, out, skip_menuconfig=args.skip_menuconfig)
+
+        # No args: interactive menu on TTY, help on non-TTY
+        else:
+            if sys.stdin.isatty():
+                from tui import run_menu
+                return run_menu(registry, out)
+            else:
+                parser.print_help()
+                return 0
 
     except KeyboardInterrupt:
         print("\nAborted.")
