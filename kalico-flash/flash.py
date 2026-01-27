@@ -42,7 +42,7 @@ VERSION = "0.1.0"
 def build_parser() -> argparse.ArgumentParser:
     """Build and return the argument parser."""
     parser = argparse.ArgumentParser(
-        prog="flash.py",
+        prog="kflash",
         description="Build and flash Klipper firmware for USB-connected MCU boards.",
         epilog="Run without args for interactive menu, or use -d KEY "
                "to flash a specific board. Use -s to skip menuconfig when cached config exists. "
