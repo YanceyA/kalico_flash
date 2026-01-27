@@ -2,44 +2,34 @@
 
 ## What This Is
 
-A Python CLI tool that automates Klipper/Kalico firmware building and flashing for USB-connected MCU boards on a Raspberry Pi. Replaces the manual workflow of make clean, make menuconfig, make, make flash with auto-discovery, device profiles, cached configs, and a single-command flow. Built for a Voron 2.4 running Kalico with an Octopus Pro (H723), Nitehawk 36 (RP2040), and Beacon probe.
+A Python CLI tool that automates Klipper/Kalico firmware building and flashing for USB-connected MCU boards on a Raspberry Pi. Features interactive TUI menu, print safety checks, post-flash verification, and comprehensive error recovery. Replaces the manual workflow of make clean, make menuconfig, make, make flash with auto-discovery, device profiles, cached configs, and a single-command flow.
 
 ## Core Value
 
 One command to build and flash any registered board — no remembering serial paths, flash commands, or config locations.
 
-## Current Milestone: v2.0 Public Release
+## Current State (v2.0 shipped)
 
-**Goal:** Prepare kalico-flash for release to the broader Klipper community with safety features, polish, and ease of installation.
-
-**Target features:**
-- Simple TUI menu for navigation without memorizing CLI flags
-- Print status check before flash (prevent mid-print disasters)
-- Post-flash verification (confirm device reappears)
-- Skip menuconfig flag for power users
-- Better error messages with recovery guidance
-- Version mismatch detection (host vs MCU)
-- Installation script (kflash command)
-- README documentation for public users
-- Device exclusion support (Beacon probe marked not flashable)
-
-## Previous Milestone (v1.0 shipped)
-
-- **10 Python modules** in klipper-flash/
-- **1,695 LOC** Python 3.9+ stdlib only
-- **Tested and working** on target Raspberry Pi
+**Shipped:** 2026-01-27
+**Modules:** 12 Python modules in kalico-flash/
+**LOC:** 2,909 lines Python 3.9+ stdlib only
+**Status:** Ready for public release
 
 **CLI commands:**
-- `python flash.py` — Interactive device selection, full flash workflow
-- `python flash.py --device KEY` — Flash specific registered device
-- `python flash.py --add-device` — Register new board
-- `python flash.py --list-devices` — Show registered/connected devices
-- `python flash.py --remove-device KEY` — Unregister board
+- `kflash` — Interactive TUI menu with Add/List/Flash/Remove/Settings
+- `kflash --device KEY` — Flash specific registered device
+- `kflash --device KEY -s` — Flash with skip-menuconfig (uses cached config)
+- `kflash --add-device` — Register new board
+- `kflash --list-devices` — Show registered/connected devices
+- `kflash --remove-device KEY` — Unregister board
+- `kflash --exclude-device KEY` — Mark device as non-flashable
+- `kflash --include-device KEY` — Mark device as flashable
 
 ## Requirements
 
 ### Validated
 
+**v1.0 (MVP):**
 - ✓ Device registry with atomic JSON persistence — v1.0
 - ✓ USB discovery with pattern matching (/dev/serial/by-id/) — v1.0
 - ✓ Config caching with MCU validation (prevents wrong-board firmware) — v1.0
@@ -50,22 +40,36 @@ One command to build and flash any registered board — no remembering serial pa
 - ✓ Subprocess timeouts (build: 300s, flash: 60s, service: 30s) — v1.0
 - ✓ Hub-and-spoke architecture with dataclass contracts — v1.0
 
-### Active (v2.0 candidates)
+**v2.0 (Public Release):**
+- ✓ Interactive TUI menu with numbered options — v2.0
+- ✓ Unicode/ASCII box drawing for terminal compatibility — v2.0
+- ✓ Print safety check via Moonraker (blocks flash during print) — v2.0
+- ✓ Host vs MCU version comparison before flash — v2.0
+- ✓ Post-flash verification (confirms device reappears as Klipper) — v2.0
+- ✓ Skip-menuconfig flag for power users with cached configs — v2.0
+- ✓ Device exclusion for non-flashable devices (Beacon probe) — v2.0
+- ✓ Contextual error messages with numbered recovery steps — v2.0
+- ✓ Installation script (kflash command) — v2.0
+- ✓ README documentation with Quick Start and CLI Reference — v2.0
+- ✓ Moonraker Update Manager integration — v2.0
+- ✓ Settings submenu for path configuration — v2.0
+
+### Active (future candidates)
 
 - [ ] SHA256 change detection to skip rebuild when config unchanged
-- [ ] --skip-menuconfig flag to skip TUI when cached config exists
 - [ ] --no-clean flag for incremental builds
-- [ ] Post-flash verification (check device reappears with klipper serial pattern)
-- [ ] Moonraker print status check before stopping klipper (refuse if printing)
+- [ ] Batch flash multiple devices
+- [ ] CAN bus device support
 
 ### Out of Scope
 
 - RPi MCU flashing — different workflow (linux process, not USB serial)
-- CAN bus device discovery — USB only
-- Moonraker/Fluidd UI integration — CLI only, architecture supports future integration
-- Multi-device batch flash — one device at a time
-- Firmware version tracking/rollback — out of scope
+- CAN bus device discovery — USB only for now
+- Moonraker/Fluidd web UI integration — CLI only, architecture supports future integration
+- Firmware version tracking/rollback — requires infrastructure
 - Automatic klipper git pull — dangerous, user manages source updates
+- curses-based TUI — complexity and Windows issues, print/input sufficient
+- Moonraker URL configuration — hardcoded localhost:7125, keep it simple
 
 ## Context
 
@@ -74,6 +78,7 @@ One command to build and flash any registered board — no remembering serial pa
 - **Boards:**
   - Octopus Pro v1.1 — STM32H723, USB, 128kb bootloader, 25kHz clock
   - Nitehawk 36 — RP2040, USB, 16kb bootloader, !gpio8 at start
+  - Beacon probe — Registered as non-flashable
 - **Serial paths:** Use /dev/serial/by-id/ symlinks (stable across reboots), match klipper pattern only
 - **Flash methods:** Both boards support katapult (flashtool.py) and make flash. Katapult is preferred, make flash is fallback.
 - **Klipper source:** ~/klipper (default), Katapult source: ~/katapult (default)
@@ -100,7 +105,7 @@ python3 ~/katapult/scripts/flashtool.py -f ~/klipper/out/klipper.bin -d /dev/ser
 - **Platform**: Raspberry Pi (ARM Linux) — must work over SSH
 - **Working directory**: make commands must run with cwd=klipper_dir
 - **Service management**: sudo systemctl stop/start klipper (passwordless sudo assumed)
-- **Deployment**: Built on dev machine, manually copied to Pi
+- **Deployment**: Git clone + ./install.sh on Pi
 
 ## Key Decisions
 
@@ -108,13 +113,20 @@ python3 ~/katapult/scripts/flashtool.py -f ~/klipper/out/klipper.bin -d /dev/ser
 |----------|-----------|---------|
 | Katapult-first with auto-fallback | Katapult is preferred flash method; make flash as safety net | ✓ Good |
 | Single serial pattern per device (klipper mode only) | Katapult mode requires manual DFU entry, too complex for this tool | ✓ Good |
-| menuconfig runs every flash | User wants the option to tweak config each time | ✓ Good |
+| menuconfig runs every flash (unless -s flag) | User wants option to tweak config each time | ✓ Good |
 | No dry-run | SSH workflow doesn't benefit enough to justify complexity | ✓ Good |
 | Stdlib only | Raspberry Pi environment, avoid dependency management | ✓ Good |
 | Context manager for service lifecycle | Guarantees restart even on exception/Ctrl+C | ✓ Good |
 | Hub-and-spoke architecture | Clean separation, no cross-imports between modules | ✓ Good |
 | Dataclass contracts for cross-module data | Strong typing, clear interfaces | ✓ Good |
 | Late imports in CLI | Fast startup, only load what's needed | ✓ Good |
+| Graceful degradation for Moonraker | Return None on failure, never raise; warn but don't block | ✓ Good |
+| Version check informational only | Never blocks flash, just shows warning if outdated | ✓ Good |
+| No --force for print blocking | Safety first - wait or cancel print, no override | ✓ Good |
+| Print/input TUI (not curses) | Simpler, no Windows issues, works over SSH | ✓ Good |
+| format_error() for all error output | Consistent 80-column wrapped output with context | ✓ Good |
+| Symlink over wrapper script | Direct symlink to flash.py, uses Python shebang | ✓ Good |
+| 30s verification timeout | RP2040 boards need more time to re-enumerate | ✓ Good |
 
 ---
-*Last updated: 2026-01-26 after v2.0 milestone start*
+*Last updated: 2026-01-27 after v2.0 milestone complete*

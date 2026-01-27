@@ -1,4 +1,35 @@
-# Project Milestones: klipper-flash
+# Project Milestones: kalico-flash
+
+## v2.0 Public Release (Shipped: 2026-01-27)
+
+**Delivered:** Production-ready CLI with interactive menu, print safety checks, version detection, post-flash verification, and comprehensive documentation for public release.
+
+**Phases completed:** 4-7 (12 plans total)
+
+**Key accomplishments:**
+
+- Interactive TUI menu with Unicode/ASCII box drawing and setup-first navigation
+- Print safety checks via Moonraker API (blocks flash during active prints)
+- Host vs MCU version comparison with outdated firmware warnings
+- Post-flash verification polling (confirms device reappears as Klipper, not Katapult)
+- Skip-menuconfig flag for power users with cached configs
+- Device exclusion for non-flashable devices (Beacon probe support)
+- Contextual error messages with numbered recovery steps
+- Installation script (kflash command via ~/.local/bin symlink)
+- Complete README documentation with Quick Start and CLI Reference
+
+**Stats:**
+
+- 12 Python modules (2 new: moonraker.py, tui.py)
+- 2,909 lines of Python
+- 4 phases, 12 plans
+- 2 days (2026-01-26 → 2026-01-27)
+
+**Git range:** `feat(04-01)` → `docs(07)`
+
+**What's next:** Public release to Klipper community
+
+---
 
 ## v1.0 MVP (Shipped: 2026-01-25)
 
@@ -25,35 +56,5 @@
 **Git range:** `feat(01-01)` → `feat(03-02)`
 
 **What's next:** v2.0 Public Release
-
----
-
-## v2.0 Public Release (In Progress)
-
-**Goal:** Prepare kalico-flash for release to the broader Klipper community with safety features, polish, and ease of installation.
-
-**Started:** 2026-01-26
-
-**Phases:**
-
-| Phase | Name | Requirements |
-|-------|------|--------------|
-| 4 | Foundation | Skip menuconfig, device exclusion, error messages |
-| 5 | Moonraker Integration | Print safety check, version detection |
-| 6 | User Experience | TUI menu, post-flash verification |
-| 7 | Release Polish | Installation script, README documentation |
-
-**Key features:**
-- Simple TUI menu for navigation
-- Print status check before flash (prevent mid-print disasters)
-- Post-flash verification (confirm device reappears)
-- Skip menuconfig flag for power users
-- Better error messages with recovery guidance
-- Version mismatch detection (host vs MCU)
-- Installation script (kflash command)
-- README documentation for public users
-- Device exclusion support (Beacon probe marked not flashable)
-
-**Requirements:** 55 total across 9 categories
 
 ---
