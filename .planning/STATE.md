@@ -10,12 +10,12 @@ See: .planning/PROJECT.md (updated 2026-01-26)
 ## Current Position
 
 Milestone: v2.0 Public Release
-Phase: 6 of 4 complete (User Experience)
-Plan: All 3 plans complete
-Status: Phase 6 verified, ready for Phase 7
-Last activity: 2026-01-27 — Completed Phase 6: User Experience (all success criteria verified)
+Phase: 7 of 7 (Release Polish)
+Plan: 2 of 3 complete
+Status: In progress
+Last activity: 2026-01-27 — Completed 07-02-PLAN.md (README Documentation)
 
-Progress: [████████░░] ~78% (43/55 requirements complete)
+Progress: [████████░░] ~82% (45/55 requirements complete)
 
 ## v2.0 Roadmap Summary
 
@@ -24,31 +24,32 @@ Progress: [████████░░] ~78% (43/55 requirements complete)
 | 4 | Foundation | 16 | Complete |
 | 5 | Moonraker Integration | 13 | Complete |
 | 6 | User Experience | 14 | Complete |
-| 7 | Release Polish | 12 | Pending |
+| 7 | Release Polish | 12 | In Progress (2/3 plans) |
 
 **Total:** 55 requirements, 4 phases
 
-## Phase 6 Progress (Complete)
+## Phase 7 Progress (In Progress)
 
-**Goal:** Interactive users have menu-driven workflow and flash verification
+**Goal:** Installation, documentation, and final cleanup for public release
 
-**Plan 06-01: TUI Core (Complete)**
-- Created tui.py module with menu loop, box rendering, unicode detection
-- Wired flash.py entry point to route no-args to TUI
-- Commits: 28ba5ff, 4922127
+**Plan 07-01: Install Script (Pending)**
+- install.sh exists but not yet committed
+- Creates ~/.local/bin/kflash symlink
+- Prerequisite checks with warnings
+- PATH handling with offer to fix
 
-**Plan 06-02: Menu Handlers + Settings (Complete)**
-- Improved remove handler with numbered device selection
-- Implemented settings submenu with path editing and view
-- Added _get_menu_choice() with 3-attempt retry logic
-- Wrapped action dispatches in error-resilient try/except
-- Commits: 7e2be87, 8839335, b89757f
+**Plan 07-02: README Documentation (Complete)**
+- Rewrote README.md for public release (244 lines)
+- Quick Start with 4 numbered steps
+- CLI Reference table with all 10 commands
+- Moonraker Update Manager config snippet
+- No troubleshooting section (inline errors sufficient)
+- Commits: 1be3dae
 
-**Plan 06-03: Flash Verification (Complete)**
-- Added wait_for_device() polling function to tui.py
-- Added verification_timeout and verification_wrong_prefix error templates
-- Integrated verification into cmd_flash() with three-way result handling
-- Commits: 46daed4, 60f6c59, bca06bb
+**Plan 07-03: Code Cleanup (Pending)**
+- Argparse prog name update (flash.py -> kflash)
+- Orphaned code removal
+- Final polish
 
 ## Accumulated Context
 
@@ -117,6 +118,13 @@ All v1.0 decisions marked "Good" in PROJECT.md. Key patterns established:
 | Three-way verification result handling | Distinguishes flash failure from verification failure | 06-03 |
 | Progress dots every 2 seconds | Balances user feedback with readable output | 06-03 |
 
+### Phase 7 Decisions
+
+| Decision | Rationale | Plan |
+|----------|-----------|------|
+| No troubleshooting section in README | Inline error messages from Phase 4 provide recovery steps | 07-02 |
+| USER as GitHub URL placeholder | User replaces with their fork URL | 07-02 |
+
 ### Tech Debt (from v1.0 audit)
 
 - cmd_build() orphaned (no --build-only argparse flag)
@@ -129,9 +137,9 @@ All v1.0 decisions marked "Good" in PROJECT.md. Key patterns established:
 
 ## Session Continuity
 
-Last session: 2026-01-27T12:00:00Z
-Stopped at: Phase 6 complete, verified
+Last session: 2026-01-27T09:16:24Z
+Stopped at: Completed 07-02-PLAN.md
 Resume file: None
 
 ---
-*Last updated: 2026-01-27 after Phase 6 completion*
+*Last updated: 2026-01-27 after 07-02 completion*
