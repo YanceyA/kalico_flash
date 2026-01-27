@@ -226,7 +226,7 @@ def run_menu(registry, out) -> int:
 
 
 # ---------------------------------------------------------------------------
-# Action stubs -- wired to real commands in Plan 02
+# Action handlers
 # ---------------------------------------------------------------------------
 
 def _action_add_device(registry, out) -> None:
@@ -275,6 +275,86 @@ def _action_remove_device(registry, out) -> None:
     cmd_remove_device(registry, device_key, out)
 
 
-def _action_settings(out) -> None:
-    """Show settings (placeholder for future implementation)."""
-    out.info("Settings", "Not implemented yet")
+# ---------------------------------------------------------------------------
+# Settings submenu
+# ---------------------------------------------------------------------------
+
+SETTINGS_OPTIONS: list[tuple[str, str]] = [
+    ("1", "Change Klipper directory"),
+    ("2", "Change Katapult directory"),
+    ("3", "View current settings"),
+    ("0", "Back to main menu"),
+]
+
+
+def _settings_menu(registry, out) -> None:
+    """Settings submenu for path configuration.
+
+    Displays a box-drawn submenu that lets the user change Klipper/Katapult
+    source directories or view current global settings.  Returns to the
+    main menu on ``0``, ``q``, or after too many invalid attempts.
+    """
+    box = _get_box_chars()
+    settings_text = _render_menu(SETTINGS_OPTIONS, box)
+
+    while True:
+        print()
+        print(settings_text)
+        print()
+
+        choice = _get_menu_choice(["0", "1", "2", "3"], out)
+
+        if choice is None or choice == "0":
+            return
+
+        if choice == "1":
+            _update_path(registry, out, "klipper_dir", "Klipper source directory")
+        elif choice == "2":
+            _update_path(registry, out, "katapult_dir", "Katapult source directory")
+        elif choice == "3":
+            _view_settings(registry, out)
+
+
+def _update_path(registry, out, field: str, label: str) -> None:
+    """Prompt for a new path value and persist it to the registry.
+
+    Args:
+        registry: Registry instance.
+        out: Output interface.
+        field: GlobalConfig field name (``klipper_dir`` or ``katapult_dir``).
+        label: Human-readable label for the prompt.
+    """
+    data = registry.load()
+    gc = data.global_config
+    if gc is None:
+        out.warn("No global config exists. Run Add Device first.")
+        return
+
+    current = getattr(gc, field)
+    new_path = out.prompt(label, default=current)
+
+    if new_path == current:
+        out.info("Settings", "No change.")
+        return
+
+    from models import GlobalConfig
+    kwargs = {
+        "klipper_dir": gc.klipper_dir,
+        "katapult_dir": gc.katapult_dir,
+        "default_flash_method": gc.default_flash_method,
+    }
+    kwargs[field] = new_path
+    registry.save_global(GlobalConfig(**kwargs))
+    out.success(f"{label} updated to: {new_path}")
+
+
+def _view_settings(registry, out) -> None:
+    """Display current global configuration values."""
+    data = registry.load()
+    gc = data.global_config
+    if gc is not None:
+        out.info("Settings", f"Klipper directory:      {gc.klipper_dir}")
+        out.info("Settings", f"Katapult directory:     {gc.katapult_dir}")
+        out.info("Settings", f"Default flash method:   {gc.default_flash_method}")
+    else:
+        out.info("Settings", "No global configuration set. Run Add Device first.")
