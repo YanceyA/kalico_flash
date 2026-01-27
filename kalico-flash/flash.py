@@ -250,6 +250,7 @@ def cmd_flash(registry, device_key, out, skip_menuconfig: bool = False) -> int:
     from service import klipper_service_stopped, verify_passwordless_sudo
     from flasher import flash_device, verify_device_path, TIMEOUT_FLASH
     from errors import ConfigError, DiscoveryError, ERROR_TEMPLATES
+    from tui import wait_for_device
 
     # TTY check for interactive mode
     if device_key is None and not sys.stdin.isatty():
@@ -567,7 +568,21 @@ def cmd_flash(registry, device_key, out, skip_menuconfig: bool = False) -> int:
                 klipper_dir=klipper_dir,
                 timeout=TIMEOUT_FLASH,
             )
-        out.phase("Flash", "Klipper restarted")
+
+            if flash_result.success:
+                # Verify device reappears BEFORE restarting Klipper
+                out.phase("Verify", "Waiting for device to reappear...")
+                verified, device_path_new, error_reason = wait_for_device(
+                    entry.serial_pattern,
+                    timeout=30.0,
+                )
+            else:
+                verified = False
+                device_path_new = None
+                error_reason = flash_result.error_message
+
+        # Context manager exited - Klipper has restarted
+        out.phase("Service", "Klipper restarted")
     except Exception as e:
         template = ERROR_TEMPLATES["flash_failed"]
         out.error_with_recovery(
@@ -581,12 +596,30 @@ def cmd_flash(registry, device_key, out, skip_menuconfig: bool = False) -> int:
     flash_elapsed = time.monotonic() - flash_start
 
     # === Summary ===
-    if flash_result.success:
+    if flash_result.success and verified:
         out.success(
             f"Flashed {entry.name} via {flash_result.method} in {flash_elapsed:.1f}s"
         )
+        out.phase("Verify", f"Device confirmed at: {device_path_new}")
         return 0
+
+    elif flash_result.success and not verified:
+        # Flash appeared to succeed but device didn't reappear correctly
+        out.warn(f"Device verification failed: {error_reason}")
+        if device_path_new:
+            template = ERROR_TEMPLATES["verification_wrong_prefix"]
+        else:
+            template = ERROR_TEMPLATES["verification_timeout"]
+        out.error_with_recovery(
+            template["error_type"],
+            template["message_template"],
+            context={"device": device_key, "pattern": entry.serial_pattern},
+            recovery=template["recovery_template"],
+        )
+        return 1
+
     else:
+        # flash_result.success was False
         template = ERROR_TEMPLATES["flash_failed"]
         out.error_with_recovery(
             template["error_type"],
