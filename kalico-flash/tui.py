@@ -120,16 +120,43 @@ def _render_menu(options: list[tuple[str, str]], box: dict[str, str]) -> str:
 # Input handling
 # ---------------------------------------------------------------------------
 
-def _get_choice(out) -> str:
-    """Prompt the user for a menu choice.
+def _get_menu_choice(
+    valid_choices: list[str], out, max_attempts: int = 3,
+) -> str | None:
+    """Get a valid menu choice with retry logic.
+
+    Prompts the user for input, validates against ``valid_choices``, and
+    retries up to ``max_attempts`` times on invalid input.  Typing ``q``
+    is normalised to ``"0"`` (exit / back).
+
+    Args:
+        valid_choices: Acceptable input strings (e.g. ``["0","1","2"]``).
+        out: Output interface for warning messages.
+        max_attempts: Maximum number of attempts before giving up.
 
     Returns:
-        The stripped, lowered user input string (or empty on EOF).
+        A string from *valid_choices*, ``"0"`` (on ``q``), or ``None``
+        if the user exceeded *max_attempts*.
     """
-    try:
-        return out.prompt("Choice", default="").strip().lower()
-    except EOFError:
-        return "q"
+    for attempt in range(max_attempts):
+        try:
+            choice = input("Select option: ").strip().lower()
+        except EOFError:
+            return "0"
+
+        if choice in ("q",):
+            return "0"
+
+        if choice in valid_choices:
+            return choice
+
+        remaining = max_attempts - attempt - 1
+        if remaining > 0:
+            out.warn(f"Invalid option '{choice}'. {remaining} attempts remaining.")
+        else:
+            out.warn(f"Invalid option '{choice}'. Too many invalid attempts.")
+
+    return None
 
 
 # ---------------------------------------------------------------------------
@@ -164,26 +191,36 @@ def run_menu(registry, out) -> int:
             print(menu_text)
             print()
 
-            choice = _get_choice(out)
+            choice = _get_menu_choice(
+                ["0", "1", "2", "3", "4", "5"], out,
+            )
 
-            if choice in ("0", "q"):
+            if choice is None:
+                out.error("Too many invalid inputs. Exiting.")
+                return 1
+
+            if choice == "0":
                 return 0
 
-            if choice == "1":
-                _action_add_device(registry, out)
-            elif choice == "2":
-                _action_list_devices(registry, out)
-            elif choice == "3":
-                _action_flash_device(registry, out)
-            elif choice == "4":
-                _action_remove_device(registry, out)
-            elif choice == "5":
-                _action_settings(out)
-            else:
-                out.warn("Invalid choice. Enter a number from the menu.")
+            # Dispatch to handler with error resilience
+            try:
+                if choice == "1":
+                    _action_add_device(registry, out)
+                elif choice == "2":
+                    _action_list_devices(registry, out)
+                elif choice == "3":
+                    _action_flash_device(registry, out)
+                elif choice == "4":
+                    _action_remove_device(registry, out)
+                elif choice == "5":
+                    _settings_menu(registry, out)
+            except KeyboardInterrupt:
+                out.warn("Cancelled.")
+            except Exception as exc:
+                out.error(f"Action failed: {exc}")
 
         except KeyboardInterrupt:
-            # Ctrl+C exits cleanly per CONTEXT.md
+            # Ctrl+C at the menu prompt exits cleanly per CONTEXT.md
             print()
             return 0
 
@@ -212,11 +249,28 @@ def _action_flash_device(registry, out) -> None:
 
 
 def _action_remove_device(registry, out) -> None:
-    """Prompt for device key and remove it."""
-    device_key = out.prompt("Device key to remove")
-    if not device_key:
-        out.warn("No device key provided.")
+    """Remove a registered device via numbered selection."""
+    data = registry.load()
+    devices = list(data.devices.items())
+
+    if not devices:
+        out.warn("No devices registered.")
         return
+
+    out.info("Remove Device", "Select device to remove:")
+    for i, (key, entry) in enumerate(devices, 1):
+        out.info("", f"  {i}. {key} ({entry.name})")
+
+    valid = [str(i) for i in range(1, len(devices) + 1)]
+    choice = _get_menu_choice(valid, out, max_attempts=3)
+
+    if choice is None or choice == "0":
+        out.warn("Cancelled.")
+        return
+
+    idx = int(choice) - 1
+    device_key = devices[idx][0]
+
     from flash import cmd_remove_device
     cmd_remove_device(registry, device_key, out)
 
