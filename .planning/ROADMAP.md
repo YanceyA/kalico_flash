@@ -76,11 +76,18 @@ Plans:
 
 **Requirements:** TUI-01, TUI-02, TUI-03, TUI-04, TUI-05, TUI-06, TUI-07, TUI-08, VERIFY-01, VERIFY-02, VERIFY-03, VERIFY-04, VERIFY-05, VERIFY-06
 
+**Plans:** 3 plans
+
+Plans:
+- [ ] 06-01-PLAN.md — TUI module core: menu loop, unicode detection, entry point routing
+- [ ] 06-02-PLAN.md — Menu actions and settings submenu with retry logic
+- [ ] 06-03-PLAN.md — Post-flash verification with polling and progress feedback
+
 **Success Criteria:**
 
-1. User running `kflash` with no args sees numbered menu: Flash, List devices, Add device, Remove device, Settings, Exit
+1. User running `kflash` with no args sees numbered menu: Add device, List devices, Flash, Remove device, Settings, Exit
 2. User can navigate menu, complete actions, and return to menu (not exit) until choosing Exit
-3. User receives confirmation message with device path after successful flash, or recovery steps if device does not reappear within 15 seconds
+3. User receives confirmation message with device path after successful flash, or recovery steps if device does not reappear within 30 seconds
 4. User sees box-drawn menu in UTF-8 terminals, clean ASCII menu over legacy SSH connections
 5. User in non-TTY environment (piped input, cron) sees helpful error instead of broken menu
 
