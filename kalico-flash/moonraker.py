@@ -99,6 +99,10 @@ def get_mcu_versions() -> Optional[dict[str, str]]:
 def get_host_klipper_version(klipper_dir: str) -> Optional[str]:
     """Get host Klipper version via git describe.
 
+    Uses --long flag to always include commit count and hash, matching
+    the format used by MCU firmware (e.g., "v0.12.0-0-g7ce409d" when
+    exactly at tag, "v0.12.0-45-g7ce409d" when 45 commits ahead).
+
     Args:
         klipper_dir: Path to Klipper source directory (supports ~ expansion).
 
@@ -108,7 +112,7 @@ def get_host_klipper_version(klipper_dir: str) -> Optional[str]:
     klipper_path = Path(klipper_dir).expanduser()
     try:
         result = subprocess.run(
-            ["git", "describe", "--always", "--tags", "--dirty"],
+            ["git", "describe", "--always", "--tags", "--long", "--dirty"],
             cwd=str(klipper_path),
             capture_output=True,
             text=True,
