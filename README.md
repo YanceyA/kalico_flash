@@ -1,195 +1,216 @@
 # kalico-flash
 
-A Python CLI tool that automates Kalico firmware building and flashing for USB-connected MCU boards on a Raspberry Pi.
+One-command firmware building and flashing for Kalico/Klipper USB boards.
 
-Replaces the manual workflow of `make clean`, `make menuconfig`, `make`, `make flash` with auto-discovery, device profiles, cached configs, and a single-command flow.
+## Quick Start
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/USER/kalico-flash.git ~/kalico-flash
+   cd ~/kalico-flash
+   ```
+
+2. **Install:**
+   ```bash
+   ./install.sh
+   ```
+   Expected output: `Installed kflash -> /home/pi/kalico-flash/kalico-flash/flash.py`
+
+3. **Add your first device:**
+   ```bash
+   kflash --add-device
+   ```
+   Follow the wizard to register a connected board.
+
+4. **Flash:**
+   ```bash
+   kflash
+   ```
+   Select your device from the menu, or use `kflash -d DEVICE_KEY` directly.
 
 ## Features
 
-- **One-command flash workflow** - Build and flash firmware with `python flash.py`
-- **Device registry** - Register boards once, flash by name forever
-- **USB auto-discovery** - Scans `/dev/serial/by-id/` for connected devices
-- **Config caching** - Per-device menuconfig settings preserved between sessions
-- **MCU validation** - Prevents flashing wrong firmware to a board
-- **Dual-method flash** - Katapult first, `make flash` fallback
-- **Service lifecycle** - Guaranteed Klipper restart even on Ctrl+C or errors
-- **Phase-labeled output** - Clear `[Discovery]`, `[Config]`, `[Build]`, `[Flash]` progress
-- **Zero dependencies** - Python 3.9+ stdlib only, no pip installs required
+### Interactive TUI Menu
 
-## Requirements
+Run `kflash` with no arguments to get an interactive menu:
 
-- **Python 3.9+** (stdlib only)
-- **Raspberry Pi** (or similar Linux SBC) running Klipper/Moonraker
-- **Klipper source** at `~/klipper` (configurable)
-- **Katapult** at `~/katapult` (optional, for preferred flash method)
-- **Passwordless sudo** (standard on MainsailOS/FluiddPi)
-- **USB-connected MCU boards** (not CAN bus)
+```
+kflash
+
+  kalico-flash v0.1.0
+
+  1) Flash a device
+  2) Add new device
+  3) List devices
+  4) Remove device
+  5) Settings
+  6) Exit
+
+  Select [1-6]:
+```
+
+### Skip Menuconfig
+
+Use `-s` to skip the menuconfig TUI when a cached config exists:
+
+```bash
+kflash -d octopus-pro -s
+```
+
+This uses the previously saved config, validates the MCU, builds, and flashes in one step. If no cached config exists, menuconfig launches anyway with a warning.
+
+### Device Exclusion
+
+Mark devices that shouldn't be flashed (like Beacon probes that manage their own firmware):
+
+```bash
+kflash --exclude-device beacon
+```
+
+Excluded devices appear in listings with `[excluded]` but aren't selectable for flashing. To re-enable:
+
+```bash
+kflash --include-device beacon
+```
+
+### Print Safety
+
+kalico-flash checks Moonraker before flashing. If a print is in progress:
+
+```
+[Safety] Printer state: printing - 47% complete
+ERROR: Printer busy
+  Print in progress: benchy.gcode (47%)
+
+Recovery:
+  1. Wait for current print to complete
+  2. Or cancel print in Fluidd/Mainsail dashboard
+  3. Then re-run flash command
+```
+
+If Moonraker is unreachable, you're warned and asked to confirm before proceeding.
+
+### Version Display
+
+Before flashing, kalico-flash shows host Klipper version and MCU firmware versions:
+
+```
+[Version] Host Klipper: v0.12.0-299-g1a2b3c4d
+[Version]   [*] MCU main: v0.12.0-250-g5e6f7a8b
+[Version]   [ ] MCU nhk: v0.12.0-250-g5e6f7a8b
+```
+
+The `*` marks the MCU being flashed. If the MCU firmware is behind the host version, you'll see a warning recommending the update.
+
+### Post-Flash Verification
+
+After flashing, kalico-flash waits up to 30 seconds for the device to reappear with its Klipper serial identity:
+
+```
+[Flash] Flashing firmware...
+[Verify] Waiting for device to reappear...
+[Verify] Device confirmed at: /dev/serial/by-id/usb-Klipper_stm32h723xx_...
+[OK] Flashed Octopus Pro v1.1 via katapult in 8.2s
+```
+
+If the device doesn't reappear or reappears with the wrong serial prefix, you'll get specific recovery steps.
+
+## CLI Reference
+
+| Command | Description | Example |
+|---------|-------------|---------|
+| `kflash` | Interactive menu | `kflash` |
+| `kflash -d KEY` | Flash specific device | `kflash -d octopus-pro` |
+| `kflash -d KEY -s` | Flash, skip menuconfig | `kflash -d octopus-pro -s` |
+| `kflash --add-device` | Register new device | `kflash --add-device` |
+| `kflash --list-devices` | Show registered devices | `kflash --list-devices` |
+| `kflash --remove-device KEY` | Remove device | `kflash --remove-device old-board` |
+| `kflash --exclude-device KEY` | Mark non-flashable | `kflash --exclude-device beacon` |
+| `kflash --include-device KEY` | Mark flashable | `kflash --include-device beacon` |
+| `kflash --version` | Show version | `kflash --version` |
+| `kflash --help` | Show help | `kflash --help` |
+
+**Short flags:**
+- `-d KEY` is shorthand for `--device KEY`
+- `-s` is shorthand for `--skip-menuconfig`
 
 ## Installation
 
-1. Copy the `kalico-flash/` directory to your Raspberry Pi:
+### Requirements
+
+- **Python 3.9+** (stdlib only, no pip dependencies)
+- **Raspberry Pi** or similar Linux SBC running Klipper/Moonraker
+- **Klipper source** at `~/klipper` (or custom path, configured on first run)
+- **Katapult** at `~/katapult` (optional, for preferred flash method)
+- **Passwordless sudo** for service control (standard on MainsailOS/FluiddPi)
+- **USB-connected boards** (CAN bus devices not supported)
+
+### Install Steps
+
+1. Clone the repository:
    ```bash
-   scp -r kalico-flash/ pi@your-pi:~/kalico-flash/
+   git clone https://github.com/USER/kalico-flash.git ~/kalico-flash
    ```
 
-2. Verify Python version:
-   ```bash
-   python3 --version  # Must be 3.9+
-   ```
-
-3. Test the tool:
+2. Run the install script:
    ```bash
    cd ~/kalico-flash
-   python3 flash.py --help
+   ./install.sh
    ```
 
-## Usage
+The install script:
+- Creates a symlink from `~/.local/bin/kflash` to the flash.py entry point
+- Checks prerequisites (Python version, Klipper directory, serial access) and warns if issues found
+- Offers to add `~/.local/bin` to your PATH if not already present
 
-### Register a New Device
+Because the install uses a symlink, updates via `git pull` take effect immediately without re-running the installer.
 
-```bash
-python3 flash.py --add-device
-```
-
-Interactive wizard that:
-1. Scans USB for connected boards
-2. Prompts for device key (e.g., `octopus-pro`)
-3. Auto-detects MCU type from serial path
-4. Saves to `devices.json`
-
-First run also configures global paths (Klipper/Katapult directories).
-
-### List Registered Devices
+### Verify Installation
 
 ```bash
-python3 flash.py --list-devices
+kflash --version
 ```
 
-Shows all registered devices with connection status:
-```
-[Devices] 2 registered, 3 USB devices found
-  [OK] octopus-pro: Octopus Pro v1.1 (stm32h723)  /dev/serial/by-id/usb-Klipper_stm32h723xx_...
-  [--] nitehawk: Nitehawk 36 (rp2040)             (disconnected)
-  [??] Unknown device                             [usb-Beacon_RevH_...]
+Expected output: `kalico-flash v0.1.0`
+
+## Automatic Updates
+
+Add to `moonraker.conf` for automatic updates through Fluidd/Mainsail:
+
+```ini
+[update_manager kalico-flash]
+type: git_repo
+path: ~/kalico-flash
+origin: https://github.com/USER/kalico-flash.git
+primary_branch: master
+is_system_service: False
 ```
 
-### Flash a Device (Interactive)
+After adding, restart Moonraker:
 
 ```bash
-python3 flash.py
+sudo systemctl restart moonraker
 ```
 
-If multiple registered devices are connected, prompts for selection. Single device auto-selects with confirmation.
+kalico-flash will then appear in the Update Manager section of your dashboard. Updates are applied via `git pull` - no service restart needed since kflash is a CLI tool, not a daemon.
 
-### Flash a Specific Device
+## Uninstall
+
+To remove kalico-flash:
 
 ```bash
-python3 flash.py --device octopus-pro
+cd ~/kalico-flash
+./install.sh --uninstall
 ```
 
-Skips selection, directly flashes the named device.
-
-### Remove a Device
+This removes the `kflash` symlink from `~/.local/bin`. The repository and any cached configs remain and can be deleted manually:
 
 ```bash
-python3 flash.py --remove-device octopus-pro
+rm -rf ~/kalico-flash
+rm -rf ~/.config/kalico-flash
 ```
 
-Removes from registry, optionally deletes cached config.
-
-## Workflow
-
-When you run `python3 flash.py`, the tool executes four phases:
-
-### 1. Discovery
-- Scans `/dev/serial/by-id/` for USB serial devices
-- Matches against registered device patterns
-- Prompts for device selection (if interactive)
-
-### 2. Config
-- Loads cached `.config` for the device (if exists)
-- Launches `make menuconfig` TUI for review/changes
-- Saves updated config to cache
-- Validates MCU type matches device registry
-
-### 3. Build
-- Runs `make clean` in Klipper directory
-- Runs `make -jN` (N = CPU cores) for parallel build
-- Verifies `out/klipper.bin` was created
-
-### 4. Flash
-- Verifies device still connected
-- Stops Klipper service (`sudo systemctl stop klipper`)
-- Attempts Katapult flash (`flashtool.py`)
-- Falls back to `make flash` if Katapult fails
-- Restarts Klipper service (guaranteed, even on error)
-
-## Architecture
-
-```
-kalico-flash/
-├── flash.py       # CLI entry point, argument parsing, command routing
-├── models.py      # Dataclass contracts (DeviceEntry, BuildResult, etc.)
-├── errors.py      # Exception hierarchy (KlipperFlashError base)
-├── output.py      # Pluggable output interface (CLI, future Moonraker)
-├── registry.py    # Device registry with atomic JSON persistence
-├── discovery.py   # USB scanning and pattern matching
-├── config.py      # Kconfig caching and MCU validation
-├── build.py       # menuconfig TUI and firmware compilation
-├── service.py     # Klipper service lifecycle (context manager)
-├── flasher.py     # Dual-method flash operations
-└── devices.json   # Device registry (created on first --add-device)
-```
-
-### Design Principles
-
-- **Hub-and-spoke architecture** - `flash.py` orchestrates, modules don't cross-import
-- **Dataclass contracts** - Strong typing for cross-module data exchange
-- **Late imports** - Fast CLI startup, only loads what's needed
-- **Atomic writes** - Registry and config use temp file + fsync + rename
-- **Context manager** - Service lifecycle guarantees restart on all code paths
-
-## Configuration
-
-### Global Config
-
-Set during first `--add-device`:
-- `klipper_dir` - Path to Klipper source (default: `~/klipper`)
-- `katapult_dir` - Path to Katapult source (default: `~/katapult`)
-- `default_flash_method` - `katapult` or `make_flash` (default: `katapult`)
-
-### Per-Device Config
-
-Stored in `devices.json`:
-```json
-{
-  "devices": {
-    "octopus-pro": {
-      "name": "Octopus Pro v1.1",
-      "mcu": "stm32h723",
-      "serial_pattern": "usb-Klipper_stm32h723xx_29001A001151313531383332*",
-      "flash_method": null
-    }
-  }
-}
-```
-
-### Menuconfig Cache
-
-Per-device `.config` files stored in:
-```
-~/.config/kalico-flash/configs/{device-key}/.config
-```
-
-Respects `XDG_CONFIG_HOME` if set.
-
-## Timeouts
-
-| Operation | Default | Notes |
-|-----------|---------|-------|
-| Build | 300s | `make clean` + `make -j` |
-| Flash | 60s | Per method (Katapult, then make flash) |
-| Service | 30s | `systemctl stop/start klipper` |
+To remove the Update Manager entry, delete the `[update_manager kalico-flash]` section from `moonraker.conf` and restart Moonraker.
 
 ## Supported Boards
 
@@ -201,47 +222,18 @@ Should work with any USB-connected board that:
 - Appears in `/dev/serial/by-id/` with `Klipper_` or `katapult_` prefix
 - Supports `make flash` or Katapult flashing
 
-## Troubleshooting
+CAN bus devices are not supported - USB only.
 
-### "No USB devices found"
-- Check board is powered and connected via USB
-- Verify with `ls /dev/serial/by-id/`
-- Ensure board is in Klipper mode (not DFU/bootloader)
+## How It Works
 
-### "Device not found in registry"
-- Run `--list-devices` to see registered names
-- Use exact device key with `--device`
-- Re-register with `--add-device` if needed
+When you run `kflash`, the tool executes four phases:
 
-### "MCU mismatch"
-- Config was edited for different board type
-- Re-run menuconfig and select correct MCU
-- Or delete cached config: `rm ~/.config/kalico-flash/configs/{key}/.config`
+1. **Discovery** - Scans `/dev/serial/by-id/` for USB serial devices, matches against registered device patterns
+2. **Config** - Loads cached menuconfig settings, optionally launches menuconfig for review, validates MCU type
+3. **Build** - Runs `make clean` + `make -j$(nproc)` with timeout protection
+4. **Flash** - Stops Klipper service, flashes via Katapult (or `make flash` fallback), verifies device reappears, restarts Klipper
 
-### "Flash timeout"
-- Board may need manual recovery
-- Power cycle the board
-- Try `--device KEY` to retry
-
-### "Failed to stop Klipper"
-- Check sudo permissions: `sudo -n systemctl status klipper`
-- Verify Klipper service exists: `systemctl list-units | grep klipper`
-
-## Future Plans (v2.0)
-
-- [ ] SHA256 change detection to skip rebuild when config unchanged
-- [ ] `--skip-menuconfig` flag when cached config exists
-- [ ] `--no-clean` flag for incremental builds
-- [ ] Post-flash verification (device reappears with Klipper serial)
-- [ ] Moonraker print status check (refuse flash while printing)
-
-## Out of Scope
-
-- **RPi MCU flashing** - Different workflow (linux process, not USB)
-- **CAN bus devices** - USB only
-- **Multi-device batch flash** - One device at a time
-- **Firmware rollback** - No version tracking
-- **Automatic Klipper updates** - User manages source
+The Klipper service is guaranteed to restart even if flashing fails or you press Ctrl+C.
 
 ## License
 
@@ -249,4 +241,4 @@ This project is provided as-is for personal use with Klipper/Kalico 3D printing 
 
 ## Acknowledgments
 
-Built for a Voron 2.4 running [Kalico](https://docs.kalico.gg) (Klipper fork).
+Built for [Kalico](https://docs.kalico.gg), a Klipper fork with advanced input shaping features.
