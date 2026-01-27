@@ -9,14 +9,14 @@ Requirements for public release. Each maps to roadmap phases.
 
 ### TUI Menu
 
-- [ ] **TUI-01**: Running `kflash` with no args shows numbered main menu
-- [ ] **TUI-02**: Menu options: Flash, List devices, Add device, Remove device, Settings, Exit
-- [ ] **TUI-03**: After completing an action, return to main menu (not exit)
-- [ ] **TUI-04**: Invalid input shows error and re-prompts (max 3 attempts)
-- [ ] **TUI-05**: Exit on `0`, `q`, or Ctrl+C
-- [ ] **TUI-06**: Non-TTY environments skip menu with helpful error
-- [ ] **TUI-07**: Settings submenu: Change Klipper dir, Change Katapult dir, View settings
-- [ ] **TUI-08**: Unicode box drawing with ASCII fallback for legacy terminals
+- [x] **TUI-01**: Running `kflash` with no args shows numbered main menu
+- [x] **TUI-02**: Menu options: Flash, List devices, Add device, Remove device, Settings, Exit
+- [x] **TUI-03**: After completing an action, return to main menu (not exit)
+- [x] **TUI-04**: Invalid input shows error and re-prompts (max 3 attempts)
+- [x] **TUI-05**: Exit on `0`, `q`, or Ctrl+C
+- [x] **TUI-06**: Non-TTY environments skip menu with helpful error
+- [x] **TUI-07**: Settings submenu: Change Klipper dir, Change Katapult dir, View settings
+- [x] **TUI-08**: Unicode box drawing with ASCII fallback for legacy terminals
 
 ### Safety Checks
 
@@ -29,12 +29,12 @@ Requirements for public release. Each maps to roadmap phases.
 
 ### Post-Flash Verification
 
-- [ ] **VERIFY-01**: After flash, wait for device to reappear in `/dev/serial/by-id/`
-- [ ] **VERIFY-02**: Poll interval 500ms, timeout 15 seconds
-- [ ] **VERIFY-03**: Confirm device has `Klipper_` prefix (not `katapult_`)
-- [ ] **VERIFY-04**: Success message shows device path
-- [ ] **VERIFY-05**: If timeout, show warning with numbered recovery steps
-- [ ] **VERIFY-06**: Klipper still restarted even if verification fails
+- [x] **VERIFY-01**: After flash, wait for device to reappear in `/dev/serial/by-id/`
+- [x] **VERIFY-02**: Poll interval 500ms, timeout 30 seconds (extended from 15s per CONTEXT.md for RP2040 compatibility)
+- [x] **VERIFY-03**: Confirm device has `Klipper_` prefix (not `katapult_`)
+- [x] **VERIFY-04**: Success message shows device path
+- [x] **VERIFY-05**: If timeout, show warning with numbered recovery steps
+- [x] **VERIFY-06**: Klipper still restarted even if verification fails
 
 ### Skip Menuconfig
 
@@ -109,26 +109,26 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| TUI-01 | Phase 6 | Pending |
-| TUI-02 | Phase 6 | Pending |
-| TUI-03 | Phase 6 | Pending |
-| TUI-04 | Phase 6 | Pending |
-| TUI-05 | Phase 6 | Pending |
-| TUI-06 | Phase 6 | Pending |
-| TUI-07 | Phase 6 | Pending |
-| TUI-08 | Phase 6 | Pending |
+| TUI-01 | Phase 6 | Complete |
+| TUI-02 | Phase 6 | Complete |
+| TUI-03 | Phase 6 | Complete |
+| TUI-04 | Phase 6 | Complete |
+| TUI-05 | Phase 6 | Complete |
+| TUI-06 | Phase 6 | Complete |
+| TUI-07 | Phase 6 | Complete |
+| TUI-08 | Phase 6 | Complete |
 | SAFE-01 | Phase 5 | Complete |
 | SAFE-02 | Phase 5 | Complete |
 | SAFE-03 | Phase 5 | Complete |
 | SAFE-04 | Phase 5 | Complete |
 | SAFE-05 | Phase 5 | Complete |
 | SAFE-06 | Phase 5 | N/A (out of scope) |
-| VERIFY-01 | Phase 6 | Pending |
-| VERIFY-02 | Phase 6 | Pending |
-| VERIFY-03 | Phase 6 | Pending |
-| VERIFY-04 | Phase 6 | Pending |
-| VERIFY-05 | Phase 6 | Pending |
-| VERIFY-06 | Phase 6 | Pending |
+| VERIFY-01 | Phase 6 | Complete |
+| VERIFY-02 | Phase 6 | Complete |
+| VERIFY-03 | Phase 6 | Complete |
+| VERIFY-04 | Phase 6 | Complete |
+| VERIFY-05 | Phase 6 | Complete |
+| VERIFY-06 | Phase 6 | Complete |
 | SKIP-01 | Phase 4 | Complete |
 | SKIP-02 | Phase 4 | Complete |
 | SKIP-03 | Phase 4 | Complete |
@@ -172,4 +172,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-01-26*
-*Last updated: 2026-01-27 after Phase 5 completion*
+*Last updated: 2026-01-27 after Phase 6 completion*
