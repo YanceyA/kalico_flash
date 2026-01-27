@@ -11,11 +11,11 @@ See: .planning/PROJECT.md (updated 2026-01-26)
 
 Milestone: v2.0 Public Release
 Phase: 7 of 7 (Release Polish)
-Plan: 2 of 3 complete
+Plan: 1 of 3 complete
 Status: In progress
-Last activity: 2026-01-27 — Completed 07-02-PLAN.md (README Documentation)
+Last activity: 2026-01-27 — Completed 07-01-PLAN.md (Install Script)
 
-Progress: [████████░░] ~82% (45/55 requirements complete)
+Progress: [████████░░] ~80% (44/55 requirements complete)
 
 ## v2.0 Roadmap Summary
 
@@ -24,7 +24,7 @@ Progress: [████████░░] ~82% (45/55 requirements complete)
 | 4 | Foundation | 16 | Complete |
 | 5 | Moonraker Integration | 13 | Complete |
 | 6 | User Experience | 14 | Complete |
-| 7 | Release Polish | 12 | In Progress (2/3 plans) |
+| 7 | Release Polish | 12 | In Progress (1/3 plans) |
 
 **Total:** 55 requirements, 4 phases
 
@@ -32,22 +32,20 @@ Progress: [████████░░] ~82% (45/55 requirements complete)
 
 **Goal:** Installation, documentation, and final cleanup for public release
 
-**Plan 07-01: Install Script (Pending)**
-- install.sh exists but not yet committed
-- Creates ~/.local/bin/kflash symlink
-- Prerequisite checks with warnings
-- PATH handling with offer to fix
+**Plan 07-01: Install Script (Complete)**
+- Created install.sh at repo root (90 lines)
+- Symlink-based install to ~/.local/bin/kflash (XDG-compliant)
+- Idempotent: mkdir -p, ln -sfn for safe re-runs
+- --uninstall flag removes symlink cleanly
+- PATH check with offer to add to ~/.bashrc
+- Prerequisite warnings: Python 3.9+, ~/klipper, dialout group
+- Fixed argparse prog name (flash.py -> kflash)
+- Commits: 956e12c, 1cbe355
 
-**Plan 07-02: README Documentation (Complete)**
-- Rewrote README.md for public release (244 lines)
-- Quick Start with 4 numbered steps
-- CLI Reference table with all 10 commands
-- Moonraker Update Manager config snippet
-- No troubleshooting section (inline errors sufficient)
-- Commits: 1be3dae
+**Plan 07-02: README Documentation (Pending)**
+- Not yet started
 
 **Plan 07-03: Code Cleanup (Pending)**
-- Argparse prog name update (flash.py -> kflash)
 - Orphaned code removal
 - Final polish
 
@@ -122,8 +120,9 @@ All v1.0 decisions marked "Good" in PROJECT.md. Key patterns established:
 
 | Decision | Rationale | Plan |
 |----------|-----------|------|
-| No troubleshooting section in README | Inline error messages from Phase 4 provide recovery steps | 07-02 |
-| USER as GitHub URL placeholder | User replaces with their fork URL | 07-02 |
+| Symlink over wrapper script | Direct symlink is simpler; Python shebang handles execution | 07-01 |
+| Warn-only prerequisite checks | Don't fail install on missing prereqs; user may be setting up | 07-01 |
+| Don't remove PATH on uninstall | May affect other tools; only remove symlink | 07-01 |
 
 ### Tech Debt (from v1.0 audit)
 
@@ -137,9 +136,9 @@ All v1.0 decisions marked "Good" in PROJECT.md. Key patterns established:
 
 ## Session Continuity
 
-Last session: 2026-01-27T09:16:24Z
-Stopped at: Completed 07-02-PLAN.md
+Last session: 2026-01-27T09:17:19Z
+Stopped at: Completed 07-01-PLAN.md
 Resume file: None
 
 ---
-*Last updated: 2026-01-27 after 07-02 completion*
+*Last updated: 2026-01-27 after 07-01 completion*
