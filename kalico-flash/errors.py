@@ -144,6 +144,28 @@ ERROR_TEMPLATES: dict[str, dict[str, str]] = {
             "4. Retry flash after board enters bootloader"
         ),
     },
+    # Post-flash verification errors (Phase 6)
+    "verification_timeout": {
+        "error_type": "Verification failed",
+        "message_template": "Device did not reappear after flash",
+        "recovery_template": (
+            "1. Check USB cable is firmly connected\n"
+            "2. Try unplugging and replugging the board\n"
+            "3. Check device status: `ls /dev/serial/by-id/`\n"
+            "4. Check kernel messages: `dmesg | tail -20`\n"
+            "5. Board may need manual bootloader entry (hold BOOT button)"
+        ),
+    },
+    "verification_wrong_prefix": {
+        "error_type": "Verification failed",
+        "message_template": "Device reappeared in bootloader mode",
+        "recovery_template": (
+            "1. Flash may have failed - device is still in bootloader\n"
+            "2. Check device: `ls /dev/serial/by-id/ | grep katapult`\n"
+            "3. Try flash again - Katapult method should retry\n"
+            "4. If repeated failures, check firmware binary exists"
+        ),
+    },
     "katapult_not_found": {
         "error_type": "Katapult not available",
         "message_template": "Katapult flashtool not found at {path}",
