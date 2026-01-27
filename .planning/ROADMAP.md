@@ -103,6 +103,12 @@ Plans:
 
 **Requirements:** INST-01, INST-02, INST-03, INST-04, INST-05, INST-06, DOC-01, DOC-02, DOC-03, DOC-04, DOC-05, DOC-06
 
+**Plans:** 2 plans
+
+Plans:
+- [ ] 07-01-PLAN.md — Install script with symlink, PATH handling, and argparse fix
+- [ ] 07-02-PLAN.md — README documentation for public release
+
 **Success Criteria:**
 
 1. User can run `./install.sh` and have working `kflash` command without sudo
