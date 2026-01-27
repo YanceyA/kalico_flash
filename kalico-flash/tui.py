@@ -6,6 +6,7 @@ invalid-input retry logic, and error-resilient action dispatch.
 
 Exports:
     run_menu: Main menu loop entry point.
+    wait_for_device: Post-flash device verification with polling.
 """
 from __future__ import annotations
 
@@ -359,3 +360,73 @@ def _view_settings(registry, out) -> None:
         out.info("Settings", f"Default flash method:   {gc.default_flash_method}")
     else:
         out.info("Settings", "No global configuration set. Run Add Device first.")
+
+
+# ---------------------------------------------------------------------------
+# Post-flash device verification
+# ---------------------------------------------------------------------------
+
+def wait_for_device(
+    serial_pattern: str,
+    timeout: float = 30.0,
+    interval: float = 0.5,
+) -> tuple[bool, str | None, str | None]:
+    """Poll for device to reappear after flash.
+
+    Prints progress dots every 2 seconds.  Checks both device existence
+    AND prefix (``Klipper_`` expected, ``katapult_`` means failure).
+
+    Args:
+        serial_pattern: Glob pattern to match device filename
+            (e.g. ``usb-Klipper_stm32h723xx_*``).
+        timeout: Maximum seconds to wait (default 30).
+        interval: Seconds between polls (default 0.5).
+
+    Returns:
+        A 3-tuple ``(success, device_path, error_reason)``:
+
+        - ``(True, "/dev/...", None)`` -- device found with ``Klipper_`` prefix.
+        - ``(False, "/dev/...", "...")`` -- device found but wrong state.
+        - ``(False, None, "Timeout...")`` -- device never appeared.
+    """
+    import time
+    import fnmatch
+    from discovery import scan_serial_devices
+
+    start = time.monotonic()
+    last_dot_time = start
+
+    print("Verifying", end="", flush=True)
+
+    while time.monotonic() - start < timeout:
+        # Progress dots every 2 seconds
+        now = time.monotonic()
+        if now - last_dot_time >= 2.0:
+            print(".", end="", flush=True)
+            last_dot_time = now
+
+        # Scan for matching devices
+        devices = scan_serial_devices()
+        for device in devices:
+            if fnmatch.fnmatch(device.filename, serial_pattern):
+                print()  # Newline after dots
+
+                if device.filename.startswith("usb-Klipper_"):
+                    return (True, device.path, None)
+                elif device.filename.startswith("usb-katapult_"):
+                    return (
+                        False,
+                        device.path,
+                        "Device in bootloader mode (katapult)",
+                    )
+                else:
+                    return (
+                        False,
+                        device.path,
+                        f"Unexpected device prefix: {device.filename}",
+                    )
+
+        time.sleep(interval)
+
+    print()  # Newline after dots
+    return (False, None, f"Timeout after {int(timeout)}s waiting for device")
