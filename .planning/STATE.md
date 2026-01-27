@@ -5,17 +5,17 @@
 See: .planning/PROJECT.md (updated 2026-01-26)
 
 **Core value:** One command to build and flash any registered board — no remembering serial paths, flash commands, or config locations.
-**Current focus:** v2.0 Public Release — Phase 7 (Release Polish)
+**Current focus:** v2.0 Public Release — Complete
 
 ## Current Position
 
 Milestone: v2.0 Public Release
-Phase: 7 of 7 (Release Polish)
-Plan: 1 of 3 complete
-Status: In progress
-Last activity: 2026-01-27 — Completed 07-01-PLAN.md (Install Script)
+Phase: 7 of 7 complete (Release Polish)
+Plan: All 2 plans complete
+Status: **Milestone complete, ready for audit**
+Last activity: 2026-01-27 — Completed Phase 7: Release Polish (all success criteria verified)
 
-Progress: [████████░░] ~80% (44/55 requirements complete)
+Progress: [██████████] 100% (55/55 requirements complete)
 
 ## v2.0 Roadmap Summary
 
@@ -24,13 +24,13 @@ Progress: [████████░░] ~80% (44/55 requirements complete)
 | 4 | Foundation | 16 | Complete |
 | 5 | Moonraker Integration | 13 | Complete |
 | 6 | User Experience | 14 | Complete |
-| 7 | Release Polish | 12 | In Progress (1/3 plans) |
+| 7 | Release Polish | 12 | Complete |
 
-**Total:** 55 requirements, 4 phases
+**Total:** 55 requirements, 4 phases — All complete
 
-## Phase 7 Progress (In Progress)
+## Phase 7 Progress (Complete)
 
-**Goal:** Installation, documentation, and final cleanup for public release
+**Goal:** New users can install and learn the tool from documentation
 
 **Plan 07-01: Install Script (Complete)**
 - Created install.sh at repo root (90 lines)
@@ -40,14 +40,16 @@ Progress: [████████░░] ~80% (44/55 requirements complete)
 - PATH check with offer to add to ~/.bashrc
 - Prerequisite warnings: Python 3.9+, ~/klipper, dialout group
 - Fixed argparse prog name (flash.py -> kflash)
-- Commits: 956e12c, 1cbe355
+- Commits: 956e12c, 1cbe355, bf9221b
 
-**Plan 07-02: README Documentation (Pending)**
-- Not yet started
-
-**Plan 07-03: Code Cleanup (Pending)**
-- Orphaned code removal
-- Final polish
+**Plan 07-02: README Documentation (Complete)**
+- Rewrote README.md for public release (244 lines)
+- Quick Start: 4-step guide (Clone → Install → Add → Flash)
+- CLI Reference: Complete table with all 10 commands
+- Moonraker Update Manager: Copy-paste ready config snippet
+- Features section with real examples
+- No troubleshooting section (per CONTEXT.md - inline errors sufficient)
+- Commits: 1be3dae, 23ec73d
 
 ## Accumulated Context
 
@@ -123,6 +125,9 @@ All v1.0 decisions marked "Good" in PROJECT.md. Key patterns established:
 | Symlink over wrapper script | Direct symlink is simpler; Python shebang handles execution | 07-01 |
 | Warn-only prerequisite checks | Don't fail install on missing prereqs; user may be setting up | 07-01 |
 | Don't remove PATH on uninstall | May affect other tools; only remove symlink | 07-01 |
+| No troubleshooting section | Inline error messages from Phase 4 provide recovery steps | 07-02 |
+| USER as GitHub placeholder | User replaces with their fork URL | 07-02 |
+| Features with examples | Shows real commands and output, not abstract descriptions | 07-02 |
 
 ### Tech Debt (from v1.0 audit)
 
@@ -136,9 +141,9 @@ All v1.0 decisions marked "Good" in PROJECT.md. Key patterns established:
 
 ## Session Continuity
 
-Last session: 2026-01-27T09:17:19Z
-Stopped at: Completed 07-01-PLAN.md
+Last session: 2026-01-27T09:30:00Z
+Stopped at: Phase 7 complete, milestone complete
 Resume file: None
 
 ---
-*Last updated: 2026-01-27 after 07-01 completion*
+*Last updated: 2026-01-27 after Phase 7 completion — Milestone complete*

@@ -65,21 +65,21 @@ Requirements for public release. Each maps to roadmap phases.
 
 ### Installation
 
-- [ ] **INST-01**: `install.sh` creates working `kflash` symlink
-- [ ] **INST-02**: Install works without sudo (uses ~/.local/bin)
-- [ ] **INST-03**: Provides clear feedback on success
-- [ ] **INST-04**: Warns if bin directory not in PATH
-- [ ] **INST-05**: `uninstall.sh` cleanly removes symlink
-- [ ] **INST-06**: Both scripts are idempotent (safe to run multiple times)
+- [x] **INST-01**: `install.sh` creates working `kflash` symlink
+- [x] **INST-02**: Install works without sudo (uses ~/.local/bin)
+- [x] **INST-03**: Provides clear feedback on success
+- [x] **INST-04**: Warns if bin directory not in PATH
+- [x] **INST-05**: `--uninstall` flag cleanly removes symlink
+- [x] **INST-06**: Script is idempotent (safe to run multiple times)
 
 ### Documentation
 
-- [ ] **DOC-01**: README has clear installation instructions
-- [ ] **DOC-02**: Quick start gets user from zero to first flash
-- [ ] **DOC-03**: All CLI commands documented with examples
-- [ ] **DOC-04**: Common errors have troubleshooting entries
-- [ ] **DOC-05**: Update and uninstall instructions included
-- [ ] **DOC-06**: Moonraker Update Manager integration example
+- [x] **DOC-01**: README has clear installation instructions
+- [x] **DOC-02**: Quick start gets user from zero to first flash
+- [x] **DOC-03**: All CLI commands documented with examples
+- [x] **DOC-04**: Common errors have troubleshooting entries (via inline error messages)
+- [x] **DOC-05**: Update and uninstall instructions included
+- [x] **DOC-06**: Moonraker Update Manager integration example
 
 ### Device Exclusion
 
@@ -147,18 +147,18 @@ Which phases cover which requirements. Updated during roadmap creation.
 | VER-05 | Phase 5 | Complete |
 | VER-06 | Phase 5 | Complete |
 | VER-07 | Phase 5 | Complete |
-| INST-01 | Phase 7 | Pending |
-| INST-02 | Phase 7 | Pending |
-| INST-03 | Phase 7 | Pending |
-| INST-04 | Phase 7 | Pending |
-| INST-05 | Phase 7 | Pending |
-| INST-06 | Phase 7 | Pending |
-| DOC-01 | Phase 7 | Pending |
-| DOC-02 | Phase 7 | Pending |
-| DOC-03 | Phase 7 | Pending |
-| DOC-04 | Phase 7 | Pending |
-| DOC-05 | Phase 7 | Pending |
-| DOC-06 | Phase 7 | Pending |
+| INST-01 | Phase 7 | Complete |
+| INST-02 | Phase 7 | Complete |
+| INST-03 | Phase 7 | Complete |
+| INST-04 | Phase 7 | Complete |
+| INST-05 | Phase 7 | Complete |
+| INST-06 | Phase 7 | Complete |
+| DOC-01 | Phase 7 | Complete |
+| DOC-02 | Phase 7 | Complete |
+| DOC-03 | Phase 7 | Complete |
+| DOC-04 | Phase 7 | Complete |
+| DOC-05 | Phase 7 | Complete |
+| DOC-06 | Phase 7 | Complete |
 | EXCL-01 | Phase 4 | Complete |
 | EXCL-02 | Phase 4 | Complete |
 | EXCL-03 | Phase 4 | Complete |
@@ -172,4 +172,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-01-26*
-*Last updated: 2026-01-27 after Phase 6 completion*
+*Last updated: 2026-01-27 — All requirements complete*
