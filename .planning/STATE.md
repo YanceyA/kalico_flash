@@ -5,17 +5,17 @@
 See: .planning/PROJECT.md (updated 2026-01-26)
 
 **Core value:** One command to build and flash any registered board — no remembering serial paths, flash commands, or config locations.
-**Current focus:** v2.0 Public Release — Phase 6 (User Experience)
+**Current focus:** v2.0 Public Release — Phase 7 (Release Polish)
 
 ## Current Position
 
 Milestone: v2.0 Public Release
-Phase: 6 of 4 phases (User Experience)
-Plan: 2 of 3 complete in Phase 6
-Status: In progress
-Last activity: 2026-01-27 — Completed 06-02-PLAN.md (Menu Handlers + Settings)
+Phase: 7 of 4 phases (Release Polish)
+Plan: 0 of ? complete in Phase 7
+Status: Phase 6 complete, Phase 7 pending
+Last activity: 2026-01-27 — Completed 06-03-PLAN.md (Flash Verification)
 
-Progress: [███████░░░] ~62% (40/55 requirements complete)
+Progress: [████████░░] ~78% (43/55 requirements complete)
 
 ## v2.0 Roadmap Summary
 
@@ -23,12 +23,12 @@ Progress: [███████░░░] ~62% (40/55 requirements complete)
 |-------|------|--------------|--------|
 | 4 | Foundation | 16 | Complete |
 | 5 | Moonraker Integration | 13 | Complete |
-| 6 | User Experience | 14 | In Progress (Plan 2/3 done) |
+| 6 | User Experience | 14 | Complete |
 | 7 | Release Polish | 12 | Pending |
 
 **Total:** 55 requirements, 4 phases
 
-## Phase 6 Progress
+## Phase 6 Progress (Complete)
 
 **Goal:** Interactive users have menu-driven workflow and flash verification
 
@@ -44,7 +44,11 @@ Progress: [███████░░░] ~62% (40/55 requirements complete)
 - Wrapped action dispatches in error-resilient try/except
 - Commits: 7e2be87, 8839335, b89757f
 
-**Plan 06-03:** Pending
+**Plan 06-03: Flash Verification (Complete)**
+- Added wait_for_device() polling function to tui.py
+- Added verification_timeout and verification_wrong_prefix error templates
+- Integrated verification into cmd_flash() with three-way result handling
+- Commits: 46daed4, 60f6c59, bca06bb
 
 ## Accumulated Context
 
@@ -109,6 +113,9 @@ All v1.0 decisions marked "Good" in PROJECT.md. Key patterns established:
 | Generic _update_path() for settings | DRY: same logic for klipper_dir and katapult_dir | 06-02 |
 | Nested try/except in menu dispatch | Inner catches action errors, outer catches Ctrl+C | 06-02 |
 | _get_menu_choice() returns None on exhaustion | Caller decides exit behavior (main menu exits, submenus return) | 06-02 |
+| Verify inside klipper_service_stopped() context | Device should reappear before Klipper restarts | 06-03 |
+| Three-way verification result handling | Distinguishes flash failure from verification failure | 06-03 |
+| Progress dots every 2 seconds | Balances user feedback with readable output | 06-03 |
 
 ### Tech Debt (from v1.0 audit)
 
@@ -122,9 +129,9 @@ All v1.0 decisions marked "Good" in PROJECT.md. Key patterns established:
 
 ## Session Continuity
 
-Last session: 2026-01-27T07:14:50Z
-Stopped at: Completed 06-02-PLAN.md
+Last session: 2026-01-27T07:40:00Z
+Stopped at: Completed 06-03-PLAN.md (Phase 6 complete)
 Resume file: None
 
 ---
-*Last updated: 2026-01-27 after Plan 06-02 completion*
+*Last updated: 2026-01-27 after Plan 06-03 completion*
