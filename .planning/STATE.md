@@ -10,43 +10,35 @@ See: .planning/PROJECT.md (updated 2026-01-26)
 ## Current Position
 
 Milestone: v2.0 Public Release
-Phase: 5 of 4 complete (Moonraker Integration)
-Plan: All 2 plans complete
-Status: Phase 5 verified, ready for Phase 6
-Last activity: 2026-01-27 — Completed Phase 5: Moonraker Integration (all success criteria verified)
+Phase: 6 of 4 phases (User Experience)
+Plan: 1 of 3 complete in Phase 6
+Status: In progress
+Last activity: 2026-01-27 — Completed 06-01-PLAN.md (TUI Core)
 
-Progress: [█████░░░░░] ~53% (29/55 requirements complete)
+Progress: [██████░░░░] ~56% (34/55 requirements complete)
 
 ## v2.0 Roadmap Summary
 
 | Phase | Name | Requirements | Status |
 |-------|------|--------------|--------|
-| 4 | Foundation | 16 | Complete ✓ |
-| 5 | Moonraker Integration | 13 | Complete ✓ |
-| 6 | User Experience | 14 | Pending |
+| 4 | Foundation | 16 | Complete |
+| 5 | Moonraker Integration | 13 | Complete |
+| 6 | User Experience | 14 | In Progress (Plan 1/3 done) |
 | 7 | Release Polish | 12 | Pending |
 
 **Total:** 55 requirements, 4 phases
 
-## Phase 5 Completion Summary
+## Phase 6 Progress
 
-**Goal:** Users have safety checks and version awareness before flashing
+**Goal:** Interactive users have menu-driven workflow and flash verification
 
-**Requirements Completed:**
-- Safety Checks: SAFE-01 to SAFE-05 (5) ✓
-- Version Detection: VER-01, VER-02, VER-03, VER-05, VER-06, VER-07 (6) ✓
-- N/A: SAFE-06 (out of scope), VER-04 (informational only)
+**Plan 06-01: TUI Core (Complete)**
+- Created tui.py module with menu loop, box rendering, unicode detection
+- Wired flash.py entry point to route no-args to TUI
+- Commits: 28ba5ff, 4922127
 
-**Plans Executed:**
-- 05-01: Moonraker API client (moonraker.py, PrintStatus dataclass)
-- 05-02: Flash workflow integration (safety check, version display)
-
-**Success Criteria:** All 5 verified ✓
-1. ✓ Print blocking during active prints with filename and progress
-2. ✓ Flash allowed when printer idle/complete/cancelled/error
-3. ✓ Graceful degradation when Moonraker unreachable (warn + confirm)
-4. ✓ Version display with host and MCU versions, mismatch warning
-5. ✓ Multi-MCU support with target MCU marked
+**Plan 06-02:** Pending
+**Plan 06-03:** Pending
 
 ## Accumulated Context
 
@@ -99,6 +91,15 @@ All v1.0 decisions marked "Good" in PROJECT.md. Key patterns established:
 | Version check is informational only | Never blocks flash, just shows warning if outdated | 05-02 |
 | Target MCU marked with asterisk | Clear indication which MCU is being flashed in multi-MCU setups | 05-02 |
 
+### Phase 6 Decisions
+
+| Decision | Rationale | Plan |
+|----------|-----------|------|
+| Action handlers call existing flash.py commands | Hub-and-spoke: tui.py dispatches, flash.py has logic | 06-01 |
+| Late imports in action handlers | Fast startup; tui.py imports flash.py functions only when needed | 06-01 |
+| TTY guard in both tui.py and flash.py | Defense in depth: flash.py checks before routing, tui.py at entry | 06-01 |
+| Settings is a stub | Settings UI comes in a later plan; menu slot reserved now | 06-01 |
+
 ### Tech Debt (from v1.0 audit)
 
 - cmd_build() orphaned (no --build-only argparse flag)
@@ -109,23 +110,11 @@ All v1.0 decisions marked "Good" in PROJECT.md. Key patterns established:
 
 - None
 
-## Next Phase Preview
-
-**Phase 6: User Experience**
-
-Goal: Interactive users have menu-driven workflow and flash verification
-
-Key features:
-- TUI menu with numbered options
-- Post-flash device verification
-- Unicode/ASCII terminal detection
-- Non-TTY environment handling
-
 ## Session Continuity
 
-Last session: 2026-01-27T11:00:00Z
-Stopped at: Phase 5 complete, verified
+Last session: 2026-01-27T07:08:00Z
+Stopped at: Completed 06-01-PLAN.md
 Resume file: None
 
 ---
-*Last updated: 2026-01-27 after Phase 5 completion*
+*Last updated: 2026-01-27 after Plan 06-01 completion*
