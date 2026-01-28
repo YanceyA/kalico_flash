@@ -1,4 +1,5 @@
 """Build operations: menuconfig TUI passthrough and firmware compilation."""
+
 from __future__ import annotations
 
 import multiprocessing
@@ -8,8 +9,7 @@ import time
 from pathlib import Path
 from typing import Optional
 
-from errors import BuildError
-from models import BuildResult
+from .models import BuildResult
 
 # Default timeout for build operations (5 minutes)
 TIMEOUT_BUILD = 300

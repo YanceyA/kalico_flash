@@ -9,16 +9,18 @@ Endpoints used:
 - /printer/objects/list - Discover all MCU objects
 - /printer/objects/query?mcu&mcu%20nhk - MCU firmware versions
 """
+
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 from pathlib import Path
 from typing import Optional
 from urllib.error import HTTPError, URLError
 from urllib.request import urlopen
 
-from models import PrintStatus
+from .models import PrintStatus
 
 # Connection settings (hardcoded per CONTEXT.md: no custom URL support)
 MOONRAKER_URL = "http://localhost:7125"
@@ -65,8 +67,9 @@ def get_mcu_versions() -> Optional[dict[str, str]]:
 
         # Find all MCU objects (mcu, mcu linux, mcu nhk, etc.)
         all_objects = data["result"]["objects"]
-        mcu_objects = [obj for obj in all_objects
-                       if obj == "mcu" or obj.startswith("mcu ")]
+        mcu_objects = [
+            obj for obj in all_objects if obj == "mcu" or obj.startswith("mcu ")
+        ]
 
         if not mcu_objects:
             return None
@@ -119,23 +122,92 @@ def get_host_klipper_version(klipper_dir: str) -> Optional[str]:
             timeout=TIMEOUT,
         )
         if result.returncode == 0:
-            return result.stdout.strip()
+            version = result.stdout.strip()
+            if version and "-g" in version:
+                return version
+            # Fallback: synthesize vX-Y-gHASH when git describe returns tag-only
+            tag = version if version.startswith("v") else None
+            if not tag:
+                tag_result = subprocess.run(
+                    ["git", "describe", "--tags", "--abbrev=0"],
+                    cwd=str(klipper_path),
+                    capture_output=True,
+                    text=True,
+                    timeout=TIMEOUT,
+                )
+                if tag_result.returncode == 0:
+                    tag = tag_result.stdout.strip()
+            count_result = subprocess.run(
+                ["git", "rev-list", "--count", "HEAD"],
+                cwd=str(klipper_path),
+                capture_output=True,
+                text=True,
+                timeout=TIMEOUT,
+            )
+            hash_result = subprocess.run(
+                ["git", "rev-parse", "--short", "HEAD"],
+                cwd=str(klipper_path),
+                capture_output=True,
+                text=True,
+                timeout=TIMEOUT,
+            )
+            if count_result.returncode == 0 and hash_result.returncode == 0:
+                count = count_result.stdout.strip()
+                short_hash = hash_result.stdout.strip()
+                if tag:
+                    return f"{tag}-{count}-g{short_hash}"
+                return f"{count}-g{short_hash}"
     except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
         pass
     return None
 
 
+def _parse_git_describe(version: str) -> tuple[Optional[str], Optional[int]]:
+    """Parse git-describe style version strings.
+
+    Returns (tag, commit_count). commit_count is None if not present.
+    """
+    v = version.strip()
+    if not v:
+        return None, None
+
+    # Typical forms:
+    #   v0.12.0-45-g7ce409d
+    #   v0.12.0-0-g7ce409d
+    #   v0.12.0-45-g7ce409d-dirty
+    #   v2026.01.00
+    match = re.match(
+        r"^(v[0-9A-Za-z.\-_]+?)(?:-([0-9]+)-g[0-9a-fA-F]+)?(?:-dirty)?$",
+        v,
+    )
+    if not match:
+        return None, None
+    tag = match.group(1)
+    count = int(match.group(2)) if match.group(2) is not None else None
+    return tag, count
+
+
 def is_mcu_outdated(host_version: str, mcu_version: str) -> bool:
     """Check if MCU firmware appears behind host Klipper.
 
-    Performs a simple string comparison after stripping whitespace.
+    Compares tag + commit count when available. Falls back to
+    tag-only comparison or raw string comparison if parsing fails.
     This is informational only - never blocks flash.
-
-    Args:
-        host_version: Version string from git describe (e.g., "v0.12.0-45-g7ce409d")
-        mcu_version: Version string from MCU firmware
-
-    Returns:
-        True if MCU version differs from host version.
     """
-    return host_version.strip() != mcu_version.strip()
+    host = host_version.strip()
+    mcu = mcu_version.strip()
+    if not host or not mcu:
+        return False
+
+    host_tag, host_count = _parse_git_describe(host)
+    mcu_tag, mcu_count = _parse_git_describe(mcu)
+
+    if host_tag and mcu_tag:
+        if host_tag != mcu_tag:
+            return True
+        if host_count is not None and mcu_count is not None:
+            return host_count != mcu_count
+        # If commit counts are missing, don't warn on equal tags
+        return False
+
+    return host != mcu

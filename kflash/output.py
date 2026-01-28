@@ -1,4 +1,5 @@
 """Pluggable output interface via Protocol."""
+
 from __future__ import annotations
 
 import sys
@@ -49,7 +50,7 @@ class CliOutput:
         recovery: str | None = None,
     ) -> None:
         """Print formatted error with context and recovery guidance to stderr."""
-        from errors import format_error
+        from .errors import format_error
 
         formatted = format_error(error_type, message, context, recovery)
         print(formatted, file=sys.stderr)
@@ -77,18 +78,35 @@ class CliOutput:
 class NullOutput:
     """Silent output for testing or programmatic use."""
 
-    def info(self, section: str, message: str) -> None: pass
-    def success(self, message: str) -> None: pass
-    def warn(self, message: str) -> None: pass
-    def error(self, message: str) -> None: pass
+    def info(self, section: str, message: str) -> None:
+        pass
+
+    def success(self, message: str) -> None:
+        pass
+
+    def warn(self, message: str) -> None:
+        pass
+
+    def error(self, message: str) -> None:
+        pass
+
     def error_with_recovery(
         self,
         error_type: str,
         message: str,
         context: dict[str, str] | None = None,
         recovery: str | None = None,
-    ) -> None: pass
-    def device_line(self, marker: str, name: str, detail: str) -> None: pass
-    def prompt(self, message: str, default: str = "") -> str: return default
-    def confirm(self, message: str, default: bool = False) -> bool: return default
-    def phase(self, phase_name: str, message: str) -> None: pass
+    ) -> None:
+        pass
+
+    def device_line(self, marker: str, name: str, detail: str) -> None:
+        pass
+
+    def prompt(self, message: str, default: str = "") -> str:
+        return default
+
+    def confirm(self, message: str, default: bool = False) -> bool:
+        return default
+
+    def phase(self, phase_name: str, message: str) -> None:
+        pass

@@ -11,7 +11,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BIN_DIR="${HOME}/.local/bin"
 COMMAND_NAME="kflash"
-TARGET="${SCRIPT_DIR}/kalico-flash/flash.py"
+TARGET="${SCRIPT_DIR}/kflash.py"
 
 # Color support
 if [[ -t 1 ]] && command -v tput &>/dev/null && [[ $(tput colors 2>/dev/null || echo 0) -ge 8 ]]; then
@@ -56,7 +56,7 @@ fi
 # Create bin directory (idempotent)
 mkdir -p "${BIN_DIR}"
 
-# Make flash.py executable
+# Make kflash.py executable
 chmod +x "${TARGET}"
 
 # Create symlink (idempotent with -sfn)

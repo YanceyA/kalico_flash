@@ -1,4 +1,5 @@
 """Device registry backed by devices.json."""
+
 from __future__ import annotations
 
 import json
@@ -7,8 +8,8 @@ import tempfile
 from pathlib import Path
 from typing import Optional
 
-from models import DeviceEntry, GlobalConfig, RegistryData
-from errors import RegistryError
+from .models import DeviceEntry, GlobalConfig, RegistryData, BlockedDevice
+from .errors import RegistryError
 
 
 class Registry:
@@ -32,8 +33,9 @@ class Registry:
             klipper_dir=global_raw.get("klipper_dir", "~/klipper"),
             katapult_dir=global_raw.get("katapult_dir", "~/katapult"),
             default_flash_method=global_raw.get("default_flash_method", "katapult"),
+            allow_flash_fallback=global_raw.get("allow_flash_fallback", True),
         )
-        devices = {}
+        devices: dict[str, DeviceEntry] = {}
         for key, data in raw.get("devices", {}).items():
             devices[key] = DeviceEntry(
                 key=key,
@@ -43,7 +45,27 @@ class Registry:
                 flash_method=data.get("flash_method"),
                 flashable=data.get("flashable", True),  # Default to True if missing
             )
-        return RegistryData(global_config=global_config, devices=devices)
+
+        blocked_devices: list[BlockedDevice] = []
+        for item in raw.get("blocked_devices", []):
+            if isinstance(item, str):
+                blocked_devices.append(BlockedDevice(pattern=item))
+                continue
+            if isinstance(item, dict):
+                pattern = item.get("pattern") or item.get("serial_pattern")
+                if pattern:
+                    blocked_devices.append(
+                        BlockedDevice(
+                            pattern=pattern,
+                            reason=item.get("reason"),
+                        )
+                    )
+
+        return RegistryData(
+            global_config=global_config,
+            devices=devices,
+            blocked_devices=blocked_devices,
+        )
 
     def save(self, registry: RegistryData) -> None:
         """Save registry to disk atomically."""
@@ -52,8 +74,10 @@ class Registry:
                 "klipper_dir": registry.global_config.klipper_dir,
                 "katapult_dir": registry.global_config.katapult_dir,
                 "default_flash_method": registry.global_config.default_flash_method,
+                "allow_flash_fallback": registry.global_config.allow_flash_fallback,
             },
-            "devices": {}
+            "devices": {},
+            "blocked_devices": [],
         }
         for key, device in sorted(registry.devices.items()):
             data["devices"][key] = {
@@ -63,6 +87,11 @@ class Registry:
                 "flash_method": device.flash_method,
                 "flashable": device.flashable,
             }
+        for blocked in registry.blocked_devices:
+            entry = {"pattern": blocked.pattern}
+            if blocked.reason:
+                entry["reason"] = blocked.reason
+            data["blocked_devices"].append(entry)
         _atomic_write_json(self.path, data)
 
     def add(self, entry: DeviceEntry) -> None:
@@ -118,8 +147,7 @@ def _atomic_write_json(path: str, data: dict) -> None:
     dir_name = os.path.dirname(os.path.abspath(path))
     os.makedirs(dir_name, exist_ok=True)
     with tempfile.NamedTemporaryFile(
-        mode="w", dir=dir_name, delete=False, suffix=".tmp",
-        encoding="utf-8"
+        mode="w", dir=dir_name, delete=False, suffix=".tmp", encoding="utf-8"
     ) as tf:
         tmp_path = tf.name
         try:

@@ -1,4 +1,5 @@
 """Config file management: caching, MCU parsing, atomic operations."""
+
 from __future__ import annotations
 
 import os
@@ -8,7 +9,7 @@ import tempfile
 from pathlib import Path
 from typing import Optional
 
-from errors import ConfigError, format_error
+from .errors import ConfigError, format_error
 
 
 def get_config_dir(device_key: str) -> Path:
@@ -167,9 +168,8 @@ class ConfigManager:
             raise ConfigError(msg)
 
         # Prefix match: device registry may have 'stm32h723', config has 'stm32h723xx'
-        is_match = (
-            actual_mcu.startswith(expected_mcu) or
-            expected_mcu.startswith(actual_mcu)
+        is_match = actual_mcu.startswith(expected_mcu) or expected_mcu.startswith(
+            actual_mcu
         )
 
         return is_match, actual_mcu

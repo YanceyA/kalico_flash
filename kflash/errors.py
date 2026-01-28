@@ -1,4 +1,5 @@
 """Centralized exception hierarchy for kalico-flash."""
+
 from __future__ import annotations
 
 import textwrap
@@ -52,11 +53,11 @@ def format_error(
     if recovery:
         lines.append("")
         # Preserve newlines in numbered lists: wrap each line individually
-        for line in recovery.split('\n'):
+        for line in recovery.split("\n"):
             if line.strip():
                 lines.append(textwrap.fill(line, width=80))
             else:
-                lines.append('')  # Preserve blank lines
+                lines.append("")  # Preserve blank lines
 
     return "\n".join(lines)
 
@@ -90,8 +91,8 @@ ERROR_TEMPLATES: dict[str, dict[str, str]] = {
         "error_type": "Device not found",
         "message_template": "No device registered with key '{device}'",
         "recovery_template": (
-            "1. List registered devices: `python flash.py --list-devices`\n"
-            "2. Register new device: `python flash.py --add-device`\n"
+            "1. List registered devices: `kflash --list-devices`\n"
+            "2. Register new device: `kflash --add-device`\n"
             "3. Check device key spelling (case-sensitive)"
         ),
     },
@@ -199,8 +200,8 @@ ERROR_TEMPLATES: dict[str, dict[str, str]] = {
         "error_type": "Device excluded",
         "message_template": "Device '{device}' is marked as non-flashable",
         "recovery_template": (
-            "1. Include device: `python flash.py --include-device {device}`\n"
-            "2. List all devices: `python flash.py --list-devices`\n"
+            "1. Include device: `kflash --include-device {device}`\n"
+            "2. List all devices: `kflash --list-devices`\n"
             "3. Device was excluded to prevent accidental flash"
         ),
     },
@@ -209,11 +210,13 @@ ERROR_TEMPLATES: dict[str, dict[str, str]] = {
 
 class KlipperFlashError(Exception):
     """Base for all kalico-flash errors."""
+
     pass
 
 
 class RegistryError(KlipperFlashError):
     """Registry file errors: corrupt JSON, missing fields, duplicate keys."""
+
     pass
 
 
@@ -228,26 +231,31 @@ class DeviceNotFoundError(KlipperFlashError):
 
 class DiscoveryError(KlipperFlashError):
     """USB discovery failures."""
+
     pass
 
 
 class ConfigError(KlipperFlashError):
     """Config file errors: missing, corrupt, MCU mismatch."""
+
     pass
 
 
 class BuildError(KlipperFlashError):
     """Build failures: make menuconfig, make clean, make."""
+
     pass
 
 
 class ServiceError(KlipperFlashError):
     """Klipper service lifecycle errors: stop/start failures."""
+
     pass
 
 
 class FlashError(KlipperFlashError):
     """Flash operation failures: Katapult, make flash, device not found."""
+
     pass
 
 

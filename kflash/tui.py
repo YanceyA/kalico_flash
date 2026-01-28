@@ -8,6 +8,7 @@ Exports:
     run_menu: Main menu loop entry point.
     wait_for_device: Post-flash device verification with polling.
 """
+
 from __future__ import annotations
 
 import os
@@ -19,12 +20,12 @@ import sys
 # ---------------------------------------------------------------------------
 
 UNICODE_BOX: dict[str, str] = {
-    "tl": "\u250c",   # top-left corner
-    "tr": "\u2510",   # top-right corner
-    "bl": "\u2514",   # bottom-left corner
-    "br": "\u2518",   # bottom-right corner
-    "h":  "\u2500",   # horizontal line
-    "v":  "\u2502",   # vertical line
+    "tl": "\u250c",  # top-left corner
+    "tr": "\u2510",  # top-right corner
+    "bl": "\u2514",  # bottom-left corner
+    "br": "\u2518",  # bottom-right corner
+    "h": "\u2500",  # horizontal line
+    "v": "\u2502",  # vertical line
 }
 
 ASCII_BOX: dict[str, str] = {
@@ -32,8 +33,8 @@ ASCII_BOX: dict[str, str] = {
     "tr": "+",
     "bl": "+",
     "br": "+",
-    "h":  "-",
-    "v":  "|",
+    "h": "-",
+    "v": "|",
 }
 
 
@@ -44,12 +45,7 @@ def _supports_unicode() -> bool:
     """
     lang = os.environ.get("LANG", "").upper()
     lc_all = os.environ.get("LC_ALL", "").upper()
-    return (
-        "UTF-8" in lang
-        or "UTF-8" in lc_all
-        or "UTF8" in lang
-        or "UTF8" in lc_all
-    )
+    return "UTF-8" in lang or "UTF-8" in lc_all or "UTF8" in lang or "UTF8" in lc_all
 
 
 def _get_box_chars() -> dict[str, str]:
@@ -97,11 +93,7 @@ def _render_menu(options: list[tuple[str, str]], box: dict[str, str]) -> str:
     pad_left = pad_total // 2
     pad_right = pad_total - pad_left
     lines.append(
-        box["tl"]
-        + box["h"] * pad_left
-        + title
-        + box["h"] * pad_right
-        + box["tr"]
+        box["tl"] + box["h"] * pad_left + title + box["h"] * pad_right + box["tr"]
     )
 
     # Separator line after title
@@ -122,8 +114,12 @@ def _render_menu(options: list[tuple[str, str]], box: dict[str, str]) -> str:
 # Input handling
 # ---------------------------------------------------------------------------
 
+
 def _get_menu_choice(
-    valid_choices: list[str], out, max_attempts: int = 3,
+    valid_choices: list[str],
+    out,
+    max_attempts: int = 3,
+    prompt: str = "Select option: ",
 ) -> str | None:
     """Get a valid menu choice with retry logic.
 
@@ -142,7 +138,7 @@ def _get_menu_choice(
     """
     for attempt in range(max_attempts):
         try:
-            choice = input("Select option: ").strip().lower()
+            choice = input(prompt).strip().lower()
         except EOFError:
             return "0"
 
@@ -164,6 +160,7 @@ def _get_menu_choice(
 # ---------------------------------------------------------------------------
 # Main menu loop
 # ---------------------------------------------------------------------------
+
 
 def run_menu(registry, out) -> int:
     """Main interactive menu loop.
@@ -194,7 +191,8 @@ def run_menu(registry, out) -> int:
             print()
 
             choice = _get_menu_choice(
-                ["0", "1", "2", "3", "4", "5"], out,
+                ["0", "1", "2", "3", "4", "5"],
+                out,
             )
 
             if choice is None:
@@ -231,22 +229,26 @@ def run_menu(registry, out) -> int:
 # Action handlers
 # ---------------------------------------------------------------------------
 
+
 def _action_add_device(registry, out) -> None:
     """Launch the add-device wizard."""
     # Late import to keep hub-and-spoke pattern
-    from flash import cmd_add_device
+    from .flash import cmd_add_device
+
     cmd_add_device(registry, out)
 
 
 def _action_list_devices(registry, out) -> None:
     """Show registered devices with connection status."""
-    from flash import cmd_list_devices
+    from .flash import cmd_list_devices
+
     cmd_list_devices(registry, out)
 
 
 def _action_flash_device(registry, out) -> None:
     """Launch the flash workflow for an interactively-selected device."""
-    from flash import cmd_flash
+    from .flash import cmd_flash
+
     cmd_flash(registry, None, out)
 
 
@@ -263,8 +265,13 @@ def _action_remove_device(registry, out) -> None:
     for i, (key, entry) in enumerate(devices, 1):
         out.info("", f"  {i}. {key} ({entry.name})")
 
-    valid = [str(i) for i in range(1, len(devices) + 1)]
-    choice = _get_menu_choice(valid, out, max_attempts=3)
+    valid = ["0"] + [str(i) for i in range(1, len(devices) + 1)]
+    choice = _get_menu_choice(
+        valid,
+        out,
+        max_attempts=3,
+        prompt="Select device number (0/q to cancel): ",
+    )
 
     if choice is None or choice == "0":
         out.warn("Cancelled.")
@@ -273,7 +280,8 @@ def _action_remove_device(registry, out) -> None:
     idx = int(choice) - 1
     device_key = devices[idx][0]
 
-    from flash import cmd_remove_device
+    from .flash import cmd_remove_device
+
     cmd_remove_device(registry, device_key, out)
 
 
@@ -285,6 +293,7 @@ SETTINGS_OPTIONS: list[tuple[str, str]] = [
     ("1", "Change Klipper directory"),
     ("2", "Change Katapult directory"),
     ("3", "View current settings"),
+    ("4", "Toggle flash fallback (Katapult -> make flash)"),
     ("0", "Back to main menu"),
 ]
 
@@ -304,7 +313,7 @@ def _settings_menu(registry, out) -> None:
         print(settings_text)
         print()
 
-        choice = _get_menu_choice(["0", "1", "2", "3"], out)
+        choice = _get_menu_choice(["0", "1", "2", "3", "4"], out)
 
         if choice is None or choice == "0":
             return
@@ -315,6 +324,8 @@ def _settings_menu(registry, out) -> None:
             _update_path(registry, out, "katapult_dir", "Katapult source directory")
         elif choice == "3":
             _view_settings(registry, out)
+        elif choice == "4":
+            _toggle_flash_fallback(registry, out)
 
 
 def _update_path(registry, out, field: str, label: str) -> None:
@@ -339,11 +350,13 @@ def _update_path(registry, out, field: str, label: str) -> None:
         out.info("Settings", "No change.")
         return
 
-    from models import GlobalConfig
+    from .models import GlobalConfig
+
     kwargs = {
         "klipper_dir": gc.klipper_dir,
         "katapult_dir": gc.katapult_dir,
         "default_flash_method": gc.default_flash_method,
+        "allow_flash_fallback": gc.allow_flash_fallback,
     }
     kwargs[field] = new_path
     registry.save_global(GlobalConfig(**kwargs))
@@ -357,30 +370,60 @@ def _view_settings(registry, out) -> None:
     if gc is not None:
         out.info("Settings", f"Klipper directory:      {gc.klipper_dir}")
         out.info("Settings", f"Katapult directory:     {gc.katapult_dir}")
-        out.info("Settings", f"Default flash method:   {gc.default_flash_method}")
+        out.info(
+            "Settings", f"Preferred flash method (global): {gc.default_flash_method}"
+        )
+        fallback_state = "enabled" if gc.allow_flash_fallback else "disabled"
+        out.info("Settings", f"Flash fallback:         {fallback_state}")
     else:
         out.info("Settings", "No global configuration set. Run Add Device first.")
+
+
+def _toggle_flash_fallback(registry, out) -> None:
+    """Toggle global flash fallback behavior."""
+    data = registry.load()
+    gc = data.global_config
+    if gc is None:
+        out.warn("No global config exists. Run Add Device first.")
+        return
+
+    from .models import GlobalConfig
+
+    new_value = not gc.allow_flash_fallback
+    registry.save_global(
+        GlobalConfig(
+            klipper_dir=gc.klipper_dir,
+            katapult_dir=gc.katapult_dir,
+            default_flash_method=gc.default_flash_method,
+            allow_flash_fallback=new_value,
+        )
+    )
+    state = "enabled" if new_value else "disabled"
+    out.success(f"Flash fallback {state}")
 
 
 # ---------------------------------------------------------------------------
 # Post-flash device verification
 # ---------------------------------------------------------------------------
 
+
 def wait_for_device(
     serial_pattern: str,
     timeout: float = 30.0,
     interval: float = 0.5,
+    out=None,
 ) -> tuple[bool, str | None, str | None]:
     """Poll for device to reappear after flash.
 
-    Prints progress dots every 2 seconds.  Checks both device existence
-    AND prefix (``Klipper_`` expected, ``katapult_`` means failure).
+    Prints progress dots every 2 seconds when ``out`` is None. Checks both
+    device existence AND prefix (``Klipper_`` expected, ``katapult_`` means failure).
 
     Args:
         serial_pattern: Glob pattern to match device filename
             (e.g. ``usb-Klipper_stm32h723xx_*``).
         timeout: Maximum seconds to wait (default 30).
         interval: Seconds between polls (default 0.5).
+        out: Optional output interface. If provided, progress dots are suppressed.
 
     Returns:
         A 3-tuple ``(success, device_path, error_reason)``:
@@ -391,17 +434,18 @@ def wait_for_device(
     """
     import time
     import fnmatch
-    from discovery import scan_serial_devices
+    from .discovery import scan_serial_devices
 
     start = time.monotonic()
     last_dot_time = start
 
-    print("Verifying", end="", flush=True)
+    if out is None:
+        print("Verifying", end="", flush=True)
 
     while time.monotonic() - start < timeout:
         # Progress dots every 2 seconds
         now = time.monotonic()
-        if now - last_dot_time >= 2.0:
+        if out is None and now - last_dot_time >= 2.0:
             print(".", end="", flush=True)
             last_dot_time = now
 
@@ -409,11 +453,13 @@ def wait_for_device(
         devices = scan_serial_devices()
         for device in devices:
             if fnmatch.fnmatch(device.filename, serial_pattern):
-                print()  # Newline after dots
+                if out is None:
+                    print()  # Newline after dots
 
-                if device.filename.startswith("usb-Klipper_"):
+                filename_lower = device.filename.lower()
+                if filename_lower.startswith("usb-klipper_"):
                     return (True, device.path, None)
-                elif device.filename.startswith("usb-katapult_"):
+                elif filename_lower.startswith("usb-katapult_"):
                     return (
                         False,
                         device.path,
@@ -428,5 +474,6 @@ def wait_for_device(
 
         time.sleep(interval)
 
-    print()  # Newline after dots
+    if out is None:
+        print()  # Newline after dots
     return (False, None, f"Timeout after {int(timeout)}s waiting for device")

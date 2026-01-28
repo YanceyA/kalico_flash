@@ -1,13 +1,14 @@
 """Dual-method flash operations: Katapult-first with make-flash fallback."""
+
 from __future__ import annotations
 
 import subprocess
 import time
 from pathlib import Path
-from typing import Optional
+from typing import Callable, Optional
 
-from errors import DiscoveryError, format_error
-from models import FlashResult
+from .errors import DiscoveryError, format_error
+from .models import FlashResult
 
 # Default timeout for flash operations (from CONTEXT.md)
 TIMEOUT_FLASH = 60
@@ -156,6 +157,9 @@ def flash_device(
     katapult_dir: str,
     klipper_dir: str,
     timeout: int = TIMEOUT_FLASH,
+    preferred_method: str = "katapult",
+    allow_fallback: bool = True,
+    log: Optional[Callable[[str], None]] = None,
 ) -> FlashResult:
     """Flash firmware to device using Katapult or make flash.
 
@@ -168,26 +172,57 @@ def flash_device(
         katapult_dir: Path to the Katapult directory.
         klipper_dir: Path to the Klipper directory.
         timeout: Seconds per flash attempt (applies to each method).
+        preferred_method: "katapult" or "make_flash" (default: "katapult").
+        allow_fallback: If True, attempt the other method on failure.
+        log: Optional callback for progress messages.
 
     Returns:
         FlashResult with success status, method used, and timing.
     """
     start = time.monotonic()
 
-    # Try Katapult first
-    result = _try_katapult_flash(device_path, firmware_path, katapult_dir, timeout)
+    method = (preferred_method or "katapult").strip().lower()
+    if method not in ("katapult", "make_flash"):
+        return FlashResult(
+            success=False,
+            method=method,
+            elapsed_seconds=0.0,
+            error_message=f"Unknown flash method: {method}",
+        )
 
-    if result.success:
-        return result
+    methods = [method]
+    if allow_fallback:
+        methods.append("make_flash" if method == "katapult" else "katapult")
 
-    # Katapult failed, try make flash
-    print(f"[Flash] Katapult failed: {result.error_message}")
-    print("[Flash] Trying make flash as fallback...")
+    last_result: Optional[FlashResult] = None
+    for current in methods:
+        if current == "katapult":
+            result = _try_katapult_flash(
+                device_path, firmware_path, katapult_dir, timeout
+            )
+        else:
+            result = _try_make_flash(device_path, klipper_dir, timeout)
 
-    fallback_result = _try_make_flash(device_path, klipper_dir, timeout)
+        last_result = result
+        if result.success:
+            return result
 
-    # If fallback also failed, include total elapsed time
-    if not fallback_result.success:
-        fallback_result.elapsed_seconds = time.monotonic() - start
+        # If no fallback, return immediately
+        if not allow_fallback or current == methods[-1]:
+            break
 
-    return fallback_result
+        if log is not None:
+            log(f"{current} failed: {result.error_message}")
+            log("Trying fallback method...")
+
+    # If all methods failed, return last result with total elapsed time
+    if last_result is None:
+        return FlashResult(
+            success=False,
+            method=method,
+            elapsed_seconds=time.monotonic() - start,
+            error_message="No flash methods attempted",
+        )
+
+    last_result.elapsed_seconds = time.monotonic() - start
+    return last_result

@@ -1,4 +1,5 @@
 """USB serial scanning and pattern matching."""
+
 from __future__ import annotations
 
 import fnmatch
@@ -6,10 +7,13 @@ import re
 from pathlib import Path
 from typing import Optional
 
-from models import DiscoveredDevice, DeviceEntry
+from .models import DiscoveredDevice
 
 
 SERIAL_BY_ID = "/dev/serial/by-id"
+
+# Supported device prefixes for Klipper/Katapult USB IDs (case-insensitive)
+SUPPORTED_PREFIXES = ("usb-klipper_", "usb-katapult_")
 
 
 def scan_serial_devices() -> list:
@@ -19,29 +23,37 @@ def scan_serial_devices() -> list:
         return []
     devices = []
     for entry in sorted(serial_dir.iterdir()):
-        devices.append(DiscoveredDevice(
-            path=str(entry),
-            filename=entry.name,
-        ))
+        devices.append(
+            DiscoveredDevice(
+                path=str(entry),
+                filename=entry.name,
+            )
+        )
     return devices
+
+
+def is_supported_device(filename: str) -> bool:
+    """Return True if filename looks like a Klipper/Katapult USB device."""
+    lower = filename.lower()
+    return any(lower.startswith(prefix) for prefix in SUPPORTED_PREFIXES)
 
 
 def match_device(pattern: str, devices: list) -> Optional[DiscoveredDevice]:
     """Find first device whose filename matches a glob pattern."""
-    for device in devices:
-        if fnmatch.fnmatch(device.filename, pattern):
-            return device
-    return None
+    matches = match_devices(pattern, devices)
+    return matches[0] if matches else None
 
 
-def find_registered_devices(
-    devices: list,
-    registry_devices: dict
-) -> tuple:
+def match_devices(pattern: str, devices: list) -> list[DiscoveredDevice]:
+    """Find all devices whose filename matches a glob pattern."""
+    return [device for device in devices if fnmatch.fnmatch(device.filename, pattern)]
+
+
+def find_registered_devices(devices: list, registry_devices: dict) -> tuple:
     """Cross-reference discovered devices against registry.
 
     Returns ALL matching devices including non-flashable ones. Filtering for
-    flashable devices should be done by the caller (flash.py) at selection time.
+    flashable devices should be done by the caller (flash module) at selection time.
 
     Args:
         devices: List of DiscoveredDevice from scan_serial_devices()
@@ -82,7 +94,7 @@ def extract_mcu_from_serial(filename: str) -> Optional[str]:
     m = re.match(
         r"usb-(?:Klipper|katapult)_([a-z0-9]+?)(?:x[a-z0-9]*)?_",
         filename,
-        re.IGNORECASE
+        re.IGNORECASE,
     )
     if m:
         return m.group(1).lower()

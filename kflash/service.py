@@ -1,11 +1,12 @@
 """Klipper service lifecycle management with guaranteed restart."""
+
 from __future__ import annotations
 
 import subprocess
 from contextlib import contextmanager
 from typing import Generator
 
-from errors import ServiceError, format_error, ERROR_TEMPLATES
+from .errors import ServiceError, format_error, ERROR_TEMPLATES
 
 # Default timeout for systemctl operations
 TIMEOUT_SERVICE = 30
@@ -66,7 +67,7 @@ def _stop_klipper(timeout: int = TIMEOUT_SERVICE) -> None:
         raise ServiceError(msg)
 
 
-def _start_klipper(timeout: int = TIMEOUT_SERVICE) -> None:
+def _start_klipper(timeout: int = TIMEOUT_SERVICE, out=None) -> None:
     """Start the Klipper service.
 
     Does not raise on failure - used in finally block.
@@ -74,6 +75,7 @@ def _start_klipper(timeout: int = TIMEOUT_SERVICE) -> None:
 
     Args:
         timeout: Seconds to wait for start.
+        out: Optional output interface for formatted errors.
     """
     try:
         result = subprocess.run(
@@ -84,30 +86,63 @@ def _start_klipper(timeout: int = TIMEOUT_SERVICE) -> None:
         )
         if result.returncode != 0:
             template = ERROR_TEMPLATES["service_start_failed"]
-            print(format_error(
-                template["error_type"],
-                template["message_template"],
-                context={"stderr": result.stderr.strip()},
-                recovery=template["recovery_template"],
-            ))
+            if out is not None:
+                out.error_with_recovery(
+                    template["error_type"],
+                    template["message_template"],
+                    context={"stderr": result.stderr.strip()},
+                    recovery=template["recovery_template"],
+                )
+            else:
+                print(
+                    format_error(
+                        template["error_type"],
+                        template["message_template"],
+                        context={"stderr": result.stderr.strip()},
+                        recovery=template["recovery_template"],
+                    )
+                )
     except subprocess.TimeoutExpired:
         template = ERROR_TEMPLATES["service_start_failed"]
-        print(format_error(
-            template["error_type"],
-            f"Timeout ({timeout}s) starting Klipper service",
-            recovery=template["recovery_template"],
-        ))
+        message = f"Timeout ({timeout}s) starting Klipper service"
+        if out is not None:
+            out.error_with_recovery(
+                template["error_type"],
+                message,
+                recovery=template["recovery_template"],
+            )
+        else:
+            print(
+                format_error(
+                    template["error_type"],
+                    message,
+                    recovery=template["recovery_template"],
+                )
+            )
     except Exception as e:
         template = ERROR_TEMPLATES["service_start_failed"]
-        print(format_error(
-            template["error_type"],
-            f"Error starting Klipper: {e}",
-            recovery=template["recovery_template"],
-        ))
+        message = f"Error starting Klipper: {e}"
+        if out is not None:
+            out.error_with_recovery(
+                template["error_type"],
+                message,
+                recovery=template["recovery_template"],
+            )
+        else:
+            print(
+                format_error(
+                    template["error_type"],
+                    message,
+                    recovery=template["recovery_template"],
+                )
+            )
 
 
 @contextmanager
-def klipper_service_stopped(timeout: int = TIMEOUT_SERVICE) -> Generator[None, None, None]:
+def klipper_service_stopped(
+    timeout: int = TIMEOUT_SERVICE,
+    out=None,
+) -> Generator[None, None, None]:
     """Context manager that stops Klipper and guarantees restart.
 
     Stops the Klipper service on entry. Restarts it on exit,
@@ -115,6 +150,7 @@ def klipper_service_stopped(timeout: int = TIMEOUT_SERVICE) -> Generator[None, N
 
     Args:
         timeout: Seconds for systemctl operations.
+        out: Optional output interface for formatted errors.
 
     Yields:
         None - the context is active while Klipper is stopped.
@@ -133,4 +169,4 @@ def klipper_service_stopped(timeout: int = TIMEOUT_SERVICE) -> Generator[None, N
     finally:
         # Always restart, even on exception or KeyboardInterrupt
         # Don't raise here - would mask the original error
-        _start_klipper(timeout)
+        _start_klipper(timeout, out=out)

@@ -6,7 +6,7 @@ One-command firmware building and flashing for Kalico/Klipper USB boards.
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/USER/kalico-flash.git ~/kalico-flash
+   git clone https://github.com/<your-org>/kalico-flash.git ~/kalico-flash
    cd ~/kalico-flash
    ```
 
@@ -14,7 +14,7 @@ One-command firmware building and flashing for Kalico/Klipper USB boards.
    ```bash
    ./install.sh
    ```
-   Expected output: `Installed kflash -> /home/pi/kalico-flash/kalico-flash/flash.py`
+   Expected output: `Installed kflash -> /home/pi/kalico-flash/kflash.py`
 
 3. **Add your first device:**
    ```bash
@@ -72,6 +72,26 @@ Excluded devices appear in listings with `[excluded]` but aren't selectable for 
 ```bash
 kflash --include-device beacon
 ```
+
+### Flash Method and Fallback
+
+kalico-flash uses **Katapult** by default. Each device can store a *preferred* flash
+method during `--add-device`, and the global default is Katapult.
+
+If **flash fallback** is enabled, a failed Katapult flash will automatically
+fall back to `make flash`. If disabled, flashing is strict (Katapult-only).
+
+You can toggle fallback in the Settings menu:
+
+```
+Settings -> Toggle flash fallback (Katapult -> make flash)
+```
+
+### Unknown Device Blocking
+
+Only Klipper/Katapult USB devices are eligible for registration. Devices that
+do not appear with a `usb-Klipper_` or `usb-katapult_` prefix are shown as
+**blocked** and cannot be added or flashed.
 
 ### Print Safety
 
@@ -149,7 +169,7 @@ If the device doesn't reappear or reappears with the wrong serial prefix, you'll
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/USER/kalico-flash.git ~/kalico-flash
+   git clone https://github.com/<your-org>/kalico-flash.git ~/kalico-flash
    ```
 
 2. Run the install script:
@@ -159,7 +179,7 @@ If the device doesn't reappear or reappears with the wrong serial prefix, you'll
    ```
 
 The install script:
-- Creates a symlink from `~/.local/bin/kflash` to the flash.py entry point
+- Creates a symlink from `~/.local/bin/kflash` to the kflash.py entry point
 - Checks prerequisites (Python version, Klipper directory, serial access) and warns if issues found
 - Offers to add `~/.local/bin` to your PATH if not already present
 
@@ -181,8 +201,8 @@ Add to `moonraker.conf` for automatic updates through Fluidd/Mainsail:
 [update_manager kalico-flash]
 type: git_repo
 path: ~/kalico-flash
-origin: https://github.com/USER/kalico-flash.git
-primary_branch: master
+origin: https://github.com/<your-org>/kalico-flash.git
+primary_branch: main  # or your repo's default branch
 is_system_service: False
 ```
 
@@ -231,7 +251,7 @@ When you run `kflash`, the tool executes four phases:
 1. **Discovery** - Scans `/dev/serial/by-id/` for USB serial devices, matches against registered device patterns
 2. **Config** - Loads cached menuconfig settings, optionally launches menuconfig for review, validates MCU type
 3. **Build** - Runs `make clean` + `make -j$(nproc)` with timeout protection
-4. **Flash** - Stops Klipper service, flashes via Katapult (or `make flash` fallback), verifies device reappears, restarts Klipper
+4. **Flash** - Stops Klipper service, flashes via the preferred method, optionally falls back to `make flash`, verifies device reappears, restarts Klipper
 
 The Klipper service is guaranteed to restart even if flashing fails or you press Ctrl+C.
 

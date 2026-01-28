@@ -1,5 +1,6 @@
 # Claude Code local settings
 .claude/
+.codex/
 
 # Windows null device artifact
 nul
@@ -14,7 +15,7 @@ __pycache__/
 *.so
 
 # Device registry (user-specific, created on first use)
-kalico-flash/devices.json
+kflash/devices.json
 
 # IDE
 .vscode/
