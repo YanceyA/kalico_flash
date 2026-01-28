@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import textwrap
 
+from .theme import get_theme
+
 
 def format_error(
     error_type: str,
@@ -25,7 +27,8 @@ def format_error(
     Returns:
         Multi-line formatted error string ready for display
     """
-    lines = [f"[FAIL] {error_type}: {message}"]
+    t = get_theme()
+    lines = [f"{t.error}[FAIL]{t.reset} {error_type}: {message}"]
 
     if context:
         # Build context prose from key-value pairs
