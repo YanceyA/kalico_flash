@@ -1056,20 +1056,32 @@ def cmd_include_device(registry, device_key: str, out) -> int:
     return 0
 
 
-def cmd_list_devices(registry, out) -> int:
+def cmd_list_devices(registry, out, from_menu: bool = False) -> int:
     """List all registered devices with connection status.
 
     Cross-references registered devices against live USB scan to show:
     - [REG] Connected devices with their USB filename
     - [REG] Disconnected devices (registered but not currently connected)
     - [NEW] Unknown USB devices (connected but not registered)
+
+    Args:
+        registry: Registry instance for device lookup.
+        out: Output interface for user messages.
+        from_menu: If True, suppress "Use --add-device" hint (menu has its own navigation).
     """
     from .discovery import scan_serial_devices, match_devices, is_supported_device
+    from .moonraker import get_mcu_versions, get_host_klipper_version, get_mcu_version_for_device
 
     # Load registry and scan USB devices
     data = registry.load()
     usb_devices = scan_serial_devices()
     blocked_list = _build_blocked_list(data)
+
+    # Fetch version information
+    mcu_versions = get_mcu_versions()
+    host_version = None
+    if data.global_config:
+        host_version = get_host_klipper_version(data.global_config.klipper_dir)
 
     # Cross-reference registered vs discovered
     entry_matches: dict[str, list] = {}
@@ -1171,19 +1183,45 @@ def cmd_list_devices(registry, out) -> int:
         else:
             out.device_line("REG", name_str, "(disconnected)")
 
+        # Show MCU software version if available
+        if mcu_versions:
+            version = get_mcu_version_for_device(entry.mcu)
+            if version:
+                out.info("", f"       MCU software version: {version}")
+
     # Show unmatched (unknown/blocked) USB devices if any
     if unmatched:
-        out.info("", "")  # blank line for separation
+        # Separate blocked from new devices
+        blocked_unmatched = []
+        new_unmatched = []
         for device in unmatched:
             blocked_reason = _blocked_reason_for_filename(device.filename, blocked_list)
             if blocked_reason or not is_supported_device(device.filename):
-                marker = "BLK"
-                detail = blocked_reason or "Unsupported USB device"
+                blocked_unmatched.append((device, blocked_reason or "Unsupported USB device"))
             else:
-                marker = "NEW"
-                detail = "Unregistered device"
-            out.device_line(marker, device.filename, detail)
-        out.info("Devices", "Use --add-device to register unknown devices.")
+                new_unmatched.append(device)
+
+        # Show new (unregistered) devices
+        if new_unmatched:
+            out.info("", "")  # blank line for separation
+            for device in new_unmatched:
+                out.device_line("NEW", device.filename, "Unregistered device")
+
+        # Show blocked devices with label
+        if blocked_unmatched:
+            out.info("", "")  # blank line for separation
+            out.info("Blocked devices", "")
+            for device, reason in blocked_unmatched:
+                out.device_line("BLK", device.filename, reason)
+
+        # Only show hint if there are new devices and not from menu
+        if new_unmatched and not from_menu:
+            out.info("Devices", "Use --add-device to register unknown devices.")
+
+    # Show host Klipper version at the end
+    if host_version:
+        out.info("", "")  # blank line for separation
+        out.info("Version", f"Host Klipper: {host_version}")
 
     return 0
 

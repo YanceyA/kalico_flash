@@ -242,7 +242,7 @@ def _action_list_devices(registry, out) -> None:
     """Show registered devices with connection status."""
     from .flash import cmd_list_devices
 
-    cmd_list_devices(registry, out)
+    cmd_list_devices(registry, out, from_menu=True)
 
 
 def _action_flash_device(registry, out) -> None:
