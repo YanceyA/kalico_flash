@@ -4,7 +4,7 @@
 
 | Phase | Name | Requirements | Status |
 |-------|------|--------------|--------|
-| 8 | Theme Infrastructure | THEME-01 to THEME-06 | Not started |
+| 8 | Theme Infrastructure | THEME-01 to THEME-06 | Planned |
 | 9 | Apply Theming | OUT-01-07, TUI-01-03, ERR-01 | Not started |
 
 ---
@@ -14,6 +14,11 @@
 **Goal:** Create theme.py module with semantic styling, detection, and utilities
 
 **Requirements:** THEME-01, THEME-02, THEME-03, THEME-04, THEME-05, THEME-06
+
+**Plans:** 1 plan
+
+Plans:
+- [ ] 08-01-PLAN.md — Create theme.py with Theme dataclass, detection, and utilities
 
 **Files:**
 - Create `kalico-flash/theme.py` (~120 lines)
@@ -53,6 +58,8 @@
 **Goal:** Integrate theme across output, TUI, and errors
 
 **Requirements:** OUT-01 to OUT-07, TUI-01 to TUI-03, ERR-01
+
+**Plans:** (created by /gsd:plan-phase)
 
 **Files:**
 - Modify `kalico-flash/output.py` (~30 lines changed)
