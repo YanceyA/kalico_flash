@@ -14,6 +14,8 @@ from __future__ import annotations
 import os
 import sys
 
+from .theme import get_theme, clear_screen
+
 
 # ---------------------------------------------------------------------------
 # Unicode / ASCII box-drawing detection
@@ -79,21 +81,28 @@ def _render_menu(options: list[tuple[str, str]], box: dict[str, str]) -> str:
     Returns:
         Multi-line string ready for printing.
     """
+    theme = get_theme()
+
     # Calculate inner width: " N) Label " with padding
     inner_items = [f" {num}) {label} " for num, label in options]
     inner_width = max(len(item) for item in inner_items)
-    # Ensure minimum width for the title
-    title = " kalico-flash "
-    inner_width = max(inner_width, len(title))
+
+    # Calculate title width using PLAIN text
+    title_plain = "kalico-flash"
+    title_width = len(title_plain) + 2  # +2 for spaces
+    inner_width = max(inner_width, title_width)
+
+    # Create styled title for display
+    title_display = f" {theme.menu_title}{title_plain}{theme.reset} "
 
     lines: list[str] = []
 
-    # Top border with title centered
-    pad_total = inner_width - len(title)
+    # Top border with styled title
+    pad_total = inner_width - title_width
     pad_left = pad_total // 2
     pad_right = pad_total - pad_left
     lines.append(
-        box["tl"] + box["h"] * pad_left + title + box["h"] * pad_right + box["tr"]
+        box["tl"] + box["h"] * pad_left + title_display + box["h"] * pad_right + box["tr"]
     )
 
     # Separator line after title
@@ -186,6 +195,7 @@ def run_menu(registry, out) -> int:
 
     while True:
         try:
+            clear_screen()
             print()
             print(menu_text)
             print()
@@ -309,6 +319,7 @@ def _settings_menu(registry, out) -> None:
     settings_text = _render_menu(SETTINGS_OPTIONS, box)
 
     while True:
+        clear_screen()
         print()
         print(settings_text)
         print()
