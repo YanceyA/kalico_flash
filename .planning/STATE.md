@@ -57,7 +57,7 @@ See: .planning/MILESTONES.md for full history
 Last session: 2026-01-28T09:36:56Z
 Stopped at: Completed 08-01-PLAN.md
 Resume file: None
-Next step: Execute Phase 9 plans to apply theming to output.py, tui.py, and errors.py
+Next step: `/gsd:discuss-phase 9` or `/gsd:plan-phase 9` to create Phase 9 execution plans
 
 ---
 *Last updated: 2026-01-28 after 08-01-PLAN.md completion*

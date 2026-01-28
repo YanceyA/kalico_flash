@@ -134,4 +134,28 @@ After Phase 9 completion, visual spot-check:
 No extensive testing required - this is a visual enhancement.
 
 ---
+
+## Traceability
+
+| Req ID | Name | Phase | Status |
+|--------|------|-------|--------|
+| THEME-01 | Theme dataclass | 8 | Complete |
+| THEME-02 | Terminal detection | 8 | Complete |
+| THEME-03 | Windows VT mode | 8 | Complete |
+| THEME-04 | No-color fallback | 8 | Complete |
+| THEME-05 | Cached singleton | 8 | Complete |
+| THEME-06 | Screen clear | 8 | Complete |
+| OUT-01 | Colored [OK] | 9 | Pending |
+| OUT-02 | Colored [FAIL] | 9 | Pending |
+| OUT-03 | Colored [!!] | 9 | Pending |
+| OUT-04 | Colored [section] | 9 | Pending |
+| OUT-05 | Colored [phase] | 9 | Pending |
+| OUT-06 | Colored markers | 9 | Pending |
+| OUT-07 | Bold prompts | 9 | Pending |
+| TUI-01 | Screen clear main | 9 | Pending |
+| TUI-02 | Bold menu title | 9 | Pending |
+| TUI-03 | Screen clear settings | 9 | Pending |
+| ERR-01 | Colored error header | 9 | Pending |
+
+---
 *Created: 2026-01-28 for v2.1 milestone*
