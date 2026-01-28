@@ -31,12 +31,13 @@ See: .planning/MILESTONES.md for full history
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 001 | Add version match confirmation dialog | 2026-01-28 | 446821f | [001-version-match-confirmation](./quick/001-version-match-confirmation/) |
+| 002 | Display MCU versions in list/flash menus | 2026-01-28 | 173141b | [002-mcu-version-display](./quick/002-mcu-version-display/) |
 
 ## Session Continuity
 
 Last session: 2026-01-28
-Stopped at: Quick task 001 complete
+Stopped at: Quick task 002 complete
 Resume file: None
 
 ---
-*Last updated: 2026-01-28 after quick task 001: version match confirmation*
+*Last updated: 2026-01-28 after quick task 002: MCU version display*
