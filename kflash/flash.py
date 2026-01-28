@@ -445,6 +445,17 @@ def cmd_flash(registry, device_key, out, skip_menuconfig: bool = False) -> int:
         return 1
     blocked_list = _build_blocked_list(data)
 
+    # Fetch version information early for display in device selection
+    from .moonraker import (
+        get_print_status,
+        get_mcu_versions,
+        get_host_klipper_version,
+        is_mcu_outdated,
+        get_mcu_version_for_device,
+    )
+    mcu_versions = get_mcu_versions()
+    host_version = get_host_klipper_version(data.global_config.klipper_dir)
+
     # === Phase 1: Discovery ===
     out.phase("Discovery", "Scanning for USB devices...")
     usb_devices = scan_serial_devices()
@@ -590,6 +601,15 @@ def cmd_flash(registry, device_key, out, skip_menuconfig: bool = False) -> int:
         out.phase("Discovery", f"Found {len(flashable_matched)} flashable device(s):")
         for i, (entry, device) in enumerate(flashable_matched):
             out.device_line(str(i + 1), f"{entry.key} ({entry.mcu})", device.filename)
+            # Show MCU software version if available
+            if mcu_versions:
+                version = get_mcu_version_for_device(entry.mcu)
+                if version:
+                    out.info("", f"     MCU software version: {version}")
+
+        # Show host Klipper version before selection
+        if host_version:
+            out.info("Version", f"Host Klipper: {host_version}")
 
         # Single device: auto-select with confirmation
         if len(flashable_matched) == 1:
@@ -700,13 +720,6 @@ def cmd_flash(registry, device_key, out, skip_menuconfig: bool = False) -> int:
     )
 
     # === Moonraker Safety Check ===
-    from .moonraker import (
-        get_print_status,
-        get_mcu_versions,
-        get_host_klipper_version,
-        is_mcu_outdated,
-    )
-
     print_status = get_print_status()
 
     if print_status is None:
@@ -734,8 +747,7 @@ def cmd_flash(registry, device_key, out, skip_menuconfig: bool = False) -> int:
         out.phase("Safety", f"Printer state: {print_status.state} - OK to flash")
 
     # === Version Information ===
-    host_version = get_host_klipper_version(data.global_config.klipper_dir)
-    mcu_versions = get_mcu_versions()
+    # mcu_versions and host_version already fetched earlier for device selection display
 
     if host_version:
         out.phase("Version", f"Host Klipper: {host_version}")
