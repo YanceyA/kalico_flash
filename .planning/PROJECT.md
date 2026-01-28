@@ -8,7 +8,17 @@ A Python CLI tool that automates Klipper/Kalico firmware building and flashing f
 
 One command to build and flash any registered board — no remembering serial paths, flash commands, or config locations.
 
-## Current State (v2.0 shipped)
+## Current Milestone: v2.1 TUI Color Theme
+
+**Goal:** Add KIAUH-style ANSI color support with a centralized theme system
+**Started:** 2026-01-28
+**Phases:** 8-9
+
+See: `.planning/ROADMAP.md` for phase breakdown
+See: `.planning/REQUIREMENTS.md` for full requirements list
+See: `.working/theme_plan.md` for detailed implementation plan
+
+## Previous State (v2.0 shipped)
 
 **Shipped:** 2026-01-27
 **Modules:** 12 Python modules in kalico-flash/
@@ -54,7 +64,34 @@ One command to build and flash any registered board — no remembering serial pa
 - ✓ Moonraker Update Manager integration — v2.0
 - ✓ Settings submenu for path configuration — v2.0
 
-### Active (future candidates)
+### Active (v2.1 TUI Color Theme)
+
+**Theme Infrastructure:**
+- [ ] THEME-01: Theme module with semantic style dataclass
+- [ ] THEME-02: Terminal capability detection (TTY, NO_COLOR, FORCE_COLOR)
+- [ ] THEME-03: Windows VT mode support via ctypes
+- [ ] THEME-04: No-color fallback theme
+- [ ] THEME-05: Cached theme singleton with get_theme()/reset_theme()
+- [ ] THEME-06: Screen clear utility
+
+**CLI Output Styling:**
+- [ ] OUT-01: Colored [OK] messages (green)
+- [ ] OUT-02: Colored [FAIL] messages (red)
+- [ ] OUT-03: Colored [!!] warnings (yellow)
+- [ ] OUT-04: Colored [section] info (cyan)
+- [ ] OUT-05: Colored [phase] markers (cyan)
+- [ ] OUT-06: Colored device markers (REG/NEW/BLK/DUP)
+- [ ] OUT-07: Bold prompts
+
+**TUI Integration:**
+- [ ] TUI-01: Screen clear before main menu
+- [ ] TUI-02: Bold menu title
+- [ ] TUI-03: Screen clear in settings submenu
+
+**Error Formatting:**
+- [ ] ERR-01: Colored [FAIL] header in errors
+
+### Future Candidates
 
 - [ ] SHA256 change detection to skip rebuild when config unchanged
 - [ ] --no-clean flag for incremental builds
@@ -129,4 +166,4 @@ python3 ~/katapult/scripts/flashtool.py -f ~/klipper/out/klipper.bin -d /dev/ser
 | 30s verification timeout | RP2040 boards need more time to re-enumerate | ✓ Good |
 
 ---
-*Last updated: 2026-01-27 after v2.0 milestone complete*
+*Last updated: 2026-01-28 after v2.1 milestone initialization*
