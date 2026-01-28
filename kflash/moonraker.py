@@ -187,6 +187,47 @@ def _parse_git_describe(version: str) -> tuple[Optional[str], Optional[int]]:
     return tag, count
 
 
+def get_mcu_version_for_device(mcu_type: str) -> Optional[str]:
+    """Get MCU firmware version for a specific device by its mcu_type.
+
+    Attempts to match the device's mcu_type (e.g., "stm32h723", "rp2040", "nhk")
+    to a Moonraker MCU name and return its version.
+
+    Matching logic (in order):
+    1. Exact match on MCU name (e.g., device mcu "nhk" matches Moonraker "nhk")
+    2. If device mcu contains the Moonraker mcu name or vice versa
+    3. Fall back to "main" for primary MCU if no match found
+
+    Args:
+        mcu_type: Device MCU type string (e.g., "stm32h723", "rp2040", "nhk")
+
+    Returns:
+        Version string like "v0.12.0-45-g7ce409d" or None if unavailable.
+    """
+    mcu_versions = get_mcu_versions()
+    if not mcu_versions:
+        return None
+
+    mcu_lower = mcu_type.lower()
+
+    # 1. Exact match
+    for mcu_name, version in mcu_versions.items():
+        if mcu_name.lower() == mcu_lower:
+            return version
+
+    # 2. Substring match (device mcu contains moonraker name or vice versa)
+    for mcu_name, version in mcu_versions.items():
+        name_lower = mcu_name.lower()
+        if mcu_lower in name_lower or name_lower in mcu_lower:
+            return version
+
+    # 3. Fall back to "main" for primary MCU
+    if "main" in mcu_versions:
+        return mcu_versions["main"]
+
+    return None
+
+
 def is_mcu_outdated(host_version: str, mcu_version: str) -> bool:
     """Check if MCU firmware appears behind host Klipper.
 
