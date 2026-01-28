@@ -10,22 +10,31 @@ See: .planning/PROJECT.md (updated 2026-01-28)
 ## Current Position
 
 Milestone: v2.1 TUI Color Theme — IN PROGRESS
-Phase: 8 (Theme Infrastructure) — NOT STARTED
-Plan: None yet
-Status: **Milestone initialized, ready for phase planning**
-Last activity: 2026-01-28 — v2.1 milestone created
+Phase: 8 (Theme Infrastructure) — Plan 01 COMPLETE
+Plan: 01 of 01 in phase
+Status: **Phase 8 complete, ready for Phase 9**
+Last activity: 2026-01-28 — Completed 08-01-PLAN.md
 
-Progress: [          ] 0% complete
+Progress: [=====     ] 50% complete (1 of 2 phases)
 
 ## v2.1 Roadmap
 
 | Phase | Name | Requirements | Status |
 |-------|------|--------------|--------|
-| 8 | Theme Infrastructure | THEME-01 to THEME-06 | Not started |
+| 8 | Theme Infrastructure | THEME-01 to THEME-06 | Complete |
 | 9 | Apply Theming | OUT-01-07, TUI-01-03, ERR-01 | Not started |
 
 See: `.planning/ROADMAP.md` for full phase details
 See: `.planning/REQUIREMENTS.md` for requirement definitions
+
+## Accumulated Decisions
+
+| Phase | Decision | Rationale |
+|-------|----------|-----------|
+| 08-01 | Semantic style names (theme.success not theme.green) | Easier to adjust palette without changing call sites |
+| 08-01 | Dataclass over enum for Theme | Direct field access cleaner than .value |
+| 08-01 | Cached singleton with reset_theme() | Theme determined once at startup, but resettable for testing |
+| 08-01 | NO_COLOR standard respected | Follows https://no-color.org/ for accessibility |
 
 ## Shipped Milestones
 
@@ -45,10 +54,10 @@ See: .planning/MILESTONES.md for full history
 
 ## Session Continuity
 
-Last session: 2026-01-28
-Stopped at: v2.1 milestone initialized
+Last session: 2026-01-28T09:36:56Z
+Stopped at: Completed 08-01-PLAN.md
 Resume file: None
-Next step: `/gsd:plan-phase 8` to create Phase 8 execution plan
+Next step: Execute Phase 9 plans to apply theming to output.py, tui.py, and errors.py
 
 ---
-*Last updated: 2026-01-28 after v2.1 milestone initialization*
+*Last updated: 2026-01-28 after 08-01-PLAN.md completion*
