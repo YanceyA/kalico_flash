@@ -26,11 +26,17 @@ Progress: [██████████] 100% complete
 
 See: .planning/MILESTONES.md for full history
 
+## Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 001 | Add version match confirmation dialog | 2026-01-28 | 446821f | [001-version-match-confirmation](./quick/001-version-match-confirmation/) |
+
 ## Session Continuity
 
-Last session: 2026-01-27T10:30:00Z
-Stopped at: v2.0 milestone complete
+Last session: 2026-01-28
+Stopped at: Quick task 001 complete
 Resume file: None
 
 ---
-*Last updated: 2026-01-27 after v2.0 milestone complete*
+*Last updated: 2026-01-28 after quick task 001: version match confirmation*
