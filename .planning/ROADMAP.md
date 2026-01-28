@@ -5,7 +5,7 @@
 | Phase | Name | Requirements | Status |
 |-------|------|--------------|--------|
 | 8 | Theme Infrastructure | THEME-01 to THEME-06 | Complete |
-| 9 | Apply Theming | OUT-01-07, TUI-01-03, ERR-01 | In Progress |
+| 9 | Apply Theming | OUT-01-07, TUI-01-03, ERR-01 | Complete |
 
 ---
 
@@ -61,13 +61,13 @@ Plans:
 
 **Requirements:** OUT-01 to OUT-07, TUI-01 to TUI-03, ERR-01
 
-**Status:** In Progress
+**Status:** Complete (2026-01-28)
 
 **Plans:** 2 plans
 
 Plans:
-- [ ] 09-01-PLAN.md - Reconcile theme.py colors with CONTEXT.md decisions
-- [ ] 09-02-PLAN.md - Apply theming to output.py, tui.py, errors.py
+- [x] 09-01-PLAN.md - Reconcile theme.py colors with CONTEXT.md decisions
+- [x] 09-02-PLAN.md - Apply theming to output.py, tui.py, errors.py
 
 **Files:**
 - Modify `kflash/theme.py` (~10 lines changed)
