@@ -4,12 +4,12 @@
 
 | Phase | Name | Requirements | Status |
 |-------|------|--------------|--------|
-| 8 | Theme Infrastructure | THEME-01 to THEME-06 | ✓ Complete |
-| 9 | Apply Theming | OUT-01-07, TUI-01-03, ERR-01 | Not started |
+| 8 | Theme Infrastructure | THEME-01 to THEME-06 | Complete |
+| 9 | Apply Theming | OUT-01-07, TUI-01-03, ERR-01 | In Progress |
 
 ---
 
-## Phase 8: Theme Infrastructure ✓
+## Phase 8: Theme Infrastructure
 
 **Goal:** Create theme.py module with semantic styling, detection, and utilities
 
@@ -20,7 +20,7 @@
 **Plans:** 1 plan
 
 Plans:
-- [x] 08-01-PLAN.md — Create theme.py with Theme dataclass, detection, and utilities
+- [x] 08-01-PLAN.md - Create theme.py with Theme dataclass, detection, and utilities
 
 **Files:**
 - Create `kalico-flash/theme.py` (~120 lines)
@@ -34,12 +34,12 @@ Plans:
    - Modifiers: bold, dim, reset
 3. No-color theme instance (all fields empty)
 4. `supports_color()` function with detection logic
-   - NO_COLOR → False
-   - FORCE_COLOR → True
-   - Not TTY → False
-   - TERM=dumb → False
-   - Windows → VT mode enable attempt
-   - Unix TTY → True
+   - NO_COLOR -> False
+   - FORCE_COLOR -> True
+   - Not TTY -> False
+   - TERM=dumb -> False
+   - Windows -> VT mode enable attempt
+   - Unix TTY -> True
 5. `_enable_windows_vt_mode()` helper via ctypes
 6. `get_theme()` and `reset_theme()` cached singleton
 7. `clear_screen()` utility
@@ -61,35 +61,52 @@ Plans:
 
 **Requirements:** OUT-01 to OUT-07, TUI-01 to TUI-03, ERR-01
 
-**Plans:** (created by /gsd:plan-phase)
+**Status:** In Progress
+
+**Plans:** 2 plans
+
+Plans:
+- [ ] 09-01-PLAN.md - Reconcile theme.py colors with CONTEXT.md decisions
+- [ ] 09-02-PLAN.md - Apply theming to output.py, tui.py, errors.py
 
 **Files:**
-- Modify `kalico-flash/output.py` (~30 lines changed)
-- Modify `kalico-flash/tui.py` (~20 lines changed)
-- Modify `kalico-flash/errors.py` (~5 lines changed)
+- Modify `kflash/theme.py` (~10 lines changed)
+- Modify `kflash/output.py` (~30 lines changed)
+- Modify `kflash/tui.py` (~40 lines changed)
+- Modify `kflash/errors.py` (~5 lines changed)
 
 **Implementation:**
 
-### output.py Changes
+### Plan 01: Theme Reconciliation (Wave 1)
+Update theme.py to match CONTEXT.md decisions:
+- Add blue color for phase (distinct from cyan info)
+- Change marker_new to yellow (caution/attention)
+- Change marker_blk to yellow (caution/unavailable)
+- Change menu_border to cyan (match title)
+
+### Plan 02: Apply Theming (Wave 2)
+
+**output.py Changes:**
 1. Import `get_theme` from theme module
 2. Add `self.theme = get_theme()` in CliOutput.__init__
 3. Update methods with themed output:
-   - `info()` — cyan `[section]` bracket
-   - `success()` — green `[OK]` bracket
-   - `warn()` — yellow `[!!]` bracket
-   - `error()` — red `[FAIL]` bracket
-   - `phase()` — cyan `[phase]` bracket
-   - `device_line()` — marker style lookup dict
-   - `prompt()` / `confirm()` — bold prompt text
+   - `info()` - cyan `[section]` bracket
+   - `success()` - green `[OK]` bracket
+   - `warn()` - yellow `[!!]` bracket
+   - `error()` - red `[FAIL]` bracket
+   - `phase()` - blue `[phase]` bracket
+   - `device_line()` - marker style lookup dict
+   - `prompt()` / `confirm()` - bold prompt text
 
-### tui.py Changes
+**tui.py Changes:**
 1. Import `get_theme`, `clear_screen` from theme module
 2. Add `clear_screen()` at start of `run_menu()` while loop
 3. Add `clear_screen()` at start of `_settings_menu()` while loop
 4. Apply `theme.menu_title` to title in `_render_menu()`
    - Note: ANSI codes have zero width - use plain text for width calc
+5. Add `pause_with_keypress()` utility for feedback pauses
 
-### errors.py Changes
+**errors.py Changes:**
 1. Import `get_theme` from theme module
 2. Apply `theme.error` style to `[FAIL]` header in `format_error()`
 
@@ -105,10 +122,10 @@ Plans:
 ## Verification (After Phase 9)
 
 Visual spot-check only:
-1. `kflash --list-devices` — colored device markers
-2. `kflash` — screen clear, bold title, colored menu actions
-3. `kflash --device nonexistent` — red [FAIL] error
-4. `NO_COLOR=1 kflash --list-devices` — no colors (fallback works)
+1. `kflash --list-devices` - colored device markers
+2. `kflash` - screen clear, bold title, colored menu actions
+3. `kflash --device nonexistent` - red [FAIL] error
+4. `NO_COLOR=1 kflash --list-devices` - no colors (fallback works)
 
 SSH to Pi to verify colors render correctly over remote terminal.
 
