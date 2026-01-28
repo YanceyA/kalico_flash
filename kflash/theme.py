@@ -22,6 +22,7 @@ _GREEN = "\033[92m"   # Bright green
 _YELLOW = "\033[93m"  # Bright yellow
 _RED = "\033[91m"     # Bright red
 _CYAN = "\033[96m"    # Bright cyan
+_BLUE = "\033[94m"    # Bright blue
 _BOLD = "\033[1m"     # Bold
 _DIM = "\033[2m"      # Dim/faint
 
@@ -39,18 +40,18 @@ class Theme:
     warning: str = _YELLOW      # [!!] warnings
     error: str = _RED           # [FAIL] errors (stderr)
     info: str = _CYAN           # [section] info messages
-    phase: str = _CYAN          # [Discovery], [Build], etc.
+    phase: str = _BLUE          # [Discovery], [Build], etc.
 
     # Device marker styles
     marker_reg: str = _GREEN    # REG - registered/connected
-    marker_new: str = _CYAN     # NEW - unregistered device
-    marker_blk: str = _RED      # BLK - blocked device
+    marker_new: str = _YELLOW   # NEW - unregistered device (caution/attention)
+    marker_blk: str = _YELLOW   # BLK - blocked device (caution/unavailable)
     marker_dup: str = _YELLOW   # DUP - duplicate USB match
     marker_num: str = ""        # Numbered selection (neutral)
 
     # UI element styles
     menu_title: str = _BOLD     # Menu box title
-    menu_border: str = ""       # Box drawing chars (neutral by default)
+    menu_border: str = _CYAN    # Box drawing chars (match title color)
     prompt: str = _BOLD         # Input prompts
 
     # Text modifiers
