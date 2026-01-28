@@ -5,6 +5,8 @@ from __future__ import annotations
 import sys
 from typing import Protocol
 
+from .theme import get_theme
+
 
 class Output(Protocol):
     """Pluggable output interface. Core modules call these methods.
@@ -28,19 +30,26 @@ class Output(Protocol):
 
 
 class CliOutput:
-    """Default CLI output -- plain text, no ANSI color."""
+    """Default CLI output with ANSI color support."""
+
+    def __init__(self) -> None:
+        self.theme = get_theme()
 
     def info(self, section: str, message: str) -> None:
-        print(f"[{section}] {message}")
+        t = self.theme
+        print(f"{t.info}[{section}]{t.reset} {message}")
 
     def success(self, message: str) -> None:
-        print(f"[OK] {message}")
+        t = self.theme
+        print(f"{t.success}[OK]{t.reset} {message}")
 
     def warn(self, message: str) -> None:
-        print(f"[!!] {message}")
+        t = self.theme
+        print(f"{t.warning}[!!]{t.reset} {message}")
 
     def error(self, message: str) -> None:
-        print(f"[FAIL] {message}", file=sys.stderr)
+        t = self.theme
+        print(f"{t.error}[FAIL]{t.reset} {message}", file=sys.stderr)
 
     def error_with_recovery(
         self,
@@ -56,23 +65,38 @@ class CliOutput:
         print(formatted, file=sys.stderr)
 
     def device_line(self, marker: str, name: str, detail: str) -> None:
-        print(f"  [{marker}] {name:<24s} {detail}")
+        t = self.theme
+        marker_styles = {
+            "REG": t.marker_reg,
+            "NEW": t.marker_new,
+            "BLK": t.marker_blk,
+            "DUP": t.marker_dup,
+        }
+        # For numbered markers (1, 2, 3...), use marker_num style
+        if marker.isdigit():
+            style = t.marker_num
+        else:
+            style = marker_styles.get(marker.upper(), "")
+        print(f"  {style}[{marker}]{t.reset} {name:<24s} {detail}")
 
     def prompt(self, message: str, default: str = "") -> str:
+        t = self.theme
         suffix = f" [{default}]" if default else ""
-        response = input(f"{message}{suffix}: ").strip()
+        response = input(f"{t.prompt}{message}{suffix}:{t.reset} ").strip()
         return response or default
 
     def confirm(self, message: str, default: bool = False) -> bool:
+        t = self.theme
         suffix = " [Y/n]" if default else " [y/N]"
-        response = input(f"{message}{suffix}: ").strip().lower()
+        response = input(f"{t.prompt}{message}{suffix}:{t.reset} ").strip().lower()
         if not response:
             return default
         return response in ("y", "yes")
 
     def phase(self, phase_name: str, message: str) -> None:
         """Output a phase-labeled message."""
-        print(f"[{phase_name}] {message}")
+        t = self.theme
+        print(f"{t.phase}[{phase_name}]{t.reset} {message}")
 
 
 class NullOutput:
