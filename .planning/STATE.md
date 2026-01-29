@@ -13,7 +13,7 @@ Milestone: v3.0 TUI Redesign & Flash All
 Phase: 14 of 14 (Flash All)
 Plan: 2/2 complete
 Status: **Phase 14 complete, verified (6/6 must-haves) — milestone ready for audit**
-Last activity: 2026-01-29 — Completed 14-02-PLAN.md
+Last activity: 2026-01-29 — Completed quick task 003: left-align panels
 
 Progress: [██████████] 100%
 
@@ -49,6 +49,12 @@ Progress: [██████████] 100%
 | v1.0 | MVP | 1-3 | 2026-01-25 |
 | v2.0 | Public Release | 4-7 | 2026-01-27 |
 | v2.1 | TUI Color Theme | 8-9 | 2026-01-29 |
+
+## Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 003 | Left-align status and action panels | 2026-01-29 | 80d07fc | [003-left-align-status-action-panels](./quick/003-left-align-status-action-panels/) |
 
 ## Session Continuity
 
