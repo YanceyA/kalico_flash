@@ -1,161 +1,115 @@
-# Requirements - v2.1 TUI Color Theme
+# Requirements: v3.0 TUI Redesign & Flash All
 
-## Overview
+**Defined:** 2026-01-29
+**Core Value:** One command to build and flash any registered board — no remembering serial paths, flash commands, or config locations.
 
-Add KIAUH-style ANSI color support with a centralized, maintainable theme system.
-- **Constraint:** Python 3.9+ stdlib only (no external dependencies)
-- **Reference:** `.working/theme_plan.md` for detailed implementation plan
+## v3.0 Requirements
 
-## Theme Infrastructure (Phase 8)
+### Theme & Rendering
 
-### THEME-01: Theme module with semantic style dataclass
-Create `theme.py` with a Theme dataclass containing semantic style fields:
-- Message types: success, warning, error, info, phase
-- Device markers: marker_reg, marker_new, marker_blk, marker_dup
-- UI elements: menu_title, menu_border, prompt
-- Modifiers: bold, dim, reset
+- [ ] **REND-01**: Truecolor RGB palette with 3-tier fallback (truecolor > ANSI 256 > ANSI 16)
+- [ ] **REND-02**: ANSI-aware string utilities (strip_ansi, display_width, pad_to_width)
+- [ ] **REND-03**: Panel renderer with rounded borders (╭╮╰╯), configurable width
+- [ ] **REND-04**: Two-column layout rendering within panels
+- [ ] **REND-05**: Spaced letter panel headers (e.g. [ D E V I C E S ])
+- [ ] **REND-06**: Step dividers (mid-grey partial-width with step labels)
+- [ ] **REND-07**: Terminal width detection and adaptive panel sizing
 
-**Acceptance:** `from kflash.theme import Theme` imports successfully
+### TUI Layout
 
-### THEME-02: Terminal capability detection
-Implement `supports_color()` function with detection logic:
-1. NO_COLOR env var set → False (https://no-color.org/)
-2. FORCE_COLOR env var set → True
-3. stdout not a TTY → False
-4. TERM == 'dumb' → False
-5. Windows → attempt VT mode, return success
-6. Unix-like TTY → True
+- [ ] **TUI-04**: Status panel at top showing last command result
+- [ ] **TUI-05**: Device panel with devices grouped by status (Registered/New/Blocked)
+- [ ] **TUI-06**: Numbered device references (#1, #2, #3) usable across actions
+- [ ] **TUI-07**: Device rows showing name, truncated serial path, version, status icon
+- [ ] **TUI-08**: Host Klipper version displayed in device panel footer
+- [ ] **TUI-09**: Actions panel with two-column layout and ▸ bullets
+- [ ] **TUI-10**: Screen refresh after every command completes (return to full menu)
+- [ ] **TUI-11**: Refresh Devices action replaces List Devices
+- [ ] **TUI-12**: Config screen as dedicated cleared screen with own status panel
+- [ ] **TUI-13**: Config screen shows settings with numbered rows and current values
+- [ ] **TUI-14**: Config screen refreshes after each setting change
 
-**Acceptance:** Function returns correct boolean for each condition
+### Flash All
 
-### THEME-03: Windows VT mode support
-Implement `_enable_windows_vt_mode()` helper:
-- Use ctypes to call SetConsoleMode with ENABLE_VIRTUAL_TERMINAL_PROCESSING
-- Return True if successful, False if unsupported/failed
+- [ ] **FALL-01**: Flash All Registered Devices command in action menu
+- [ ] **FALL-02**: Build all firmware first, then stop Klipper once, flash all, restart once
+- [ ] **FALL-03**: Pre-flash version check — compare MCU versions to host version
+- [ ] **FALL-04**: Prompt user if all MCU versions already match host (proceed or exit)
+- [ ] **FALL-05**: Validate all devices have cached configs before starting
+- [ ] **FALL-06**: Sequential flash with staggered output (configurable delay, default 1s)
+- [ ] **FALL-07**: Continue-on-failure — if one device fails, continue to next
+- [ ] **FALL-08**: Summary table after batch completion (device, status, version)
+- [ ] **FALL-09**: Post-flash verification per device (reappears as Klipper)
 
-**Acceptance:** Windows terminals render ANSI codes correctly (or fallback gracefully)
+### Config & Settings
 
-### THEME-04: No-color fallback theme
-Create `_no_color_theme` instance with all style fields as empty strings.
+- [ ] **CONF-01**: Skip menuconfig setting (default false) — auto-skip if valid cached config
+- [ ] **CONF-02**: Stagger delay setting for Flash All (default 1s)
+- [ ] **CONF-03**: Return delay setting — countdown before returning to menu (default 5s)
+- [ ] **CONF-04**: Countdown with keypress cancel — any key skips timer, returns immediately
+- [ ] **CONF-05**: Settings persisted in registry JSON (global section)
 
-**Acceptance:** `NO_COLOR=1` produces no escape codes in output
+## Future Requirements
 
-### THEME-05: Cached theme singleton
-Implement accessor functions:
-- `get_theme()` — Returns Theme instance, caches on first call
-- `reset_theme()` — Clears cache (for testing)
+### Deferred
 
-**Acceptance:** Multiple `get_theme()` calls return same instance
+- **SHA256 change detection** — Skip rebuild when config unchanged
+- **--no-clean flag** — Incremental builds
+- **CAN bus support** — Different discovery mechanism
 
-### THEME-06: Screen clear utility
-Implement `clear_screen()` function:
-- Unix: `clear -x` (preserves scrollback) or ANSI fallback
-- Windows with VT: ANSI sequence `\033[H\033[J`
-- Windows without VT: `cmd /c cls`
+## Out of Scope
 
-**Acceptance:** Screen clears without destroying scrollback history
-
-## CLI Output Styling (Phase 9)
-
-### OUT-01: Colored [OK] messages
-Green `[OK]` prefix in success() method.
-
-**Acceptance:** `kflash --list-devices` shows green [OK] for successful operations
-
-### OUT-02: Colored [FAIL] messages
-Red `[FAIL]` prefix in error() method.
-
-**Acceptance:** Error messages show red [FAIL] prefix
-
-### OUT-03: Colored [!!] warnings
-Yellow `[!!]` prefix in warn() method.
-
-**Acceptance:** Warning messages show yellow [!!] prefix
-
-### OUT-04: Colored [section] info
-Cyan brackets in info() method for section labels.
-
-**Acceptance:** Info messages show cyan [section] prefix
-
-### OUT-05: Colored [phase] markers
-Cyan brackets in phase() method for phase labels.
-
-**Acceptance:** Phase labels show cyan [Discovery], [Build], etc.
-
-### OUT-06: Colored device markers
-Colored markers in device_line() method:
-- REG → green (registered/connected)
-- NEW → cyan (unregistered device)
-- BLK → red (blocked device)
-- DUP → yellow (duplicate match)
-
-**Acceptance:** `kflash --list-devices` shows colored device markers
-
-### OUT-07: Bold prompts
-Bold text in prompt() and confirm() methods.
-
-**Acceptance:** Input prompts display in bold
-
-## TUI Integration (Phase 9)
-
-### TUI-01: Screen clear before main menu
-Call `clear_screen()` at start of main menu loop in run_menu().
-
-**Acceptance:** Screen clears before menu displays, after each action
-
-### TUI-02: Bold menu title
-Apply theme.menu_title style to "kalico-flash" title in menu box.
-Note: ANSI codes have zero display width - width calculations must use plain text.
-
-**Acceptance:** Menu title "kalico-flash" displays bold
-
-### TUI-03: Screen clear in settings submenu
-Call `clear_screen()` at start of settings menu loop in _settings_menu().
-
-**Acceptance:** Settings submenu clears screen before display
-
-## Error Formatting (Phase 9)
-
-### ERR-01: Colored [FAIL] header in errors
-Apply theme.error style to [FAIL] prefix in format_error().
-Only the header is colored - recovery steps remain plain for readability.
-
-**Acceptance:** `kflash --device nonexistent` shows red [FAIL] header
-
----
-
-## Verification (Minimal)
-
-After Phase 9 completion, visual spot-check:
-1. `kflash --list-devices` — colored markers
-2. `kflash` — colored menu with screen clear
-3. `NO_COLOR=1 kflash --list-devices` — no colors (fallback)
-
-No extensive testing required - this is a visual enhancement.
-
----
+| Feature | Reason |
+|---------|--------|
+| Rich/Textual/curses dependency | Stdlib only constraint — pure ANSI codes |
+| Real-time animated spinners | Would require threading/async, overkill for build output |
+| Mouse support | SSH terminals vary, keyboard sufficient |
+| Resizable panels during execution | Redraw on completion is sufficient |
+| Per-device flash method override in Flash All | All devices use standard Katapult-first fallback |
+| Parallel flash (multiple devices simultaneously) | USB serial is sequential, kernel locking issues |
 
 ## Traceability
 
-| Req ID | Name | Phase | Status |
-|--------|------|-------|--------|
-| THEME-01 | Theme dataclass | 8 | Complete |
-| THEME-02 | Terminal detection | 8 | Complete |
-| THEME-03 | Windows VT mode | 8 | Complete |
-| THEME-04 | No-color fallback | 8 | Complete |
-| THEME-05 | Cached singleton | 8 | Complete |
-| THEME-06 | Screen clear | 8 | Complete |
-| OUT-01 | Colored [OK] | 9 | Complete |
-| OUT-02 | Colored [FAIL] | 9 | Complete |
-| OUT-03 | Colored [!!] | 9 | Complete |
-| OUT-04 | Colored [section] | 9 | Complete |
-| OUT-05 | Colored [phase] | 9 | Complete |
-| OUT-06 | Colored markers | 9 | Complete |
-| OUT-07 | Bold prompts | 9 | Complete |
-| TUI-01 | Screen clear main | 9 | Complete |
-| TUI-02 | Bold menu title | 9 | Complete |
-| TUI-03 | Screen clear settings | 9 | Complete |
-| ERR-01 | Colored error header | 9 | Complete |
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| REND-01 | TBD | Pending |
+| REND-02 | TBD | Pending |
+| REND-03 | TBD | Pending |
+| REND-04 | TBD | Pending |
+| REND-05 | TBD | Pending |
+| REND-06 | TBD | Pending |
+| REND-07 | TBD | Pending |
+| TUI-04 | TBD | Pending |
+| TUI-05 | TBD | Pending |
+| TUI-06 | TBD | Pending |
+| TUI-07 | TBD | Pending |
+| TUI-08 | TBD | Pending |
+| TUI-09 | TBD | Pending |
+| TUI-10 | TBD | Pending |
+| TUI-11 | TBD | Pending |
+| TUI-12 | TBD | Pending |
+| TUI-13 | TBD | Pending |
+| TUI-14 | TBD | Pending |
+| FALL-01 | TBD | Pending |
+| FALL-02 | TBD | Pending |
+| FALL-03 | TBD | Pending |
+| FALL-04 | TBD | Pending |
+| FALL-05 | TBD | Pending |
+| FALL-06 | TBD | Pending |
+| FALL-07 | TBD | Pending |
+| FALL-08 | TBD | Pending |
+| FALL-09 | TBD | Pending |
+| CONF-01 | TBD | Pending |
+| CONF-02 | TBD | Pending |
+| CONF-03 | TBD | Pending |
+| CONF-04 | TBD | Pending |
+| CONF-05 | TBD | Pending |
+
+**Coverage:**
+- v3.0 requirements: 32 total
+- Mapped to phases: 0 (pending roadmap)
+- Unmapped: 32
 
 ---
-*Created: 2026-01-28 for v2.1 milestone*
+*Requirements defined: 2026-01-29*
+*Last updated: 2026-01-29 after initial definition*
