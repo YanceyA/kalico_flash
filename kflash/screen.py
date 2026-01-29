@@ -83,14 +83,21 @@ def truncate_serial(path: str, max_width: int = 40) -> str:
     """Truncate a serial path to fit within max_width visible characters.
 
     If the path fits, return as-is. Otherwise keep the start and end
-    with an ellipsis in the middle.
+    with ``...`` in the middle, preserving the ``-if00`` suffix when present.
     """
     if len(path) <= max_width:
         return path
-    available = max_width - 1  # 1 char for ellipsis
-    left = available // 2
-    right = available - left
-    return path[:left] + "\u2026" + path[-right:]
+    # Preserve suffix like -if00
+    suffix = ""
+    if path.endswith("-if00"):
+        suffix = "-if00"
+        body = path[: -len(suffix)]
+    else:
+        body = path
+    available = max_width - 3 - len(suffix)  # 3 chars for "..."
+    right = min(4, available // 3)
+    left = available - right
+    return body[:left] + "..." + body[-right:] + suffix
 
 
 # ---------------------------------------------------------------------------
@@ -231,7 +238,7 @@ def render_device_row(row: DeviceRow) -> str:
     serial = truncate_serial(row.serial_path)
 
     if row.group == "blocked":
-        return f"{icon}  {theme.subtle}{row.name}{theme.reset}"
+        return f"{icon}  {theme.subtle}{truncate_serial(row.name)}{theme.reset}"
 
     num = f"#{row.number}" if row.number > 0 else ""
     ver = row.version or ""
@@ -241,9 +248,9 @@ def render_device_row(row: DeviceRow) -> str:
         parts.append(f" {theme.label}{num}{theme.reset}")
     display_name = truncate_serial(row.name) if row.group == "new" else row.name
     parts.append(f"  {theme.text}{display_name}{theme.reset}")
-    if row.mcu:
+    if row.mcu and row.mcu != "unknown":
         parts.append(f" {theme.subtle}({row.mcu}){theme.reset}")
-    if serial != row.name:
+    if row.serial_path != row.name:
         parts.append(f"  {theme.subtle}{serial}{theme.reset}")
     if ver:
         parts.append(f"  {theme.value}{ver}{theme.reset}")
