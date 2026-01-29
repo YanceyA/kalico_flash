@@ -35,7 +35,9 @@ Plans:
   2. Two-column layout renders within panels with even spacing
   3. Panel headers display spaced letters (e.g. `[ D E V I C E S ]`) centered in top border
   4. Step dividers render as mid-grey partial-width lines with step labels
-**Plans**: TBD
+**Plans:** 1 plan
+Plans:
+- [ ] 11-01-PLAN.md — Create panels.py with render_panel, render_two_column, render_step_divider, center_panel
 
 ### Phase 12: TUI Main Screen
 **Goal**: Users see a panel-based main screen with live device status and can navigate all actions
