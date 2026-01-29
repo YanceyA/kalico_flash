@@ -9,10 +9,10 @@
 
 - [x] **REND-01**: Truecolor RGB palette with 3-tier fallback (truecolor > ANSI 256 > ANSI 16)
 - [x] **REND-02**: ANSI-aware string utilities (strip_ansi, display_width, pad_to_width)
-- [ ] **REND-03**: Panel renderer with rounded borders (curved corners), configurable width
-- [ ] **REND-04**: Two-column layout rendering within panels
-- [ ] **REND-05**: Spaced letter panel headers (e.g. [ D E V I C E S ])
-- [ ] **REND-06**: Step dividers (mid-grey partial-width with step labels)
+- [x] **REND-03**: Panel renderer with rounded borders (curved corners), configurable width
+- [x] **REND-04**: Two-column layout rendering within panels
+- [x] **REND-05**: Spaced letter panel headers (e.g. [ D E V I C E S ])
+- [x] **REND-06**: Step dividers (mid-grey partial-width with step labels)
 - [x] **REND-07**: Terminal width detection and adaptive panel sizing
 
 ### TUI Layout
@@ -72,13 +72,13 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| REND-01 | Phase 10 | Pending |
-| REND-02 | Phase 10 | Pending |
-| REND-03 | Phase 11 | Pending |
-| REND-04 | Phase 11 | Pending |
-| REND-05 | Phase 11 | Pending |
-| REND-06 | Phase 11 | Pending |
-| REND-07 | Phase 10 | Pending |
+| REND-01 | Phase 10 | Complete |
+| REND-02 | Phase 10 | Complete |
+| REND-03 | Phase 11 | Complete |
+| REND-04 | Phase 11 | Complete |
+| REND-05 | Phase 11 | Complete |
+| REND-06 | Phase 11 | Complete |
+| REND-07 | Phase 10 | Complete |
 | TUI-04 | Phase 12 | Pending |
 | TUI-05 | Phase 12 | Pending |
 | TUI-06 | Phase 12 | Pending |

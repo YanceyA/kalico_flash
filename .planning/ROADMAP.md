@@ -7,7 +7,7 @@ Redesign the TUI with panel-based layout using truecolor theming, ANSI-aware ren
 ## Phases
 
 - [x] **Phase 10: Rendering Foundation** - Truecolor theme upgrade, ANSI string utilities, terminal width detection
-- [ ] **Phase 11: Panel Renderer** - Panel module with bordered panels, two-column layout, step dividers
+- [x] **Phase 11: Panel Renderer** - Panel module with bordered panels, two-column layout, step dividers
 - [ ] **Phase 12: TUI Main Screen** - Panel-based main screen with status, devices, and actions panels
 - [ ] **Phase 13: Config Screen & Settings** - Dedicated config screen with settings persistence and countdown timer
 - [ ] **Phase 14: Flash All** - Batch flash command with build-then-flash architecture
@@ -37,7 +37,7 @@ Plans:
   4. Step dividers render as mid-grey partial-width lines with step labels
 **Plans:** 1 plan
 Plans:
-- [ ] 11-01-PLAN.md — Create panels.py with render_panel, render_two_column, render_step_divider, center_panel
+- [x] 11-01-PLAN.md — Create panels.py with render_panel, render_two_column, render_step_divider, center_panel
 
 ### Phase 12: TUI Main Screen
 **Goal**: Users see a panel-based main screen with live device status and can navigate all actions
@@ -81,7 +81,7 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 10. Rendering Foundation | 1/1 | ✓ Complete | 2026-01-29 |
-| 11. Panel Renderer | 0/TBD | Not started | - |
+| 11. Panel Renderer | 1/1 | ✓ Complete | 2026-01-29 |
 | 12. TUI Main Screen | 0/TBD | Not started | - |
 | 13. Config Screen & Settings | 0/TBD | Not started | - |
 | 14. Flash All | 0/TBD | Not started | - |

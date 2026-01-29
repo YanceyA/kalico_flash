@@ -13,9 +13,9 @@ Milestone: v3.0 TUI Redesign & Flash All
 Phase: 11 of 14 (Panel Renderer) — ✓ Complete
 Plan: 1/1 complete
 Status: **Phase 11 complete, ready to plan Phase 12**
-Last activity: 2026-01-29 — Completed 11-01-PLAN.md (panel rendering primitives)
+Last activity: 2026-01-29 — Phase 11 executed and verified (4/4 must-haves)
 
-Progress: [███░░░░░░░] 30%
+Progress: [████░░░░░░] 40%
 
 ## Performance Metrics
 
@@ -32,6 +32,8 @@ Progress: [███░░░░░░░] 30%
 | — | Flash All: stop klipper once | Faster than per-device restart cycle |
 | — | Stdlib only maintained | Pure ANSI codes, no Rich/Textual dependency |
 | 10-01 | Legacy color constants removed (kept _BOLD, _DIM, RESET) | All colors derived from PALETTE via rgb_to_ansi |
+| 11-01 | Inner width auto-expands for header | Ensures header text always fits within borders |
+| 11-01 | Left column gets extra item when odd | Standard UX convention for balanced columns |
 
 ## Shipped Milestones
 
@@ -49,4 +51,4 @@ Resume file: None
 Next step: Plan Phase 12
 
 ---
-*Last updated: 2026-01-29 after Phase 11 Plan 01 execution*
+*Last updated: 2026-01-29 after Phase 11 execution and verification*
