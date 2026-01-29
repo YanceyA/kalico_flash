@@ -1,8 +1,9 @@
 """Interactive TUI menu for kalico-flash.
 
-Provides a numbered main menu and settings submenu when running without
-arguments.  Handles Unicode/ASCII terminal detection, non-TTY fallback,
-invalid-input retry logic, and error-resilient action dispatch.
+Provides a panel-based main screen with single-keypress navigation and a
+settings submenu when running without arguments.  Handles Unicode/ASCII
+terminal detection, non-TTY fallback, invalid-input retry logic, and
+error-resilient action dispatch.
 
 Exports:
     run_menu: Main menu loop entry point.
@@ -41,10 +42,7 @@ ASCII_BOX: dict[str, str] = {
 
 
 def _supports_unicode() -> bool:
-    """Check if terminal supports Unicode box drawing.
-
-    Inspects LANG and LC_ALL environment variables for UTF-8 indicators.
-    """
+    """Check if terminal supports Unicode box drawing."""
     lang = os.environ.get("LANG", "").upper()
     lc_all = os.environ.get("LC_ALL", "").upper()
     return "UTF-8" in lang or "UTF-8" in lc_all or "UTF8" in lang or "UTF8" in lc_all
@@ -56,11 +54,9 @@ def _get_box_chars() -> dict[str, str]:
 
 
 # ---------------------------------------------------------------------------
-# Menu rendering
+# Menu rendering (kept for settings submenu)
 # ---------------------------------------------------------------------------
 
-# Setup-first order per CONTEXT.md decision:
-#   1=Add, 2=List, 3=Flash, 4=Remove, 5=Settings, 0=Exit
 MENU_OPTIONS: list[tuple[str, str]] = [
     ("1", "Add Device"),
     ("2", "List Devices"),
@@ -74,30 +70,21 @@ MENU_OPTIONS: list[tuple[str, str]] = [
 def _render_menu(options: list[tuple[str, str]], box: dict[str, str]) -> str:
     """Render a numbered menu with box-drawing characters.
 
-    Args:
-        options: List of (number, label) tuples.
-        box: Box-drawing character dict (Unicode or ASCII).
-
-    Returns:
-        Multi-line string ready for printing.
+    Used by the settings submenu. The main menu now uses panel rendering.
     """
     theme = get_theme()
 
-    # Calculate inner width: " N) Label " with padding
     inner_items = [f" {num}) {label} " for num, label in options]
     inner_width = max(len(item) for item in inner_items)
 
-    # Calculate title width using PLAIN text
     title_plain = "kalico-flash"
-    title_width = len(title_plain) + 2  # +2 for spaces
+    title_width = len(title_plain) + 2
     inner_width = max(inner_width, title_width)
 
-    # Create styled title for display
     title_display = f" {theme.menu_title}{title_plain}{theme.reset} "
 
     lines: list[str] = []
 
-    # Top border with styled title
     pad_total = inner_width - title_width
     pad_left = pad_total // 2
     pad_right = pad_total - pad_left
@@ -105,15 +92,12 @@ def _render_menu(options: list[tuple[str, str]], box: dict[str, str]) -> str:
         box["tl"] + box["h"] * pad_left + title_display + box["h"] * pad_right + box["tr"]
     )
 
-    # Separator line after title
     lines.append(box["v"] + box["h"] * inner_width + box["v"])
 
-    # Menu items
     for item in inner_items:
         padded = item.ljust(inner_width)
         lines.append(box["v"] + padded + box["v"])
 
-    # Bottom border
     lines.append(box["bl"] + box["h"] * inner_width + box["br"])
 
     return "\n".join(lines)
@@ -122,6 +106,34 @@ def _render_menu(options: list[tuple[str, str]], box: dict[str, str]) -> str:
 # ---------------------------------------------------------------------------
 # Input handling
 # ---------------------------------------------------------------------------
+
+
+def _getch() -> str:
+    """Read a single keypress without requiring Enter.
+
+    Returns lowercase character. Works on both Windows (msvcrt) and
+    Unix (termios raw mode).
+    """
+    try:
+        # Windows
+        import msvcrt
+        ch = msvcrt.getwch()
+        return ch.lower()
+    except ImportError:
+        pass
+
+    # Unix / Linux
+    import tty
+    import termios
+
+    fd = sys.stdin.fileno()
+    old_settings = termios.tcgetattr(fd)
+    try:
+        tty.setraw(fd)
+        ch = sys.stdin.read(1)
+    finally:
+        termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+    return ch.lower()
 
 
 def _get_menu_choice(
@@ -135,15 +147,6 @@ def _get_menu_choice(
     Prompts the user for input, validates against ``valid_choices``, and
     retries up to ``max_attempts`` times on invalid input.  Typing ``q``
     is normalised to ``"0"`` (exit / back).
-
-    Args:
-        valid_choices: Acceptable input strings (e.g. ``["0","1","2"]``).
-        out: Output interface for warning messages.
-        max_attempts: Maximum number of attempts before giving up.
-
-    Returns:
-        A string from *valid_choices*, ``"0"`` (on ``q``), or ``None``
-        if the user exceeded *max_attempts*.
     """
     for attempt in range(max_attempts):
         try:
@@ -167,136 +170,269 @@ def _get_menu_choice(
 
 
 # ---------------------------------------------------------------------------
-# Main menu loop
+# Screen state building
+# ---------------------------------------------------------------------------
+
+
+def _build_screen_state(registry, status_message: str, status_level: str):
+    """Build a ScreenState by loading registry data and scanning USB devices.
+
+    Returns (ScreenState, device_map) where device_map maps device number
+    to DeviceRow for device-targeting actions.
+    """
+    from .screen import ScreenState, build_device_list
+    from .discovery import scan_serial_devices
+    from .flash import _build_blocked_list
+
+    data = registry.load()
+    usb_devices = scan_serial_devices()
+    blocked_list = _build_blocked_list(data)
+
+    # Fetch version info (best effort)
+    mcu_versions = None
+    host_version = None
+    try:
+        from .moonraker import get_mcu_versions, get_host_klipper_version
+        mcu_versions = get_mcu_versions()
+        if data.global_config:
+            host_version = get_host_klipper_version(data.global_config.klipper_dir)
+    except Exception:
+        pass
+
+    devices = build_device_list(data, usb_devices, blocked_list, mcu_versions)
+
+    state = ScreenState(
+        devices=devices,
+        host_version=host_version,
+        status_message=status_message,
+        status_level=status_level,
+    )
+
+    # Build device_map: number -> DeviceRow (only numbered devices)
+    device_map: dict[int, object] = {}
+    for row in devices:
+        if row.number > 0:
+            device_map[row.number] = row
+
+    return state, device_map
+
+
+# ---------------------------------------------------------------------------
+# Device number prompting
+# ---------------------------------------------------------------------------
+
+
+def _prompt_device_number(device_map: dict, out) -> str | None:
+    """Prompt the user for a device number and return the device key.
+
+    If only one device exists, auto-selects it. Allows up to 3 attempts.
+    Returns the device key string or None if cancelled/invalid.
+    """
+    if not device_map:
+        out.warn("No devices available.")
+        return None
+
+    # Auto-select if only one device
+    if len(device_map) == 1:
+        row = next(iter(device_map.values()))
+        return row.key
+
+    for attempt in range(3):
+        try:
+            num_str = input("  Device #: ").strip()
+        except (EOFError, KeyboardInterrupt):
+            return None
+
+        if not num_str or num_str.lower() in ("q", "0"):
+            return None
+
+        try:
+            num = int(num_str)
+        except ValueError:
+            remaining = 2 - attempt
+            if remaining > 0:
+                out.warn(f"Invalid number '{num_str}'. {remaining} attempts remaining.")
+            continue
+
+        if num in device_map:
+            return device_map[num].key
+
+        remaining = 2 - attempt
+        if remaining > 0:
+            out.warn(f"No device #{num}. {remaining} attempts remaining.")
+
+    return None
+
+
+# ---------------------------------------------------------------------------
+# Action handlers (return status message tuples)
+# ---------------------------------------------------------------------------
+
+
+def _action_flash_device(registry, out, device_key: str) -> tuple[str, str]:
+    """Flash a specific device. Returns (message, level)."""
+    from .flash import cmd_flash
+
+    try:
+        result = cmd_flash(registry, device_key, out)
+        if result == 0:
+            entry = registry.get(device_key)
+            name = entry.name if entry else device_key
+            return (f"Flash: {name} flashed successfully", "success")
+        else:
+            return (f"Flash: failed for {device_key}", "error")
+    except KeyboardInterrupt:
+        return ("Flash: cancelled", "warning")
+    except Exception as exc:
+        return (f"Flash: {exc}", "error")
+
+
+def _action_add_device(registry, out) -> tuple[str, str]:
+    """Launch the add-device wizard. Returns (message, level)."""
+    from .flash import cmd_add_device
+
+    try:
+        result = cmd_add_device(registry, out)
+        if result == 0:
+            return ("Device added successfully", "success")
+        else:
+            return ("Add device: cancelled or failed", "warning")
+    except KeyboardInterrupt:
+        return ("Add device: cancelled", "warning")
+    except Exception as exc:
+        return (f"Add device: {exc}", "error")
+
+
+def _action_remove_device(registry, out, device_key: str) -> tuple[str, str]:
+    """Remove a specific device. Returns (message, level)."""
+    from .flash import cmd_remove_device
+
+    try:
+        result = cmd_remove_device(registry, device_key, out)
+        if result == 0:
+            return (f"Removed device '{device_key}'", "success")
+        else:
+            return (f"Remove: cancelled or failed for {device_key}", "warning")
+    except KeyboardInterrupt:
+        return ("Remove: cancelled", "warning")
+    except Exception as exc:
+        return (f"Remove: {exc}", "error")
+
+
+# ---------------------------------------------------------------------------
+# Main menu loop (panel-based)
 # ---------------------------------------------------------------------------
 
 
 def run_menu(registry, out) -> int:
-    """Main interactive menu loop.
+    """Main interactive menu loop with panel-based screen.
 
-    Displays a numbered menu and dispatches user selections.
-    Returns 0 on normal exit (user chose Exit, typed 'q', or pressed Ctrl+C).
+    Displays a panel-based main screen with Status, Devices, and Actions
+    panels. Single keypress selects actions. Device-targeting actions
+    prompt for device number. Screen refreshes after every command.
 
-    Args:
-        registry: Registry instance for device operations.
-        out: Output interface (CliOutput or compatible).
-
-    Returns:
-        Exit code (always 0 for normal menu exit).
+    Returns 0 on normal exit.
     """
-    # Non-TTY guard: show help message instead of broken menu
+    # Non-TTY guard
     if not sys.stdin.isatty():
         print("kalico-flash: interactive menu requires a terminal.")
         print("Run with --help for usage information.")
         return 0
 
-    box = _get_box_chars()
-    menu_text = _render_menu(MENU_OPTIONS, box)
+    from .screen import render_main_screen
+
+    theme = get_theme()
+    status_message = "Welcome to kalico-flash. Select an action below."
+    status_level = "info"
 
     while True:
         try:
-            clear_screen()
-            print()
-            print(menu_text)
-            print()
-
-            choice = _get_menu_choice(
-                ["0", "1", "2", "3", "4", "5"],
-                out,
+            # Build screen state (scans USB, loads registry)
+            state, device_map = _build_screen_state(
+                registry, status_message, status_level
             )
 
-            if choice is None:
-                out.error("Too many invalid inputs. Exiting.")
-                return 1
+            # Render and display
+            clear_screen()
+            print()
+            print(render_main_screen(state))
+            print()
+            print(f"  {theme.prompt}Press action key:{theme.reset} ", end="", flush=True)
 
-            if choice == "0":
+            # Read single keypress
+            try:
+                key = _getch()
+            except (EOFError, OSError):
                 return 0
 
-            # Dispatch to handler with error resilience
-            try:
-                if choice == "1":
-                    _action_add_device(registry, out)
-                elif choice == "2":
-                    _action_list_devices(registry, out)
-                elif choice == "3":
-                    _action_flash_device(registry, out)
-                elif choice == "4":
-                    _action_remove_device(registry, out)
-                elif choice == "5":
-                    _settings_menu(registry, out)
-            except KeyboardInterrupt:
-                out.warn("Cancelled.")
-            except Exception as exc:
-                out.error(f"Action failed: {exc}")
+            # Handle Ctrl+C (comes as \x03 in raw mode)
+            if key == "\x03":
+                print()
+                return 0
+
+            # Dispatch
+            if key == "q":
+                return 0
+
+            elif key == "f":
+                print(key)
+                device_key = _prompt_device_number(device_map, out)
+                if device_key:
+                    status_message, status_level = _action_flash_device(
+                        registry, out, device_key
+                    )
+                else:
+                    status_message = "Flash: no device selected"
+                    status_level = "warning"
+
+            elif key == "a":
+                print(key)
+                status_message, status_level = _action_add_device(registry, out)
+
+            elif key == "r":
+                print(key)
+                device_key = _prompt_device_number(device_map, out)
+                if device_key:
+                    status_message, status_level = _action_remove_device(
+                        registry, out, device_key
+                    )
+                else:
+                    status_message = "Remove: no device selected"
+                    status_level = "warning"
+
+            elif key == "d":
+                print(key)
+                status_message = "Devices refreshed"
+                status_level = "info"
+
+            elif key == "c":
+                print(key)
+                _settings_menu(registry, out)
+                status_message = "Returned from settings"
+                status_level = "info"
+
+            elif key == "b":
+                print(key)
+                status_message = "Flash All: not yet implemented"
+                status_level = "warning"
+
+            else:
+                # Echo the key and show warning
+                if key.isprintable():
+                    print(key)
+                    status_message = f"Unknown key '{key}'. Use F/A/R/D/C/B/Q."
+                else:
+                    print()
+                    status_message = "Unknown key. Use F/A/R/D/C/B/Q."
+                status_level = "warning"
 
         except KeyboardInterrupt:
-            # Ctrl+C at the menu prompt exits cleanly per CONTEXT.md
             print()
             return 0
 
 
 # ---------------------------------------------------------------------------
-# Action handlers
-# ---------------------------------------------------------------------------
-
-
-def _action_add_device(registry, out) -> None:
-    """Launch the add-device wizard."""
-    # Late import to keep hub-and-spoke pattern
-    from .flash import cmd_add_device
-
-    cmd_add_device(registry, out)
-
-
-def _action_list_devices(registry, out) -> None:
-    """Show registered devices with connection status."""
-    from .flash import cmd_list_devices
-
-    cmd_list_devices(registry, out, from_menu=True)
-
-
-def _action_flash_device(registry, out) -> None:
-    """Launch the flash workflow for an interactively-selected device."""
-    from .flash import cmd_flash
-
-    cmd_flash(registry, None, out)
-
-
-def _action_remove_device(registry, out) -> None:
-    """Remove a registered device via numbered selection."""
-    data = registry.load()
-    devices = list(data.devices.items())
-
-    if not devices:
-        out.warn("No devices registered.")
-        return
-
-    out.info("Remove Device", "Select device to remove:")
-    for i, (key, entry) in enumerate(devices, 1):
-        out.info("", f"  {i}. {key} ({entry.name})")
-
-    valid = ["0"] + [str(i) for i in range(1, len(devices) + 1)]
-    choice = _get_menu_choice(
-        valid,
-        out,
-        max_attempts=3,
-        prompt="Select device number (0/q to cancel): ",
-    )
-
-    if choice is None or choice == "0":
-        out.warn("Cancelled.")
-        return
-
-    idx = int(choice) - 1
-    device_key = devices[idx][0]
-
-    from .flash import cmd_remove_device
-
-    cmd_remove_device(registry, device_key, out)
-
-
-# ---------------------------------------------------------------------------
-# Settings submenu
+# Settings submenu (unchanged)
 # ---------------------------------------------------------------------------
 
 SETTINGS_OPTIONS: list[tuple[str, str]] = [
@@ -309,12 +445,7 @@ SETTINGS_OPTIONS: list[tuple[str, str]] = [
 
 
 def _settings_menu(registry, out) -> None:
-    """Settings submenu for path configuration.
-
-    Displays a box-drawn submenu that lets the user change Klipper/Katapult
-    source directories or view current global settings.  Returns to the
-    main menu on ``0``, ``q``, or after too many invalid attempts.
-    """
+    """Settings submenu for path configuration."""
     box = _get_box_chars()
     settings_text = _render_menu(SETTINGS_OPTIONS, box)
 
@@ -340,14 +471,7 @@ def _settings_menu(registry, out) -> None:
 
 
 def _update_path(registry, out, field: str, label: str) -> None:
-    """Prompt for a new path value and persist it to the registry.
-
-    Args:
-        registry: Registry instance.
-        out: Output interface.
-        field: GlobalConfig field name (``klipper_dir`` or ``katapult_dir``).
-        label: Human-readable label for the prompt.
-    """
+    """Prompt for a new path value and persist it to the registry."""
     data = registry.load()
     gc = data.global_config
     if gc is None:
@@ -429,19 +553,8 @@ def wait_for_device(
     Prints progress dots every 2 seconds when ``out`` is None. Checks both
     device existence AND prefix (``Klipper_`` expected, ``katapult_`` means failure).
 
-    Args:
-        serial_pattern: Glob pattern to match device filename
-            (e.g. ``usb-Klipper_stm32h723xx_*``).
-        timeout: Maximum seconds to wait (default 30).
-        interval: Seconds between polls (default 0.5).
-        out: Optional output interface. If provided, progress dots are suppressed.
-
     Returns:
-        A 3-tuple ``(success, device_path, error_reason)``:
-
-        - ``(True, "/dev/...", None)`` -- device found with ``Klipper_`` prefix.
-        - ``(False, "/dev/...", "...")`` -- device found but wrong state.
-        - ``(False, None, "Timeout...")`` -- device never appeared.
+        A 3-tuple ``(success, device_path, error_reason)``.
     """
     import time
     import fnmatch
@@ -454,18 +567,16 @@ def wait_for_device(
         print("Verifying", end="", flush=True)
 
     while time.monotonic() - start < timeout:
-        # Progress dots every 2 seconds
         now = time.monotonic()
         if out is None and now - last_dot_time >= 2.0:
             print(".", end="", flush=True)
             last_dot_time = now
 
-        # Scan for matching devices
         devices = scan_serial_devices()
         for device in devices:
             if fnmatch.fnmatch(device.filename, serial_pattern):
                 if out is None:
-                    print()  # Newline after dots
+                    print()
 
                 filename_lower = device.filename.lower()
                 if filename_lower.startswith("usb-klipper_"):
@@ -486,5 +597,5 @@ def wait_for_device(
         time.sleep(interval)
 
     if out is None:
-        print()  # Newline after dots
+        print()
     return (False, None, f"Timeout after {int(timeout)}s waiting for device")
