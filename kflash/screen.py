@@ -165,11 +165,28 @@ def build_device_list(
     new_devices: list[DeviceRow] = []
     blocked_devices: list[DeviceRow] = []
 
+    def _lookup_version(mcu_type: str) -> Optional[str]:
+        """Match device MCU type to Moonraker version with fuzzy matching."""
+        if not mcu_versions:
+            return None
+        mcu_lower = mcu_type.lower()
+        # Exact match
+        for name, ver in mcu_versions.items():
+            if name.lower() == mcu_lower:
+                return ver
+        # Substring match
+        for name, ver in mcu_versions.items():
+            nl = name.lower()
+            if mcu_lower in nl or nl in mcu_lower:
+                return ver
+        # Fall back to "main" for primary MCU
+        return mcu_versions.get("main")
+
     for entry in registry_data.devices.values():
         matches = entry_matches.get(entry.key, [])
         connected = len(matches) > 0
         serial = matches[0].filename if matches else entry.serial_pattern
-        version = mcu_versions.get(entry.mcu)
+        version = _lookup_version(entry.mcu)
 
         row = DeviceRow(
             number=0,  # assigned later
@@ -200,13 +217,15 @@ def build_device_list(
                 group="blocked",
             ))
         else:
+            # Try to guess MCU from serial name for version lookup
+            new_version = mcu_versions.get("main") if mcu_versions else None
             new_devices.append(DeviceRow(
                 number=0,
                 key=device.filename,
                 name=device.filename,
                 mcu="unknown",
                 serial_path=device.filename,
-                version=None,
+                version=new_version,
                 connected=True,
                 group="new",
             ))
@@ -225,8 +244,11 @@ def build_device_list(
 # Rendering functions
 # ---------------------------------------------------------------------------
 
-def render_device_row(row: DeviceRow) -> str:
-    """Render a single device row with status icon and details."""
+def render_device_rows(row: DeviceRow, host_version: Optional[str] = None) -> list[str]:
+    """Render a single device as one or more lines.
+
+    Returns a list of strings (main line + optional version line).
+    """
     theme = get_theme()
 
     # Status icon
@@ -235,13 +257,10 @@ def render_device_row(row: DeviceRow) -> str:
     else:
         icon = f"{theme.subtle}\u25cb{theme.reset}"  # ○ grey
 
-    serial = truncate_serial(row.serial_path)
-
     if row.group == "blocked":
-        return f"{icon}  {theme.subtle}{truncate_serial(row.name)}{theme.reset}"
+        return [f"{icon}  {theme.subtle}{truncate_serial(row.name)}{theme.reset}"]
 
     num = f"#{row.number}" if row.number > 0 else ""
-    ver = row.version or ""
 
     parts = [icon]
     if num:
@@ -251,11 +270,32 @@ def render_device_row(row: DeviceRow) -> str:
     if row.mcu and row.mcu != "unknown":
         parts.append(f" {theme.subtle}({row.mcu}){theme.reset}")
     if row.serial_path != row.name:
-        parts.append(f"  {theme.subtle}{serial}{theme.reset}")
-    if ver:
-        parts.append(f"  {theme.value}{ver}{theme.reset}")
+        parts.append(f"  {theme.subtle}{truncate_serial(row.serial_path)}{theme.reset}")
 
-    return "".join(parts)
+    lines = ["".join(parts)]
+
+    # Second line: firmware version + status icon
+    # Indent to align with device name (past "● #N  ")
+    indent = "      "  # 6 spaces to align under name
+    if row.version:
+        ver_display = f"Klipper {row.version}"
+        if host_version and row.version:
+            from .moonraker import is_mcu_outdated
+
+            if is_mcu_outdated(host_version, row.version):
+                status_icon = f"{theme.warning}\u25d0{theme.reset}"  # ◐ warning
+            else:
+                status_icon = f"{theme.success}\u2713{theme.reset}"  # ✓ good
+        else:
+            status_icon = f"{theme.subtle}\u25d0{theme.reset}"  # ◐ unknown
+        lines.append(f"{indent}{theme.subtle}{ver_display}{theme.reset}  {status_icon}")
+    elif row.group != "blocked":
+        lines.append(
+            f"{indent}{theme.subtle}Klipper Unknown{theme.reset}"
+            f"  {theme.subtle}\u25d0{theme.reset}"
+        )
+
+    return lines
 
 
 def render_status_panel(
@@ -318,7 +358,8 @@ def render_devices_panel(
         label = group_labels.get(group_key, group_key.title())
         content.append(f"{theme.label}{label}{theme.reset}")
         for row in rows:
-            content.append(f"  {render_device_row(row)}")
+            for line in render_device_rows(row, host_version):
+                content.append(f"  {line}")
 
     # Footer with host version
     footer = _host_version_line(host_version)
