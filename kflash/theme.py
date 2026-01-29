@@ -1,8 +1,10 @@
-"""Centralized terminal styling with ANSI color support.
+"""Centralized terminal styling with truecolor support and tier fallback.
 
 Provides a Theme dataclass with semantic style names (e.g., theme.success not
-theme.green) and automatic terminal capability detection. Follows the NO_COLOR
-standard (https://no-color.org/) for accessibility.
+theme.green) and automatic terminal capability detection across four tiers:
+truecolor (24-bit), 256-color, ANSI 16, and no-color.
+
+Follows the NO_COLOR standard (https://no-color.org/) for accessibility.
 
 Usage:
     t = get_theme()
@@ -11,78 +13,28 @@ Usage:
 
 from __future__ import annotations
 
+import enum
 import os
 import subprocess
 import sys
 from dataclasses import dataclass
 
-# ANSI escape codes (use Theme dataclass fields, not these directly)
+# ANSI escape codes (legacy constants kept for any direct references)
 RESET = "\033[0m"
-_GREEN = "\033[92m"   # Bright green
-_YELLOW = "\033[93m"  # Bright yellow
-_RED = "\033[91m"     # Bright red
-_CYAN = "\033[96m"    # Bright cyan
-_BLUE = "\033[94m"    # Bright blue
-_BOLD = "\033[1m"     # Bold
-_DIM = "\033[2m"      # Dim/faint
+_BOLD = "\033[1m"
+_DIM = "\033[2m"
 
 
-@dataclass
-class Theme:
-    """Theme with semantic style definitions.
+# ---------------------------------------------------------------------------
+# Color tier detection
+# ---------------------------------------------------------------------------
 
-    All fields contain ANSI escape sequences (or empty strings for no-color mode).
-    Access via get_theme() to ensure correct detection of terminal capabilities.
-    """
-
-    # Message type styles
-    success: str = _GREEN       # [OK] messages
-    warning: str = _YELLOW      # [!!] warnings
-    error: str = _RED           # [FAIL] errors (stderr)
-    info: str = _CYAN           # [section] info messages
-    phase: str = _BLUE          # [Discovery], [Build], etc.
-
-    # Device marker styles
-    marker_reg: str = _GREEN    # REG - registered/connected
-    marker_new: str = _YELLOW   # NEW - unregistered device (caution/attention)
-    marker_blk: str = _YELLOW   # BLK - blocked device (caution/unavailable)
-    marker_dup: str = _YELLOW   # DUP - duplicate USB match
-    marker_num: str = ""        # Numbered selection (neutral)
-
-    # UI element styles
-    menu_title: str = _BOLD     # Menu box title
-    menu_border: str = _CYAN    # Box drawing chars (match title color)
-    prompt: str = _BOLD         # Input prompts
-
-    # Text modifiers
-    bold: str = _BOLD
-    dim: str = _DIM
-
-    # Reset code (always applied after styled text)
-    reset: str = RESET
-
-
-# Pre-instantiated theme instances
-_color_theme = Theme()
-
-_no_color_theme = Theme(
-    success="",
-    warning="",
-    error="",
-    info="",
-    phase="",
-    marker_reg="",
-    marker_new="",
-    marker_blk="",
-    marker_dup="",
-    marker_num="",
-    menu_title="",
-    menu_border="",
-    prompt="",
-    bold="",
-    dim="",
-    reset="",
-)
+class ColorTier(enum.Enum):
+    """Terminal color capability tiers, from richest to none."""
+    TRUECOLOR = "truecolor"
+    ANSI256 = "256"
+    ANSI16 = "16"
+    NONE = "none"
 
 
 def _enable_windows_vt_mode() -> bool:
@@ -107,42 +59,250 @@ def _enable_windows_vt_mode() -> bool:
         return False
 
 
-def supports_color() -> bool:
-    """Detect if terminal supports ANSI colors.
+def detect_color_tier() -> ColorTier:
+    """Detect terminal color tier from environment.
 
-    Detection signals (in order):
-    1. NO_COLOR env var set -> False (https://no-color.org/)
-    2. FORCE_COLOR env var set -> True (user override)
-    3. stdout not a TTY -> False (piped/redirected)
-    4. TERM == 'dumb' -> False
-    5. Windows -> attempt VT mode enable, return success
-    6. Unix-like TTY -> True (assume color support)
+    Detection order:
+    1. NO_COLOR env var set -> NONE
+    2. FORCE_COLOR env var set -> TRUECOLOR
+    3. stdout not a TTY -> NONE
+    4. TERM == 'dumb' -> NONE
+    5. Windows: enable VT mode, then check COLORTERM/TERM
+    6. COLORTERM in {truecolor, 24bit} -> TRUECOLOR
+    7. TERM contains '256color' -> ANSI256
+    8. Otherwise -> ANSI16
     """
-    # NO_COLOR takes priority (accessibility standard)
     if os.environ.get("NO_COLOR"):
-        return False
+        return ColorTier.NONE
 
-    # FORCE_COLOR overrides everything else
     if os.environ.get("FORCE_COLOR"):
-        return True
+        return ColorTier.TRUECOLOR
 
-    # Non-TTY (piped, redirected) - no color
     if not sys.stdout.isatty():
-        return False
+        return ColorTier.NONE
 
-    # Dumb terminal
     if os.environ.get("TERM") == "dumb":
-        return False
+        return ColorTier.NONE
 
-    # Windows: try enabling VT mode
     if sys.platform == "win32":
-        return _enable_windows_vt_mode()
+        if not _enable_windows_vt_mode():
+            return ColorTier.NONE
 
-    # Unix TTY: assume color support
-    return True
+    colorterm = os.environ.get("COLORTERM", "").lower()
+    if colorterm in ("truecolor", "24bit"):
+        return ColorTier.TRUECOLOR
+
+    term = os.environ.get("TERM", "")
+    if "256color" in term:
+        return ColorTier.ANSI256
+
+    return ColorTier.ANSI16
 
 
-# Cached singleton
+def supports_color() -> bool:
+    """Backward-compatible color check. Returns True if any color tier is active."""
+    return detect_color_tier() != ColorTier.NONE
+
+
+# ---------------------------------------------------------------------------
+# RGB palette and conversion
+# ---------------------------------------------------------------------------
+
+PALETTE: dict[str, tuple[int, int, int]] = {
+    "border":  (100, 160, 180),
+    "header":  (130, 200, 220),
+    "label":   (140, 180, 160),
+    "prompt":  (180, 220, 200),
+    "text":    (200, 210, 215),
+    "value":   (220, 225, 230),
+    "subtle":  (100, 120, 130),
+    "green":   (80, 200, 120),
+    "yellow":  (220, 190, 60),
+    "red":     (200, 80, 80),
+}
+
+
+def _rgb_to_256(r: int, g: int, b: int) -> int:
+    """Convert RGB to closest xterm-256 color index."""
+    # Check greyscale ramp (indices 232-255, 24 shades)
+    if abs(r - g) < 10 and abs(g - b) < 10:
+        grey = (r + g + b) // 3
+        if grey < 8:
+            return 16
+        if grey > 248:
+            return 231
+        return round((grey - 8) / 247 * 23) + 232
+
+    # 6x6x6 color cube (indices 16-231)
+    ri = round(r / 255 * 5)
+    gi = round(g / 255 * 5)
+    bi = round(b / 255 * 5)
+    return 16 + 36 * ri + 6 * gi + bi
+
+
+def _rgb_to_16(r: int, g: int, b: int) -> int:
+    """Convert RGB to ANSI 16-color code (30-37, 90-97)."""
+    brightness = (r + g + b) / 3
+    bright = brightness > 127
+
+    # Determine dominant channel
+    mx = max(r, g, b)
+    threshold = mx * 0.6
+
+    has_r = r >= threshold
+    has_g = g >= threshold
+    has_b = b >= threshold
+
+    # Map to 3-bit color
+    if has_r and has_g and has_b:
+        base = 7  # white
+    elif has_r and has_g:
+        base = 3  # yellow
+    elif has_r and has_b:
+        base = 5  # magenta
+    elif has_g and has_b:
+        base = 6  # cyan
+    elif has_r:
+        base = 1  # red
+    elif has_g:
+        base = 2  # green
+    elif has_b:
+        base = 4  # blue
+    else:
+        base = 0  # black
+
+    return (90 + base) if bright else (30 + base)
+
+
+def rgb_to_ansi(r: int, g: int, b: int, tier: ColorTier, bg: bool = False) -> str:
+    """Convert RGB color to ANSI escape sequence for the given tier.
+
+    Args:
+        r, g, b: Color components (0-255).
+        tier: Terminal color tier.
+        bg: If True, produce background color instead of foreground.
+
+    Returns:
+        ANSI escape sequence string, or empty string for NONE tier.
+    """
+    if tier is ColorTier.NONE:
+        return ""
+
+    if tier is ColorTier.TRUECOLOR:
+        mode = 48 if bg else 38
+        return f"\033[{mode};2;{r};{g};{b}m"
+
+    if tier is ColorTier.ANSI256:
+        idx = _rgb_to_256(r, g, b)
+        mode = 48 if bg else 38
+        return f"\033[{mode};5;{idx}m"
+
+    # ANSI16
+    code = _rgb_to_16(r, g, b)
+    if bg:
+        code += 10
+    return f"\033[{code}m"
+
+
+# ---------------------------------------------------------------------------
+# Theme dataclass
+# ---------------------------------------------------------------------------
+
+@dataclass
+class Theme:
+    """Theme with semantic style definitions.
+
+    All fields contain ANSI escape sequences (or empty strings for no-color mode).
+    Access via get_theme() to ensure correct detection of terminal capabilities.
+    """
+
+    tier: ColorTier = ColorTier.NONE
+
+    # Panel structure styles
+    border: str = ""
+    header: str = ""
+    label: str = ""
+    prompt: str = ""
+    text: str = ""
+    value: str = ""
+    subtle: str = ""
+
+    # Semantic message styles
+    success: str = ""    # [OK] messages
+    warning: str = ""    # [!!] warnings
+    error: str = ""      # [FAIL] errors
+    info: str = ""       # [section] info
+    phase: str = ""      # [Discovery], [Build], etc.
+
+    # Backward-compat UI element styles
+    menu_title: str = ""
+    menu_border: str = ""
+
+    # Device marker styles (backward compat)
+    marker_reg: str = ""
+    marker_new: str = ""
+    marker_blk: str = ""
+    marker_dup: str = ""
+    marker_num: str = ""
+
+    # Text modifiers
+    bold: str = ""
+    dim: str = ""
+
+    # Reset code
+    reset: str = ""
+
+
+def _build_theme(tier: ColorTier) -> Theme:
+    """Construct a Theme by applying the palette at the given tier."""
+    if tier is ColorTier.NONE:
+        return Theme(tier=tier)
+
+    def c(name: str) -> str:
+        r, g, b = PALETTE[name]
+        return rgb_to_ansi(r, g, b, tier)
+
+    bold = _BOLD
+    dim = _DIM
+    reset = RESET
+
+    border = c("border")
+    header = bold + c("header")
+    success = c("green")
+    warning = c("yellow")
+    error = c("red")
+
+    return Theme(
+        tier=tier,
+        border=border,
+        header=header,
+        label=c("label"),
+        prompt=bold + c("prompt"),
+        text=c("text"),
+        value=c("value"),
+        subtle=c("subtle"),
+        success=success,
+        warning=warning,
+        error=error,
+        info=c("header"),
+        phase=border,
+        menu_title=bold,
+        menu_border=border,
+        marker_reg=success,
+        marker_new=warning,
+        marker_blk=warning,
+        marker_dup=warning,
+        marker_num="",
+        bold=bold,
+        dim=dim,
+        reset=reset,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Public API
+# ---------------------------------------------------------------------------
+
 _cached_theme: Theme | None = None
 
 
@@ -153,7 +313,8 @@ def get_theme() -> Theme:
     """
     global _cached_theme
     if _cached_theme is None:
-        _cached_theme = _color_theme if supports_color() else _no_color_theme
+        tier = detect_color_tier()
+        _cached_theme = _build_theme(tier)
     return _cached_theme
 
 
@@ -173,16 +334,13 @@ def clear_screen() -> None:
     """
     if sys.platform == "win32":
         if supports_color():
-            # VT mode enabled, use ANSI
             print("\033[H\033[J", end="", flush=True)
         else:
             subprocess.run(["cmd", "/c", "cls"], check=False)
     else:
-        # Unix: clear -x preserves scrollback
         result = subprocess.run(
             ["clear", "-x"],
             capture_output=True,
         )
         if result.returncode != 0:
-            # Fallback to ANSI
             print("\033[H\033[J", end="", flush=True)
