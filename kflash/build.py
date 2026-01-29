@@ -60,7 +60,7 @@ def run_menuconfig(klipper_dir: str, config_path: str) -> tuple[int, bool]:
     return result.returncode, was_saved
 
 
-def run_build(klipper_dir: str, timeout: int = TIMEOUT_BUILD) -> BuildResult:
+def run_build(klipper_dir: str, timeout: int = TIMEOUT_BUILD, quiet: bool = False) -> BuildResult:
     """Run make clean + make -j with streaming output.
 
     Executes build in klipper directory with inherited stdio for real-time
@@ -75,6 +75,7 @@ def run_build(klipper_dir: str, timeout: int = TIMEOUT_BUILD) -> BuildResult:
     """
     klipper_path = Path(klipper_dir).expanduser()
     start_time = time.monotonic()
+    pipe_kwargs = {"capture_output": True} if quiet else {}
 
     # Run make clean with inherited stdio for streaming output
     try:
@@ -82,6 +83,7 @@ def run_build(klipper_dir: str, timeout: int = TIMEOUT_BUILD) -> BuildResult:
             ["make", "clean"],
             cwd=str(klipper_path),
             timeout=timeout,
+            **pipe_kwargs,
         )
     except subprocess.TimeoutExpired:
         return BuildResult(
@@ -105,6 +107,7 @@ def run_build(klipper_dir: str, timeout: int = TIMEOUT_BUILD) -> BuildResult:
             ["make", f"-j{nproc}"],
             cwd=str(klipper_path),
             timeout=timeout,
+            **pipe_kwargs,
         )
     except subprocess.TimeoutExpired:
         return BuildResult(

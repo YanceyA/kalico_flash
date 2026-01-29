@@ -79,6 +79,20 @@ class FlashResult:
 
 
 @dataclass
+class BatchDeviceResult:
+    """Per-device result tracking for Flash All batch operations."""
+
+    device_key: str
+    device_name: str
+    config_ok: bool = False
+    build_ok: bool = False
+    flash_ok: bool = False
+    verify_ok: bool = False
+    error_message: Optional[str] = None
+    skipped: bool = False  # User chose to skip (version match)
+
+
+@dataclass
 class PrintStatus:
     """Current print job status from Moonraker."""
 
