@@ -998,6 +998,277 @@ def cmd_flash(registry, device_key, out, skip_menuconfig: bool = False) -> int:
         return 1
 
 
+def cmd_flash_all(registry, out) -> int:
+    """Build and flash firmware for all registered flashable devices.
+
+    Orchestrates a 5-stage batch workflow:
+    1. Validate all devices have cached configs
+    2. Version check — prompt if all MCUs already match host
+    3. Build all firmware quietly, copy to temp dir
+    4. Flash all inside single klipper_service_stopped()
+    5. Print summary table
+
+    One device failure never blocks others from being processed.
+
+    Args:
+        registry: Registry instance for device lookup.
+        out: Output interface for user messages.
+
+    Returns:
+        0 if all devices passed, 1 if any failed.
+    """
+    import os
+    import shutil
+    import tempfile
+    import time
+
+    # Late imports
+    from .config import ConfigManager
+    from .build import run_build
+    from .discovery import scan_serial_devices, match_device
+    from .flasher import flash_device, TIMEOUT_FLASH
+    from .service import klipper_service_stopped, verify_passwordless_sudo
+    from .moonraker import (
+        get_print_status,
+        get_mcu_versions,
+        get_host_klipper_version,
+        is_mcu_outdated,
+        get_mcu_version_for_device,
+    )
+    from .tui import wait_for_device
+    from .models import BatchDeviceResult
+
+    # Load registry
+    data = registry.load()
+    if data.global_config is None:
+        out.error("Global config not set. Run --add-device first.")
+        return 1
+
+    global_config = data.global_config
+    klipper_dir = global_config.klipper_dir
+    katapult_dir = global_config.katapult_dir
+
+    # === Stage 1: Validate cached configs ===
+    out.phase("Flash All", "Validating cached configs...")
+
+    flashable_devices = sorted(
+        [e for e in data.devices.values() if e.flashable],
+        key=lambda e: e.key,
+    )
+
+    if not flashable_devices:
+        out.error("No flashable devices registered. Use --add-device to register boards.")
+        return 1
+
+    missing_configs: list[str] = []
+    for entry in flashable_devices:
+        config_mgr = ConfigManager(entry.key, klipper_dir)
+        if not config_mgr.cache_path.exists():
+            missing_configs.append(entry.key)
+
+    if missing_configs:
+        out.error("The following devices lack cached configs:")
+        for key in missing_configs:
+            out.error(f"  - {key}")
+        out.error("Run 'kflash -d <device>' for each to configure before using Flash All.")
+        return 1
+
+    out.phase("Flash All", f"{len(flashable_devices)} device(s) with cached configs")
+
+    # === Stage 2: Version check ===
+    host_version = get_host_klipper_version(klipper_dir)
+    mcu_versions = get_mcu_versions()
+
+    flash_list = list(flashable_devices)
+
+    if host_version is None or mcu_versions is None:
+        out.warn("Version check unavailable -- Moonraker not reachable. Flashing all devices.")
+    else:
+        out.phase("Version", f"Host Klipper: {host_version}")
+        outdated: list = []
+        current: list = []
+
+        for entry in flashable_devices:
+            mcu_ver = get_mcu_version_for_device(entry.mcu)
+            if mcu_ver and not is_mcu_outdated(host_version, mcu_ver):
+                current.append(entry)
+            else:
+                outdated.append(entry)
+
+        if not outdated:
+            # All match
+            out.phase("Version", "All devices already match host version.")
+            try:
+                answer = input("  Flash anyway? [y/N]: ").strip().lower()
+            except (EOFError, KeyboardInterrupt):
+                answer = "n"
+            if answer != "y":
+                out.phase("Flash All", "Cancelled -- firmware already current")
+                return 0
+        elif current:
+            # Some match, some don't
+            out.phase("Version", "Outdated devices:")
+            for entry in outdated:
+                out.info("", f"  - {entry.name} ({entry.key})")
+            out.phase("Version", "Up-to-date devices:")
+            for entry in current:
+                out.info("", f"  - {entry.name} ({entry.key})")
+            try:
+                answer = input("  Flash only outdated devices? [Y/n]: ").strip().lower()
+            except (EOFError, KeyboardInterrupt):
+                answer = "y"
+            if answer != "n":
+                flash_list = outdated
+            # else flash_list remains all devices
+
+    # Initialize results tracking
+    results: list[BatchDeviceResult] = []
+    for entry in flash_list:
+        results.append(BatchDeviceResult(
+            device_key=entry.key,
+            device_name=entry.name,
+            config_ok=True,  # Already validated in Stage 1
+        ))
+
+    # === Stage 3: Build all firmware ===
+    out.phase("Flash All", f"Building firmware for {len(flash_list)} device(s)...")
+    temp_dir = tempfile.mkdtemp(prefix="kalico-flash-")
+    total = len(flash_list)
+
+    try:
+        for i, (entry, result) in enumerate(zip(flash_list, results)):
+            print(f"  Building {i + 1}/{total}: {entry.name}...")
+            config_mgr = ConfigManager(entry.key, klipper_dir)
+            config_mgr.load_cached_config()
+
+            build_result = run_build(klipper_dir, quiet=True)
+
+            if build_result.success:
+                # Copy firmware to temp dir
+                device_fw_dir = os.path.join(temp_dir, entry.key)
+                os.makedirs(device_fw_dir, exist_ok=True)
+                fw_src = os.path.join(
+                    str(Path(klipper_dir).expanduser()), "out", "klipper.bin"
+                )
+                fw_dst = os.path.join(device_fw_dir, "klipper.bin")
+                shutil.copy2(fw_src, fw_dst)
+                result.build_ok = True
+                print(f"  \u2713 {entry.name} built ({i + 1}/{total})")
+            else:
+                result.error_message = build_result.error_message or "Build failed"
+                print(f"  \u2717 {entry.name} build failed ({i + 1}/{total})")
+
+        # Check if any builds succeeded
+        built_results = [(e, r) for e, r in zip(flash_list, results) if r.build_ok]
+        if not built_results:
+            out.error("All builds failed. Nothing to flash.")
+            return 1
+
+        # === Stage 4: Flash all (inside single service stop) ===
+        out.phase("Flash All", f"Flashing {len(built_results)} device(s)...")
+
+        # Safety check: print status
+        print_status = get_print_status()
+        if print_status is not None and print_status.state in ("printing", "paused"):
+            progress_pct = int(print_status.progress * 100)
+            filename = print_status.filename or "unknown"
+            out.error(f"Print in progress: {filename} ({progress_pct}%). Aborting flash.")
+            return 1
+
+        # Verify passwordless sudo
+        if not verify_passwordless_sudo():
+            out.phase("Flash All", "Note: sudo may prompt for password")
+
+        flash_idx = 0
+        flash_total = len(built_results)
+
+        with klipper_service_stopped(out=out):
+            # Re-scan USB after Klipper stop
+            usb_devices = scan_serial_devices()
+
+            for entry, result in built_results:
+                if flash_idx > 0:
+                    time.sleep(global_config.stagger_delay)
+                flash_idx += 1
+
+                # Find device
+                usb_device = match_device(entry.serial_pattern, usb_devices)
+                if usb_device is None:
+                    result.error_message = "Device not found on USB"
+                    print(f"  \u2717 {entry.name} not found ({flash_idx}/{flash_total})")
+                    continue
+
+                # Determine flash method
+                method = entry.flash_method or global_config.default_flash_method or "katapult"
+                allow_fallback = global_config.allow_flash_fallback
+
+                fw_path = os.path.join(temp_dir, entry.key, "klipper.bin")
+                flash_result = flash_device(
+                    device_path=usb_device.path,
+                    firmware_path=fw_path,
+                    katapult_dir=katapult_dir,
+                    klipper_dir=klipper_dir,
+                    timeout=TIMEOUT_FLASH,
+                    preferred_method=method,
+                    allow_fallback=allow_fallback,
+                )
+
+                if flash_result.success:
+                    result.flash_ok = True
+                    # Post-flash verification
+                    verified, _, error_reason = wait_for_device(
+                        entry.serial_pattern, timeout=30.0, out=out,
+                    )
+                    if verified:
+                        result.verify_ok = True
+                        print(f"  \u2713 {entry.name} flashed and verified ({flash_idx}/{flash_total})")
+                    else:
+                        result.error_message = error_reason or "Verification failed"
+                        print(f"  \u2717 {entry.name} flash OK but verify failed ({flash_idx}/{flash_total})")
+
+                    # Re-scan after flash for next device
+                    usb_devices = scan_serial_devices()
+                else:
+                    result.error_message = flash_result.error_message or "Flash failed"
+                    print(f"  \u2717 {entry.name} flash failed ({flash_idx}/{flash_total})")
+
+        out.phase("Service", "Klipper restarted")
+
+    finally:
+        # Clean up temp dir
+        shutil.rmtree(temp_dir, ignore_errors=True)
+
+    # === Stage 5: Summary table ===
+    out.phase("Flash All", "Summary:")
+    out.info("", "  Device                Build   Flash   Verify")
+    out.info("", "  " + "-" * 48)
+
+    all_passed = True
+    for result in results:
+        build_str = "PASS" if result.build_ok else "FAIL"
+        if result.build_ok:
+            flash_str = "PASS" if result.flash_ok else "FAIL"
+        else:
+            flash_str = "SKIP"
+        if result.flash_ok:
+            verify_str = "PASS" if result.verify_ok else "FAIL"
+        else:
+            verify_str = "SKIP"
+
+        if not (result.build_ok and result.flash_ok and result.verify_ok):
+            all_passed = False
+
+        name = result.device_name[:20].ljust(20)
+        out.info("", f"  {name}  {build_str:6s}  {flash_str:6s}  {verify_str}")
+
+    passed = sum(1 for r in results if r.build_ok and r.flash_ok and r.verify_ok)
+    failed = len(results) - passed
+    out.info("", "")
+    out.info("", f"  {passed} passed, {failed} failed out of {len(results)} device(s)")
+
+    return 0 if all_passed else 1
+
+
 def cmd_remove_device(registry, device_key: str, out) -> int:
     """Remove a device from the registry with optional config cleanup."""
     from .errors import ERROR_TEMPLATES
