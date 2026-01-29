@@ -9,7 +9,7 @@
 
 - [ ] **REND-01**: Truecolor RGB palette with 3-tier fallback (truecolor > ANSI 256 > ANSI 16)
 - [ ] **REND-02**: ANSI-aware string utilities (strip_ansi, display_width, pad_to_width)
-- [ ] **REND-03**: Panel renderer with rounded borders (╭╮╰╯), configurable width
+- [ ] **REND-03**: Panel renderer with rounded borders (curved corners), configurable width
 - [ ] **REND-04**: Two-column layout rendering within panels
 - [ ] **REND-05**: Spaced letter panel headers (e.g. [ D E V I C E S ])
 - [ ] **REND-06**: Step dividers (mid-grey partial-width with step labels)
@@ -22,7 +22,7 @@
 - [ ] **TUI-06**: Numbered device references (#1, #2, #3) usable across actions
 - [ ] **TUI-07**: Device rows showing name, truncated serial path, version, status icon
 - [ ] **TUI-08**: Host Klipper version displayed in device panel footer
-- [ ] **TUI-09**: Actions panel with two-column layout and ▸ bullets
+- [ ] **TUI-09**: Actions panel with two-column layout and bullets
 - [ ] **TUI-10**: Screen refresh after every command completes (return to full menu)
 - [ ] **TUI-11**: Refresh Devices action replaces List Devices
 - [ ] **TUI-12**: Config screen as dedicated cleared screen with own status panel
@@ -72,44 +72,44 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| REND-01 | TBD | Pending |
-| REND-02 | TBD | Pending |
-| REND-03 | TBD | Pending |
-| REND-04 | TBD | Pending |
-| REND-05 | TBD | Pending |
-| REND-06 | TBD | Pending |
-| REND-07 | TBD | Pending |
-| TUI-04 | TBD | Pending |
-| TUI-05 | TBD | Pending |
-| TUI-06 | TBD | Pending |
-| TUI-07 | TBD | Pending |
-| TUI-08 | TBD | Pending |
-| TUI-09 | TBD | Pending |
-| TUI-10 | TBD | Pending |
-| TUI-11 | TBD | Pending |
-| TUI-12 | TBD | Pending |
-| TUI-13 | TBD | Pending |
-| TUI-14 | TBD | Pending |
-| FALL-01 | TBD | Pending |
-| FALL-02 | TBD | Pending |
-| FALL-03 | TBD | Pending |
-| FALL-04 | TBD | Pending |
-| FALL-05 | TBD | Pending |
-| FALL-06 | TBD | Pending |
-| FALL-07 | TBD | Pending |
-| FALL-08 | TBD | Pending |
-| FALL-09 | TBD | Pending |
-| CONF-01 | TBD | Pending |
-| CONF-02 | TBD | Pending |
-| CONF-03 | TBD | Pending |
-| CONF-04 | TBD | Pending |
-| CONF-05 | TBD | Pending |
+| REND-01 | Phase 10 | Pending |
+| REND-02 | Phase 10 | Pending |
+| REND-03 | Phase 11 | Pending |
+| REND-04 | Phase 11 | Pending |
+| REND-05 | Phase 11 | Pending |
+| REND-06 | Phase 11 | Pending |
+| REND-07 | Phase 10 | Pending |
+| TUI-04 | Phase 12 | Pending |
+| TUI-05 | Phase 12 | Pending |
+| TUI-06 | Phase 12 | Pending |
+| TUI-07 | Phase 12 | Pending |
+| TUI-08 | Phase 12 | Pending |
+| TUI-09 | Phase 12 | Pending |
+| TUI-10 | Phase 12 | Pending |
+| TUI-11 | Phase 12 | Pending |
+| TUI-12 | Phase 13 | Pending |
+| TUI-13 | Phase 13 | Pending |
+| TUI-14 | Phase 13 | Pending |
+| FALL-01 | Phase 14 | Pending |
+| FALL-02 | Phase 14 | Pending |
+| FALL-03 | Phase 14 | Pending |
+| FALL-04 | Phase 14 | Pending |
+| FALL-05 | Phase 14 | Pending |
+| FALL-06 | Phase 14 | Pending |
+| FALL-07 | Phase 14 | Pending |
+| FALL-08 | Phase 14 | Pending |
+| FALL-09 | Phase 14 | Pending |
+| CONF-01 | Phase 13 | Pending |
+| CONF-02 | Phase 13 | Pending |
+| CONF-03 | Phase 13 | Pending |
+| CONF-04 | Phase 13 | Pending |
+| CONF-05 | Phase 13 | Pending |
 
 **Coverage:**
 - v3.0 requirements: 32 total
-- Mapped to phases: 0 (pending roadmap)
-- Unmapped: 32
+- Mapped to phases: 32
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-01-29*
-*Last updated: 2026-01-29 after initial definition*
+*Last updated: 2026-01-29 after roadmap creation*
