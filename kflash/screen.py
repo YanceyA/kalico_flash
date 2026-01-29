@@ -318,14 +318,10 @@ def render_actions_panel() -> str:
     """Render the Actions panel with two-column key layout."""
     theme = get_theme()
 
-    # Format each action with highlighted key letter
+    # Format each action as (key, label) for render_two_column
     items: list[tuple[str, str]] = []
     for key, label in ACTIONS:
-        # Key letter is first char of label; build styled version
-        styled_label = (
-            f"{theme.label}{key}{theme.reset}"
-            f"{theme.text}{label[1:]}{theme.reset}"
-        )
+        styled_label = f"{theme.text}{label}{theme.reset}"
         items.append((key, styled_label))
 
     lines = render_two_column(items)
