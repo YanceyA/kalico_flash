@@ -479,8 +479,15 @@ def run_menu(registry, out) -> int:
 
             elif key == "b":
                 print(key)
-                status_message = "Flash All: not yet implemented"
-                status_level = "warning"
+                from .flash import cmd_flash_all
+                result = cmd_flash_all(registry, out)
+                if result == 0:
+                    status_message = "Flash All: completed successfully"
+                    status_level = "success"
+                else:
+                    status_message = "Flash All: completed with errors"
+                    status_level = "error"
+                _countdown_return(registry.load().global_config.return_delay)
 
             else:
                 # Echo the key and show warning
