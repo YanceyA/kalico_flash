@@ -8,22 +8,32 @@ A Python CLI tool that automates Klipper/Kalico firmware building and flashing f
 
 One command to build and flash any registered board — no remembering serial paths, flash commands, or config locations.
 
-## Current Milestone: v2.1 TUI Color Theme
+## Current Milestone: v3.0 TUI Redesign & Flash All
 
-**Goal:** Add KIAUH-style ANSI color support with a centralized theme system
-**Started:** 2026-01-28
-**Phases:** 8-9
+**Goal:** Redesign TUI with panel-based layout, truecolor theme, status feedback, and add Flash All batch command
+**Started:** 2026-01-29
+
+**Target features:**
+- Panel-based main screen (Status, Devices, Actions panels with rounded borders)
+- Truecolor RGB palette with ANSI 16 fallback
+- Device panel with numbered devices grouped by status (Registered/New/Blocked)
+- Status panel showing last command result
+- Flash All Registered Devices command (stop once, flash all, restart)
+- Dedicated config screen with panel layout
+- Step dividers for terminal output during tasks
+- Configurable skip-menuconfig and timing delays
+- Refresh Devices replaces List Devices
+- Screen refresh after every command completes
 
 See: `.planning/ROADMAP.md` for phase breakdown
 See: `.planning/REQUIREMENTS.md` for full requirements list
-See: `.working/theme_plan.md` for detailed implementation plan
+See: `.working/UI-working/` for design mockups and style reference
 
-## Previous State (v2.0 shipped)
+## Previous State (v2.1 shipped)
 
-**Shipped:** 2026-01-27
-**Modules:** 12 Python modules in kalico-flash/
-**LOC:** 2,909 lines Python 3.9+ stdlib only
-**Status:** Ready for public release
+**Shipped:** 2026-01-29
+**Modules:** 12 Python modules + theme.py
+**Status:** Color theme complete
 
 **CLI commands:**
 - `kflash` — Interactive TUI menu with Add/List/Flash/Remove/Settings
@@ -64,38 +74,25 @@ See: `.working/theme_plan.md` for detailed implementation plan
 - ✓ Moonraker Update Manager integration — v2.0
 - ✓ Settings submenu for path configuration — v2.0
 
-### Active (v2.1 TUI Color Theme)
+### Validated (v2.1 TUI Color Theme)
 
-**Theme Infrastructure:**
-- [ ] THEME-01: Theme module with semantic style dataclass
-- [ ] THEME-02: Terminal capability detection (TTY, NO_COLOR, FORCE_COLOR)
-- [ ] THEME-03: Windows VT mode support via ctypes
-- [ ] THEME-04: No-color fallback theme
-- [ ] THEME-05: Cached theme singleton with get_theme()/reset_theme()
-- [ ] THEME-06: Screen clear utility
+- ✓ Theme module with semantic style dataclass — v2.1
+- ✓ Terminal capability detection (TTY, NO_COLOR, FORCE_COLOR) — v2.1
+- ✓ Windows VT mode support via ctypes — v2.1
+- ✓ Cached theme singleton — v2.1
+- ✓ Screen clear utility — v2.1
+- ✓ Colored output messages and device markers — v2.1
+- ✓ Bold prompts — v2.1
+- ✓ Colored error headers — v2.1
 
-**CLI Output Styling:**
-- [ ] OUT-01: Colored [OK] messages (green)
-- [ ] OUT-02: Colored [FAIL] messages (red)
-- [ ] OUT-03: Colored [!!] warnings (yellow)
-- [ ] OUT-04: Colored [section] info (cyan)
-- [ ] OUT-05: Colored [phase] markers (cyan)
-- [ ] OUT-06: Colored device markers (REG/NEW/BLK/DUP)
-- [ ] OUT-07: Bold prompts
+### Active (v3.0 TUI Redesign & Flash All)
 
-**TUI Integration:**
-- [ ] TUI-01: Screen clear before main menu
-- [ ] TUI-02: Bold menu title
-- [ ] TUI-03: Screen clear in settings submenu
-
-**Error Formatting:**
-- [ ] ERR-01: Colored [FAIL] header in errors
+(See `.planning/REQUIREMENTS.md` for full requirements)
 
 ### Future Candidates
 
 - [ ] SHA256 change detection to skip rebuild when config unchanged
 - [ ] --no-clean flag for incremental builds
-- [ ] Batch flash multiple devices
 - [ ] CAN bus device support
 
 ### Out of Scope
@@ -164,6 +161,9 @@ python3 ~/katapult/scripts/flashtool.py -f ~/klipper/out/klipper.bin -d /dev/ser
 | format_error() for all error output | Consistent 80-column wrapped output with context | ✓ Good |
 | Symlink over wrapper script | Direct symlink to flash.py, uses Python shebang | ✓ Good |
 | 30s verification timeout | RP2040 boards need more time to re-enumerate | ✓ Good |
+| Truecolor with ANSI 16 fallback | Modern terminals support RGB; Pi SSH terminals vary | — Pending |
+| Flash All: stop once, flash all, restart | Faster than per-device stop/restart cycle | — Pending |
+| Stdlib only for TUI redesign | No Rich/Textual — pure ANSI codes, maintain constraint | ✓ Good |
 
 ---
-*Last updated: 2026-01-28 after v2.1 milestone initialization*
+*Last updated: 2026-01-29 after v3.0 milestone initialization*

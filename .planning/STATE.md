@@ -2,45 +2,32 @@
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-01-28)
+See: .planning/PROJECT.md (updated 2026-01-29)
 
 **Core value:** One command to build and flash any registered board — no remembering serial paths, flash commands, or config locations.
-**Current focus:** v2.1 TUI Color Theme — COMPLETE
+**Current focus:** v3.0 TUI Redesign & Flash All
 
 ## Current Position
 
-Milestone: v2.1 TUI Color Theme — COMPLETE
-Phase: 9 (Apply Theming) — VERIFIED
-Plan: 02 of 02 in phase
-Status: **Milestone complete, ready for audit**
-Last activity: 2026-01-28 — Phase 9 verified (11/11 must-haves)
+Milestone: v3.0 TUI Redesign & Flash All
+Phase: Not started (defining requirements)
+Plan: —
+Status: **Defining requirements**
+Last activity: 2026-01-29 — Milestone v3.0 started
 
-Progress: [==========] 100% complete (2 of 2 phases)
+## v3.0 Roadmap
 
-## v2.1 Roadmap
-
-| Phase | Name | Requirements | Status |
-|-------|------|--------------|--------|
-| 8 | Theme Infrastructure | THEME-01 to THEME-06 | Complete |
-| 9 | Apply Theming | OUT-01-07, TUI-01-03, ERR-01 | Complete |
-
-See: `.planning/ROADMAP.md` for full phase details
-See: `.planning/REQUIREMENTS.md` for requirement definitions
+(Pending — roadmap creation in progress)
 
 ## Accumulated Decisions
 
 | Phase | Decision | Rationale |
 |-------|----------|-----------|
-| 08-01 | Semantic style names (theme.success not theme.green) | Easier to adjust palette without changing call sites |
-| 08-01 | Dataclass over enum for Theme | Direct field access cleaner than .value |
-| 08-01 | Cached singleton with reset_theme() | Theme determined once at startup, but resettable for testing |
-| 08-01 | NO_COLOR standard respected | Follows https://no-color.org/ for accessibility |
-| 09-01 | Phase bracket blue (distinct from cyan info) | Visual hierarchy between phase headers and info messages |
-| 09-01 | NEW/BLK markers yellow for caution | Consistent "needs attention" semantic |
-| 09-01 | Menu border cyan (match title) | Visual consistency in TUI menus |
-| 09-02 | t = self.theme pattern in CliOutput | Concise local variable access to theme fields |
-| 09-02 | marker_styles dict with isdigit() check | Clean lookup for device markers including numbered selections |
-| 09-02 | Only [FAIL] bracket colored in errors | Rest of error message uncolored for readability |
+| — | Truecolor RGB with ANSI 16 fallback | Modern palette from mockups, graceful degradation |
+| — | Flash All: stop klipper once | Faster than per-device restart cycle |
+| — | Truncated serial path in device panel | Recognizable, fits panel width |
+| — | Show existing config settings + new delays | No new directory settings, add skip_menuconfig + timing |
+| — | Stdlib only maintained | Pure ANSI codes, no Rich/Textual dependency |
 
 ## Shipped Milestones
 
@@ -48,6 +35,7 @@ See: `.planning/REQUIREMENTS.md` for requirement definitions
 |---------|------|--------|---------|
 | v1.0 | MVP | 1-3 | 2026-01-25 |
 | v2.0 | Public Release | 4-7 | 2026-01-27 |
+| v2.1 | TUI Color Theme | 8-9 | 2026-01-29 |
 
 See: .planning/MILESTONES.md for full history
 
@@ -60,10 +48,10 @@ See: .planning/MILESTONES.md for full history
 
 ## Session Continuity
 
-Last session: 2026-01-28
-Stopped at: Phase 9 execution and verification complete
+Last session: 2026-01-29
+Stopped at: Milestone initialization
 Resume file: None
-Next step: `/gsd:audit-milestone` to verify requirements and cross-phase integration
+Next step: Define requirements and create roadmap
 
 ---
-*Last updated: 2026-01-28 after Phase 9 verification*
+*Last updated: 2026-01-29 after v3.0 milestone start*
