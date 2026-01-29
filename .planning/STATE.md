@@ -5,24 +5,24 @@
 See: .planning/PROJECT.md (updated 2026-01-29)
 
 **Core value:** One command to build and flash any registered board — no remembering serial paths, flash commands, or config locations.
-**Current focus:** v3.0 TUI Redesign & Flash All — Phase 13 (Config Screen & Settings)
+**Current focus:** v3.0 TUI Redesign & Flash All — Phase 14 (Flash All)
 
 ## Current Position
 
 Milestone: v3.0 TUI Redesign & Flash All
 Phase: 13 of 14 (Config Screen & Settings)
-Plan: 1/1 complete
-Status: **Phase 13 in progress — Plan 01 complete**
-Last activity: 2026-01-29 — Completed 13-01-PLAN.md (config screen + settings)
+Plan: 2/2 complete
+Status: **Phase 13 complete — ready for Phase 14**
+Last activity: 2026-01-29 — Completed 13-02-PLAN.md (countdown timer)
 
-Progress: [███████░░░] 70%
+Progress: [████████░░] 80%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 5 (v3.0)
+- Total plans completed: 6 (v3.0)
 - Average duration: ~3 min
-- Total execution time: ~15 min
+- Total execution time: ~17 min
 
 ## Accumulated Decisions
 
@@ -38,6 +38,7 @@ Progress: [███████░░░] 70%
 | 12-02 | Ctrl+C detected as \x03 in raw mode | tty.setraw doesn't translate signals |
 | 13-01 | dataclasses.replace() for GlobalConfig updates | Preserves all fields automatically, no risk of missing new fields |
 | 13-01 | Flat numbered settings with type dispatch | Context specifies no grouping; type determines edit behavior |
+| 13-02 | Countdown only after flash/add/remove actions | Only destructive/lengthy actions need output review time |
 
 ## Shipped Milestones
 
@@ -50,9 +51,9 @@ Progress: [███████░░░] 70%
 ## Session Continuity
 
 Last session: 2026-01-29
-Stopped at: Completed 13-01-PLAN.md
+Stopped at: Completed 13-02-PLAN.md
 Resume file: None
-Next step: Continue Phase 13 remaining plans (if any)
+Next step: Begin Phase 14 (Flash All)
 
 ---
-*Last updated: 2026-01-29 after 13-01 execution*
+*Last updated: 2026-01-29 after 13-02 execution*
