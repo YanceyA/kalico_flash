@@ -10,7 +10,7 @@ Redesign the TUI with panel-based layout using truecolor theming, ANSI-aware ren
 - [x] **Phase 11: Panel Renderer** - Panel module with bordered panels, two-column layout, step dividers
 - [x] **Phase 12: TUI Main Screen** - Panel-based main screen with status, devices, and actions panels
 - [x] **Phase 13: Config Screen & Settings** - Dedicated config screen with settings persistence and countdown timer
-- [ ] **Phase 14: Flash All** - Batch flash command with build-then-flash architecture
+- [x] **Phase 14: Flash All** - Batch flash command with build-then-flash architecture
 
 ## Phase Details
 
@@ -80,8 +80,8 @@ Plans:
   5. Each device is verified post-flash (reappears as Klipper serial device)
 **Plans:** 2 plans
 Plans:
-- [ ] 14-01-PLAN.md — Core orchestration: BatchDeviceResult, quiet builds, cmd_flash_all()
-- [ ] 14-02-PLAN.md — Wire Flash All into TUI dispatch
+- [x] 14-01-PLAN.md — Core orchestration: BatchDeviceResult, quiet builds, cmd_flash_all()
+- [x] 14-02-PLAN.md — Wire Flash All into TUI dispatch
 
 ## Progress
 
@@ -93,4 +93,4 @@ Plans:
 | 11. Panel Renderer | 1/1 | ✓ Complete | 2026-01-29 |
 | 12. TUI Main Screen | 2/2 | ✓ Complete | 2026-01-29 |
 | 13. Config Screen & Settings | 2/2 | ✓ Complete | 2026-01-29 |
-| 14. Flash All | 0/2 | Not started | - |
+| 14. Flash All | 2/2 | ✓ Complete | 2026-01-29 |

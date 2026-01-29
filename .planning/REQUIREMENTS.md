@@ -31,15 +31,15 @@
 
 ### Flash All
 
-- [ ] **FALL-01**: Flash All Registered Devices command in action menu
-- [ ] **FALL-02**: Build all firmware first, then stop Klipper once, flash all, restart once
-- [ ] **FALL-03**: Pre-flash version check — compare MCU versions to host version
-- [ ] **FALL-04**: Prompt user if all MCU versions already match host (proceed or exit)
-- [ ] **FALL-05**: Validate all devices have cached configs before starting
-- [ ] **FALL-06**: Sequential flash with staggered output (configurable delay, default 1s)
-- [ ] **FALL-07**: Continue-on-failure — if one device fails, continue to next
-- [ ] **FALL-08**: Summary table after batch completion (device, status, version)
-- [ ] **FALL-09**: Post-flash verification per device (reappears as Klipper)
+- [x] **FALL-01**: Flash All Registered Devices command in action menu
+- [x] **FALL-02**: Build all firmware first, then stop Klipper once, flash all, restart once
+- [x] **FALL-03**: Pre-flash version check — compare MCU versions to host version
+- [x] **FALL-04**: Prompt user if all MCU versions already match host (proceed or exit)
+- [x] **FALL-05**: Validate all devices have cached configs before starting
+- [x] **FALL-06**: Sequential flash with staggered output (configurable delay, default 1s)
+- [x] **FALL-07**: Continue-on-failure — if one device fails, continue to next
+- [x] **FALL-08**: Summary table after batch completion (device, status, version)
+- [x] **FALL-09**: Post-flash verification per device (reappears as Klipper)
 
 ### Config & Settings
 
@@ -87,23 +87,23 @@
 | TUI-09 | Phase 12 | Complete |
 | TUI-10 | Phase 12 | Complete |
 | TUI-11 | Phase 12 | Complete |
-| TUI-12 | Phase 13 | Pending |
-| TUI-13 | Phase 13 | Pending |
-| TUI-14 | Phase 13 | Pending |
-| FALL-01 | Phase 14 | Pending |
-| FALL-02 | Phase 14 | Pending |
-| FALL-03 | Phase 14 | Pending |
-| FALL-04 | Phase 14 | Pending |
-| FALL-05 | Phase 14 | Pending |
-| FALL-06 | Phase 14 | Pending |
-| FALL-07 | Phase 14 | Pending |
-| FALL-08 | Phase 14 | Pending |
-| FALL-09 | Phase 14 | Pending |
-| CONF-01 | Phase 13 | Pending |
-| CONF-02 | Phase 13 | Pending |
-| CONF-03 | Phase 13 | Pending |
-| CONF-04 | Phase 13 | Pending |
-| CONF-05 | Phase 13 | Pending |
+| TUI-12 | Phase 13 | Complete |
+| TUI-13 | Phase 13 | Complete |
+| TUI-14 | Phase 13 | Complete |
+| FALL-01 | Phase 14 | Complete |
+| FALL-02 | Phase 14 | Complete |
+| FALL-03 | Phase 14 | Complete |
+| FALL-04 | Phase 14 | Complete |
+| FALL-05 | Phase 14 | Complete |
+| FALL-06 | Phase 14 | Complete |
+| FALL-07 | Phase 14 | Complete |
+| FALL-08 | Phase 14 | Complete |
+| FALL-09 | Phase 14 | Complete |
+| CONF-01 | Phase 13 | Complete |
+| CONF-02 | Phase 13 | Complete |
+| CONF-03 | Phase 13 | Complete |
+| CONF-04 | Phase 13 | Complete |
+| CONF-05 | Phase 13 | Complete |
 
 **Coverage:**
 - v3.0 requirements: 32 total
@@ -112,4 +112,4 @@
 
 ---
 *Requirements defined: 2026-01-29*
-*Last updated: 2026-01-29 after Phase 12 completion*
+*Last updated: 2026-01-29 after Phase 14 completion*

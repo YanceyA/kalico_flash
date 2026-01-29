@@ -12,7 +12,7 @@ See: .planning/PROJECT.md (updated 2026-01-29)
 Milestone: v3.0 TUI Redesign & Flash All
 Phase: 14 of 14 (Flash All)
 Plan: 2/2 complete
-Status: **Phase complete**
+Status: **Phase 14 complete, verified (6/6 must-haves) — milestone ready for audit**
 Last activity: 2026-01-29 — Completed 14-02-PLAN.md
 
 Progress: [██████████] 100%
