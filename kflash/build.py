@@ -75,15 +75,13 @@ def run_build(klipper_dir: str, timeout: int = TIMEOUT_BUILD, quiet: bool = Fals
     """
     klipper_path = Path(klipper_dir).expanduser()
     start_time = time.monotonic()
-    pipe_kwargs = {"capture_output": True} if quiet else {}
-
     # Run make clean with inherited stdio for streaming output
     try:
         clean_result = subprocess.run(
             ["make", "clean"],
             cwd=str(klipper_path),
             timeout=timeout,
-            **pipe_kwargs,
+            capture_output=quiet,
         )
     except subprocess.TimeoutExpired:
         return BuildResult(
@@ -107,7 +105,7 @@ def run_build(klipper_dir: str, timeout: int = TIMEOUT_BUILD, quiet: bool = Fals
             ["make", f"-j{nproc}"],
             cwd=str(klipper_path),
             timeout=timeout,
-            **pipe_kwargs,
+            capture_output=quiet,
         )
     except subprocess.TimeoutExpired:
         return BuildResult(
