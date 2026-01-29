@@ -13,7 +13,7 @@ Milestone: v3.0 TUI Redesign & Flash All
 Phase: 14 of 14 (Flash All)
 Plan: 2/2 complete
 Status: **Phase 14 complete, verified (6/6 must-haves) — milestone ready for audit**
-Last activity: 2026-01-29 — Completed quick task 003: left-align panels
+Last activity: 2026-01-29 — Completed quick task 004: truncate USB ID fix duplicate
 
 Progress: [██████████] 100%
 
@@ -55,6 +55,7 @@ Progress: [██████████] 100%
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 003 | Left-align status and action panels | 2026-01-29 | 80d07fc | [003-left-align-status-action-panels](./quick/003-left-align-status-action-panels/) |
+| 004 | Truncate USB ID and fix duplicate display | 2026-01-29 | 9564904 | [004-truncate-usb-id-fix-duplicate](./quick/004-truncate-usb-id-fix-duplicate/) |
 
 ## Session Continuity
 
