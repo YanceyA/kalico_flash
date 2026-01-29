@@ -22,7 +22,9 @@ Redesign the TUI with panel-based layout using truecolor theming, ANSI-aware ren
   1. Theme detects terminal color capability and selects truecolor, 256-color, or ANSI 16 palette automatically
   2. `strip_ansi()` removes all escape sequences; `display_width()` returns visible character count; `pad_to_width()` pads to exact visible width regardless of embedded ANSI codes
   3. Terminal width is detected at render time and available to downstream panel code
-**Plans**: TBD
+**Plans:** 1 plan
+Plans:
+- [ ] 10-01-PLAN.md — Truecolor theme upgrade + ANSI string utilities
 
 ### Phase 11: Panel Renderer
 **Goal**: Pure rendering module produces bordered panels with consistent alignment, ready for TUI integration
@@ -76,7 +78,7 @@ Redesign the TUI with panel-based layout using truecolor theming, ANSI-aware ren
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 10. Rendering Foundation | 0/TBD | Not started | - |
+| 10. Rendering Foundation | 0/1 | Planned | - |
 | 11. Panel Renderer | 0/TBD | Not started | - |
 | 12. TUI Main Screen | 0/TBD | Not started | - |
 | 13. Config Screen & Settings | 0/TBD | Not started | - |
