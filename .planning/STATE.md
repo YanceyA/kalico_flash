@@ -10,19 +10,19 @@ See: .planning/PROJECT.md (updated 2026-01-29)
 ## Current Position
 
 Milestone: v3.0 TUI Redesign & Flash All
-Phase: 12 of 14 (TUI Main Screen) — ✓ Complete
-Plan: 2/2 complete
-Status: **Phase 12 complete, ready to plan Phase 13**
-Last activity: 2026-01-29 — Phase 12 executed and verified (5/5 must-haves)
+Phase: 13 of 14 (Config Screen & Settings)
+Plan: 1/1 complete
+Status: **Phase 13 in progress — Plan 01 complete**
+Last activity: 2026-01-29 — Completed 13-01-PLAN.md (config screen + settings)
 
-Progress: [██████░░░░] 60%
+Progress: [███████░░░] 70%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 4 (v3.0)
+- Total plans completed: 5 (v3.0)
 - Average duration: ~3 min
-- Total execution time: ~12 min
+- Total execution time: ~15 min
 
 ## Accumulated Decisions
 
@@ -36,6 +36,8 @@ Progress: [██████░░░░] 60%
 | 11-01 | Left column gets extra item when odd | Standard UX convention for balanced columns |
 | 12-02 | Auto-select single device for F/R actions | Reduces friction when only one device exists |
 | 12-02 | Ctrl+C detected as \x03 in raw mode | tty.setraw doesn't translate signals |
+| 13-01 | dataclasses.replace() for GlobalConfig updates | Preserves all fields automatically, no risk of missing new fields |
+| 13-01 | Flat numbered settings with type dispatch | Context specifies no grouping; type determines edit behavior |
 
 ## Shipped Milestones
 
@@ -48,9 +50,9 @@ Progress: [██████░░░░] 60%
 ## Session Continuity
 
 Last session: 2026-01-29
-Stopped at: Phase 12 complete
+Stopped at: Completed 13-01-PLAN.md
 Resume file: None
-Next step: Plan Phase 13
+Next step: Continue Phase 13 remaining plans (if any)
 
 ---
-*Last updated: 2026-01-29 after Phase 12 execution and verification*
+*Last updated: 2026-01-29 after 13-01 execution*
