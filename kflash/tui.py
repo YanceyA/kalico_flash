@@ -136,6 +136,68 @@ def _getch() -> str:
     return ch.lower()
 
 
+def _wait_for_key(timeout: float = 1.0) -> bool:
+    """Wait for a keypress up to *timeout* seconds.
+
+    Returns ``True`` if a key was pressed, ``False`` if the timeout expired.
+    Cross-platform: uses ``msvcrt`` on Windows and ``select`` on Unix.
+    """
+    try:
+        import msvcrt
+        import time
+
+        end = time.monotonic() + timeout
+        while time.monotonic() < end:
+            if msvcrt.kbhit():
+                msvcrt.getwch()  # consume
+                return True
+            time.sleep(0.05)
+        return False
+    except ImportError:
+        pass
+
+    import select
+    import tty
+    import termios
+
+    fd = sys.stdin.fileno()
+    old = termios.tcgetattr(fd)
+    try:
+        tty.setraw(fd)
+        ready, _, _ = select.select([sys.stdin], [], [], timeout)
+        if ready:
+            sys.stdin.read(1)  # consume
+            return True
+        return False
+    finally:
+        termios.tcsetattr(fd, termios.TCSADRAIN, old)
+
+
+def _countdown_return(seconds: float) -> None:
+    """Display a countdown timer; any keypress skips immediately.
+
+    If *seconds* is zero or negative the function returns instantly.
+    Uses ``_wait_for_key`` for cross-platform non-blocking detection.
+    """
+    if seconds <= 0:
+        return
+
+    theme = get_theme()
+    remaining = int(seconds)
+    while remaining > 0:
+        print(
+            f"\r  {theme.subtle}Returning to menu in {remaining}s... "
+            f"(press any key){theme.reset}  ",
+            end="",
+            flush=True,
+        )
+        if _wait_for_key(timeout=1.0):
+            break
+        remaining -= 1
+    # Clear the countdown line
+    print("\r" + " " * 60 + "\r", end="", flush=True)
+
+
 def _get_menu_choice(
     valid_choices: list[str],
     out,
@@ -381,6 +443,7 @@ def run_menu(registry, out) -> int:
                     status_message, status_level = _action_flash_device(
                         registry, out, device_key
                     )
+                    _countdown_return(registry.load().global_config.return_delay)
                 else:
                     status_message = "Flash: no device selected"
                     status_level = "warning"
@@ -388,6 +451,7 @@ def run_menu(registry, out) -> int:
             elif key == "a":
                 print(key)
                 status_message, status_level = _action_add_device(registry, out)
+                _countdown_return(registry.load().global_config.return_delay)
 
             elif key == "r":
                 print(key)
@@ -396,6 +460,7 @@ def run_menu(registry, out) -> int:
                     status_message, status_level = _action_remove_device(
                         registry, out, device_key
                     )
+                    _countdown_return(registry.load().global_config.return_delay)
                 else:
                     status_message = "Remove: no device selected"
                     status_level = "warning"
