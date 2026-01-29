@@ -6,7 +6,7 @@ Redesign the TUI with panel-based layout using truecolor theming, ANSI-aware ren
 
 ## Phases
 
-- [ ] **Phase 10: Rendering Foundation** - Truecolor theme upgrade, ANSI string utilities, terminal width detection
+- [x] **Phase 10: Rendering Foundation** - Truecolor theme upgrade, ANSI string utilities, terminal width detection
 - [ ] **Phase 11: Panel Renderer** - Panel module with bordered panels, two-column layout, step dividers
 - [ ] **Phase 12: TUI Main Screen** - Panel-based main screen with status, devices, and actions panels
 - [ ] **Phase 13: Config Screen & Settings** - Dedicated config screen with settings persistence and countdown timer
@@ -24,7 +24,7 @@ Redesign the TUI with panel-based layout using truecolor theming, ANSI-aware ren
   3. Terminal width is detected at render time and available to downstream panel code
 **Plans:** 1 plan
 Plans:
-- [ ] 10-01-PLAN.md — Truecolor theme upgrade + ANSI string utilities
+- [x] 10-01-PLAN.md — Truecolor theme upgrade + ANSI string utilities
 
 ### Phase 11: Panel Renderer
 **Goal**: Pure rendering module produces bordered panels with consistent alignment, ready for TUI integration
@@ -78,7 +78,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 10. Rendering Foundation | 0/1 | Planned | - |
+| 10. Rendering Foundation | 1/1 | ✓ Complete | 2026-01-29 |
 | 11. Panel Renderer | 0/TBD | Not started | - |
 | 12. TUI Main Screen | 0/TBD | Not started | - |
 | 13. Config Screen & Settings | 0/TBD | Not started | - |

@@ -7,13 +7,13 @@
 
 ### Theme & Rendering
 
-- [ ] **REND-01**: Truecolor RGB palette with 3-tier fallback (truecolor > ANSI 256 > ANSI 16)
-- [ ] **REND-02**: ANSI-aware string utilities (strip_ansi, display_width, pad_to_width)
+- [x] **REND-01**: Truecolor RGB palette with 3-tier fallback (truecolor > ANSI 256 > ANSI 16)
+- [x] **REND-02**: ANSI-aware string utilities (strip_ansi, display_width, pad_to_width)
 - [ ] **REND-03**: Panel renderer with rounded borders (curved corners), configurable width
 - [ ] **REND-04**: Two-column layout rendering within panels
 - [ ] **REND-05**: Spaced letter panel headers (e.g. [ D E V I C E S ])
 - [ ] **REND-06**: Step dividers (mid-grey partial-width with step labels)
-- [ ] **REND-07**: Terminal width detection and adaptive panel sizing
+- [x] **REND-07**: Terminal width detection and adaptive panel sizing
 
 ### TUI Layout
 
