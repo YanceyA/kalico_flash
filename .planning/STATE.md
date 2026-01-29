@@ -11,18 +11,18 @@ See: .planning/PROJECT.md (updated 2026-01-29)
 
 Milestone: v3.0 TUI Redesign & Flash All
 Phase: 10 of 14 (Rendering Foundation)
-Plan: 0 of TBD in current phase
-Status: **Ready to plan**
-Last activity: 2026-01-29 — Roadmap created (5 phases, 32 requirements mapped)
+Plan: 1 of TBD in current phase
+Status: **In progress**
+Last activity: 2026-01-29 — Completed 10-01-PLAN.md (Rendering Primitives)
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [█░░░░░░░░░] ~5%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 0 (v3.0)
-- Average duration: —
-- Total execution time: —
+- Total plans completed: 1 (v3.0)
+- Average duration: ~3 min
+- Total execution time: ~3 min
 
 ## Accumulated Decisions
 
@@ -31,6 +31,7 @@ Progress: [░░░░░░░░░░] 0%
 | — | Truecolor RGB with ANSI 16 fallback | Modern palette from mockups, graceful degradation |
 | — | Flash All: stop klipper once | Faster than per-device restart cycle |
 | — | Stdlib only maintained | Pure ANSI codes, no Rich/Textual dependency |
+| 10-01 | Legacy color constants removed (kept _BOLD, _DIM, RESET) | All colors derived from PALETTE via rgb_to_ansi |
 
 ## Shipped Milestones
 
@@ -43,9 +44,9 @@ Progress: [░░░░░░░░░░] 0%
 ## Session Continuity
 
 Last session: 2026-01-29
-Stopped at: Roadmap created for v3.0
+Stopped at: Completed 10-01-PLAN.md
 Resume file: None
-Next step: Plan Phase 10
+Next step: Execute next plan in Phase 10
 
 ---
-*Last updated: 2026-01-29 after roadmap creation*
+*Last updated: 2026-01-29 after 10-01 execution*
