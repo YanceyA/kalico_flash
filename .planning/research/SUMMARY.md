@@ -1,475 +1,344 @@
 # Project Research Summary
 
-**Project:** kalico-flash v2.0
-**Domain:** Python CLI firmware build/flash automation for Klipper 3D printers
-**Researched:** 2026-01-26 (v2.0 features) | 2026-01-25 (v1.0 baseline)
-**Confidence:** HIGH
+**Project:** kalico-flash v3.0 TUI Redesign & Flash All
+**Domain:** Python CLI tool for Klipper firmware building/flashing
+**Researched:** 2026-01-29
+**Overall Confidence:** HIGH
 
 ## Executive Summary
 
-kalico-flash v2.0 adds safety, verification, and UX improvements to the existing firmware flash workflow. Research shows the features fall into three categories: safety checks (print status, version detection), verification (post-flash device check), and polish (TUI menu, better errors, installation). The recommended approach is incremental enhancement of the existing hub-and-spoke architecture, preserving backward compatibility and the stdlib-only constraint.
+kalico-flash v3.0 introduces a panel-based TUI redesign with truecolor theming and a batch "Flash All" command. Research across stack, features, architecture, and pitfalls reveals a high-confidence path forward with stdlib-only implementation (Python 3.9+, zero dependencies). The recommended approach centers on three foundational decisions: (1) ANSI-aware string utilities as the first building block to prevent panel misalignment, (2) build-then-flash separation to minimize Klipper downtime during batch operations, and (3) service context decomposition to prevent nested stop/start cycles.
 
-The core insight: all new features should be gracefully degradable. Moonraker unavailable? Warn but allow flash. Post-flash verification fails? Show recovery steps. TUI unsupported? Fall back to simple numbered prompts. This philosophy prevents any v2.0 addition from breaking the core flash workflow that works reliably in v1.0.
+The panel TUI follows the print-and-clear pattern with 3-tier theme fallback (truecolor > ANSI 256 > ANSI 16), avoiding curses complexity while delivering modern aesthetics. Batch flash leverages the existing `klipper_service_stopped()` context manager with a critical architectural change: all firmware builds happen BEFORE stopping Klipper, reducing downtime from N × (build + flash) to N × flash-only (30s/device vs 3min/device).
 
-Critical risks center on preserving existing CLI interfaces (automation must not break), avoiding module coupling (new modules must remain "leaves" in the architecture), and maintaining the klipper service restart invariant (still the #1 safety concern from v1.0). The research identified stdlib solutions for all requirements: urllib.request for Moonraker API, simple print/input for TUI menus, and time-based polling for post-flash verification.
+Key risks center on ANSI escape width miscalculation (breaks panel alignment), partial batch completion without recovery info (user doesn't know which boards succeeded), and terminal compatibility across SSH environments. All risks have proven mitigation patterns documented in PITFALLS.md, with critical path identified: ANSI utilities → theme upgrade → panel renderer → batch orchestrator.
 
 ## Key Findings
 
-### Recommended Stack (v2.0 additions)
+### Recommended Stack
 
-v2.0 requires no new external dependencies. All features can be implemented with Python 3.9+ stdlib modules that are already proven in the v1.0 codebase.
+The v3.0 stack extends the existing stdlib-only foundation with terminal rendering capabilities. All new modules leverage Python 3.9+ stdlib without external dependencies, maintaining the project's zero-install philosophy.
 
-**Core technologies for v2.0:**
-- `urllib.request` + `urllib.error` — Moonraker HTTP API calls (timeout 5s, graceful failure)
-- `print()` + `input()` + Unicode box chars — Simple TUI menus (curses avoided due to Windows issues)
-- `re` + `dataclasses` — Version parsing for git describe format (v0.12.0-85-gd785b396)
-- `time.sleep()` + existing discovery.py — Post-flash device polling (2s intervals, 30s timeout)
-- Bash script — Installation (symlink to ~/.local/bin, check PATH, verify Python 3.9+)
+**Core technologies:**
+- **`shutil.get_terminal_size()`** — Panel width detection with fallback — standard approach, never use `os.get_terminal_size()` (raises on non-TTY)
+- **Truecolor ANSI escapes (`\033[38;2;R;G;Bm`)** — 24-bit RGB theming — ECMA-48 standard, validated in zen_mockup.py
+- **`re.compile(r"\033\[[0-9;]*m")` for ANSI stripping** — Visible width calculation — critical utility, underpins all panel alignment
+- **`termios + select.select()` (Unix) / `msvcrt` (Windows)** — Countdown keypress detection — stdlib for both platforms, requires platform switch
+- **Unicode rounded box drawing (U+256D-256F)** — Panel borders — standard characters, present in all modern fonts
 
-**Why not curses:** Windows compatibility issues, overkill for simple numbered menus, adds unnecessary complexity. The existing output.py pattern (print with phase labels) already works well.
+**Critical implementation constraint:** ANSI-aware string length utilities (`strip_ansi()`, `display_width()`, `pad_to_width()`) must be built FIRST. Every padding/alignment calculation depends on visible width, not `len()`. Truecolor adds 19 invisible chars per color token; without ANSI-aware utilities, panels will be visually broken despite syntactically correct code.
 
-**v1.0 stack preserved:**
-- `argparse`, `subprocess`, `pathlib`, `json`, `hashlib`, `dataclasses`, `contextlib` — All proven patterns
-- Context manager for service lifecycle remains the foundational safety pattern
-- No external dependencies, no asyncio, no shell=True, no logging module
+### Expected Features
 
-**Confidence:** HIGH — All recommendations verified against Python stdlib docs and Moonraker official API documentation.
-
-### Expected Features (v2.0 additions)
+Research identified table stakes, differentiators, and anti-features for the panel TUI and batch flash workflow.
 
 **Must have (table stakes):**
-- Print status check via Moonraker — Block flash if `print_stats.state` is "printing" or "paused"
-- Post-flash verification — Poll for device reappearance with Klipper prefix, 30s timeout
-- `--skip-menuconfig` flag — Use cached config without TUI (requires existing cache)
-- Better error messages — Context + cause + numbered recovery steps for each error type
-- Device exclusion — Registry flag to mark Beacon-like devices as non-flashable
+- **Bordered panel layout with sections** — Status/Devices/Actions panels provide instant situational awareness (KIAUH-style expected)
+- **Device list grouped by category** — Registered/New/Blocked grouping eliminates mental classification burden
+- **Flash All: single service bracket** — Stop Klipper once, flash all devices, restart once (core batch value proposition)
+- **Flash All: continue on failure** — Device 2 failure must not abort devices 3-5 (partial success is still success)
+- **Per-device progress during batch** — Step dividers show `[2/5] Octopus Pro` with PASS/FAIL status
+- **Countdown timer with keypress cancel** — 5-second safety window for destructive operations
+- **Numbered device references** — Stable session numbers for device selection
 
-**Should have (competitive):**
-- TUI menu — Interactive device selection when run with no args (simple print-based, not curses)
-- Version mismatch detection — Compare host vs MCU version via Moonraker, warn if different
-- Installation script — Symlink to PATH with prerequisite checks
+**Should have (differentiators):**
+- **Truecolor theme with ANSI 16 fallback** — Modern look with graceful degradation (3-tier: truecolor > 256 > 16)
+- **Connection status indicators** — Green/dim dots for connected/disconnected devices at draw time
+- **Flash All summary table** — Post-batch formatted table with Device/Status/Duration columns
+- **Flash All: skip unchanged configs** — SHA256 comparison to skip rebuild when config unchanged (5-device batch: 25min → 5min)
 
 **Defer (v2+):**
-- Colored output — Terminal compatibility varies, phase labels sufficient
-- CAN bus support — Different discovery mechanism, separate tool
-- Multi-device batch flash — Complex error recovery, one-at-a-time is safer
-- Automatic Klipper git pull — Dangerous, user manages updates
+- Real-time progress bars — Conflicts with inherited make output, adds complexity
+- Mouse support — Unreliable over SSH, no practical benefit
+- Async/parallel flash — USB serial is inherently sequential, parallel causes corruption
+- Undo/rollback for flash — Firmware flashing is one-way, no previous firmware stored
 
-**v1.0 table stakes preserved:**
-All 10 v1.0 table stakes remain critical: USB discovery, JSON registry, menuconfig passthrough, config caching, build orchestration, dual flash methods, service lifecycle, error handling, --device flag, dry-run mode.
+**Anti-features (deliberately excluded):**
+- Full curses/ncurses TUI — Massive complexity, Windows compatibility issues, breaks piping
+- Config file editor in TUI — Reimplements menuconfig poorly, loses dependency validation
+- Tab/panel switching — Wrong UX paradigm for numbered menus
 
-**Confidence:** HIGH (Moonraker API), MEDIUM (CLI UX patterns)
+### Architecture Approach
 
-### Architecture Approach (v2.0 integration)
+Hub-and-spoke architecture with `flash.py` as sole orchestrator. Panel TUI adds `panels.py` as pure rendering module (data in, strings out, zero I/O) and extends `theme.py` for truecolor support. Batch flash is orchestrated by `cmd_flash_all()` in `flash.py`, NOT a separate module.
 
-v2.0 follows the existing hub-and-spoke pattern. Three new modules are "leaves" that only import models.py and errors.py: moonraker.py (HTTP client for print status/version queries), tui.py (interactive menu wrapper), and messages.py (error message templates). Modified modules maintain existing interfaces to preserve backward compatibility.
+**Major components:**
 
-**New modules:**
-1. **moonraker.py** — MoonrakerClient class with timeout-wrapped urllib.request calls, graceful degradation
-2. **tui.py** — Simple print-based menu with numbered selection, no curses dependency
-3. **messages.py** — Error message templates with recovery guidance (lookup by error key)
+1. **`panels.py` (NEW)** — Pure rendering engine that takes data and returns multi-line strings. Consumes `theme.py` for styling. Called by `tui.py` for composition. No input handling, no side effects. Functions: `render_status_panel()`, `render_device_panel()`, `render_actions_panel()`, `render_config_panel()`.
 
-**Modified modules (interface-preserving changes):**
-4. **flash.py** — Hub orchestration adds Moonraker pre-check, post-flash verification call, new CLI flags
-5. **registry.py** — Schema v2 adds `flashable: bool` and `moonraker_url: str` with backward-compat defaults
-6. **flasher.py** — Adds verify_flash_success() function, service lifecycle unchanged
-7. **build.py** — Adds optional `clean` parameter to run_build()
-8. **discovery.py** — Adds filter_flashable_devices() helper
-9. **models.py** — New dataclasses: PrintStatus, McuVersion, VerifyResult
+2. **`theme.py` (MODIFIED)** — Add truecolor detection via `COLORTERM` env var, extend Theme dataclass with panel-specific fields (panel_border, panel_heading, divider, status_ok/fail). Three-tier fallback: truecolor (RGB) → 256-color → ANSI 16 (existing).
 
-**Key pattern preservation:**
-- All new modules are leaves (only import models.py, errors.py)
-- flash.py remains the sole orchestrator
-- No cross-imports between feature modules
-- Output goes through output.py protocol
-- Service lifecycle context manager untouched (the foundational safety pattern)
+3. **`flash.py::cmd_flash_all()` (NEW)** — Batch orchestrator with two-phase architecture: (1) Build phase with Klipper running: iterate devices, load configs, run menuconfig, make build; (2) Flash phase with Klipper stopped: single `with klipper_service_stopped()` wrapping all devices, flash pre-built binaries sequentially. Critical: extract `_flash_device_only()` without service management to prevent nested context manager.
 
-**v1.0 architecture principles preserved:**
-- Hub-and-spoke communication (orchestrator coordinates, modules don't call each other)
-- DeviceEntry dataclass as shared contract
-- Errors propagate upward (domain exceptions → orchestrator catches → user-friendly messages)
-- Layer 0 (no deps) → Layer 1 (subprocess) → Layer 2 (orchestrator) build order
+4. **`tui.py` (MODIFIED)** — Refactor `_render_menu()` to use `panels.py` for rendering. Replace `_settings_menu()` with config panel screen. Panel composition: clear → `render_status_panel()` + `render_device_panel()` + `render_actions_panel()` → print → input.
 
-**Confidence:** HIGH (extends proven v1.0 architecture)
+5. **`output.py` (MODIFIED)** — Add `divider(label: str)` method to Output Protocol for step dividers between batch flash devices.
 
-### Critical Pitfalls (v2.0 additions)
+**Data flow for batch flash:**
+```
+cmd_flash_all() → preflight checks → build ALL (klipper running) →
+single klipper_service_stopped() { flash device 1 → verify → flash device 2 → verify → ... } →
+klipper restarts → summary table
+```
 
-**New v2.0 pitfalls:**
+**Why build-before-stop matters:** Building firmware does NOT require Klipper stopped. Flashing DOES (holds serial port). With 4 devices: old way = 12-20min downtime, new way = 2-4min downtime.
 
-1. **Breaking existing CLI interface (INT-1)** — TUI menu must only activate with no args + TTY. The `--device KEY` flag must continue to work identically for automation. Prevention: TUI is additive, bypass logic preserved, test with piped stdin.
+### Critical Pitfalls
 
-2. **Moonraker connection failures (MOON-1, MOON-3)** — urllib.request can raise URLError, socket.timeout. print_stats.state interpretation is critical ("printing" and "paused" block, "standby"/"complete" allow). Prevention: Wrap all HTTP in try/except, fail open with warning, use correct field (print_stats.state not idle_timeout.state).
+Research identified 11 panel/batch-specific pitfalls plus 37 foundational pitfalls. Top 5 critical for v3.0:
 
-3. **Post-flash verification race conditions (VERIFY-1, VERIFY-5)** — Device takes 1-3 seconds to re-enumerate after flash. Klipper service restart may grab device during verification poll. Prevention: Initial 2s delay before polling, poll with 1s intervals for 30s total, verify AFTER klipper restart (not before).
+1. **ANSI escape width miscalculation (PANEL-1)** — Truecolor adds 19+ invisible chars per token. Using `len()` for padding produces misaligned panels. **Prevention:** Build `strip_ansi(text)`, `display_width(text)`, `pad_to_width(text, width)` utilities FIRST before any panel code. Test with BOTH color and no-color themes.
 
-4. **Version comparison logic errors (VER-3)** — String comparison "v0.9.0" > "v0.11.0" is wrong (lexicographic). Prevention: Parse to tuple of ints `(major, minor, patch)`, compare tuples numerically, handle missing tags gracefully.
+2. **Batch flash partial completion without recovery info (PANEL-3)** — Device 2 of 4 fails, exception propagates, user has no record of which succeeded. **Prevention:** Catch per-device exceptions, continue to next device, accumulate results as `list[tuple[str, FlashResult | Exception]]`, display summary table after ALL attempts.
 
-5. **Module coupling creep (INT-5)** — Adding cross-imports between new modules breaks hub-and-spoke. Prevention: Code review imports at top of each file, only allow models.py and errors.py, flash.py is sole orchestrator.
+3. **Klipper stopped during build phase wastes downtime (PANEL-4)** — Naive batch: stop klipper → (build+flash) × N → restart. Klipper down 12-20min for 4 devices. **Prevention:** Split into build phase (klipper running) and flash phase (klipper stopped once). Build all first, abort if any fails BEFORE stopping klipper.
 
-6. **Schema migration breaks registry (EXCL-2)** — Adding `flashable: bool` to DeviceEntry breaks existing devices.json files. Prevention: Use `data.get("flashable", True)` with default, backward-compatible loading.
+4. **Service context manager nesting (PANEL-11)** — Calling single-device flash function (which has `with klipper_service_stopped()`) inside batch loop that also has outer context creates nested stop/start. Inner context restarts klipper mid-batch, corrupting serial ports. **Prevention:** Extract `_flash_device_only()` without service management. Batch calls it inside single outer context.
 
-7. **TUI encoding failures (TUI-1)** — Unicode box-drawing characters render as garbage over SSH with incorrect terminal encoding. Prevention: Detect encoding with sys.stdout.encoding, provide ASCII fallback for non-UTF-8 terminals.
+5. **Truecolor not supported in all terminals (PANEL-2)** — PuTTY, old screen sessions, `TERM=xterm` don't support truecolor. Garbled output with literal escape codes. **Prevention:** 3-tier theme: detect via `COLORTERM` env var (`truecolor`/`24bit`) → truecolor; `TERM` contains `256color` → 256-color; else → ANSI 16 (existing). Never remove 16-color baseline.
 
-**v1.0 critical pitfalls still apply:**
-- CP-1: Klipper service restart invariant (context manager with finally block)
-- CP-2: Validate .config MCU type matches device registry
-- CP-5: Atomic writes for all persistence (write to .tmp, verify, rename)
-- CP-6: Re-verify device path exists immediately before flash
-- SP-1: menuconfig requires inherited stdio
-- SP-2: All make commands need cwd=klipper_dir
-- SP-3: Never use shell=True (shell injection risk)
-- SP-4: All subprocesses need timeouts except menuconfig
-
-**Confidence:** HIGH (derived from domain knowledge + codebase analysis + verified web research)
-
-## Cross-Cutting Themes
-
-### 1. Graceful Degradation as Design Philosophy (NEW for v2.0)
-
-Every v2.0 feature must fail open, never blocking the core flash workflow:
-- Moonraker unreachable? Warn but allow flash (user may be recovering from crashed Klipper)
-- Post-flash verification timeout? Show recovery steps, don't mark as failure
-- Version detection fails? Log "unknown", continue without blocking
-- TUI encoding issues? Fall back to ASCII, continue with simple menus
-
-This differs from v1.0 safety-critical operations (klipper restart, config validation) which MUST block on failure.
-
-### 2. Backward Compatibility as Non-Negotiable
-
-Existing automation (scripts using `--device KEY`, cron jobs, SSH commands) must continue to work identically:
-- `--device KEY` bypasses TUI entirely (current behavior preserved)
-- No new prompts in non-interactive mode
-- Exit codes unchanged
-- Output format preserved (new features add, don't replace)
-
-### 3. Interface Preservation Through Additive Design
-
-Modified modules maintain existing function signatures:
-- flash.py cmd_flash() gains optional parameters with defaults
-- registry.py load() returns same RegistryData type, new fields optional
-- flasher.py flash_device() unchanged, verify_flash_success() is separate function
-- build.py run_build() gains optional clean parameter (default True = current behavior)
-
-New functionality is always opt-in (flags, new functions) never changing existing behavior.
-
-### 4. Subprocess Execution Patterns Remain First-Class Concern (v1.0 principle)
-
-Four different subprocess patterns are needed:
-1. **Interactive TUI** (menuconfig): inherited stdio, no timeout, check=False (user can cancel)
-2. **Non-interactive build** (make): inherited stdio for streaming output, timeout=300s, check=True
-3. **Critical services** (systemctl): captured output for error messages, timeout=30s, check=True
-4. **Flash operations**: inherited stdio, timeout=120s, wrapped in service context manager
-
-v2.0 adds fifth pattern:
-5. **HTTP requests** (urllib.request): captured output, timeout=5s, graceful failure on URLError
-
-### 5. Device Identity Stability vs. Firmware State (v1.0 principle, v2.0 extension)
-
-The `/dev/serial/by-id/` symlink path contains firmware-determined strings:
-- Running Klipper: `usb-Klipper_stm32h723xx_<serial>`
-- Running Katapult: `usb-katapult_stm32h723xx_<serial>` (lowercase 'k')
-- Hardware serial: `<serial>` portion is stable
-
-v2.0 verification must handle prefix change: device disappears with Katapult prefix, reappears with Klipper prefix after successful flash.
-
-### 6. Safety Through Language-Enforced Invariants (v1.0 principle preserved)
-
-The tool's architecture centers on safety invariants enforced by language constructs:
-- Klipper restart → enforced by context manager finally block (v1.0)
-- Atomic file writes → enforced by temp-file-then-rename pattern (v1.0)
-- Timeout guards → enforced by subprocess.run(timeout=N) on every call (v1.0)
-- No shell injection → enforced by never using shell=True (v1.0)
-- Graceful degradation → enforced by try/except with default returns (v2.0)
-
-This is superior to documentation or code review because the language runtime guarantees the invariant.
-
-## Top Recommendations (prioritized)
-
-### v2.0 Specific Recommendations
-
-1. **Implement Moonraker Check as Fail-Open**
-   - HTTP calls in try/except with timeout=5s
-   - URLError or timeout logs warning, returns None (not error)
-   - Print status check continues if Moonraker unavailable
-   - Only block flash if API confirms active print (printing/paused state)
-
-2. **Preserve --device KEY Bypass Behavior**
-   - TUI menu only activates when: (1) no args AND (2) sys.stdin.isatty()
-   - --device KEY must skip all interactive prompts (current behavior)
-   - Test: `echo "" | python flash.py --device key` should not prompt
-
-3. **Use ASCII Fallback for TUI Box Drawing**
-   - Check sys.stdout.encoding before drawing
-   - If not UTF-8, use ASCII: `+`, `-`, `|` instead of Unicode box chars
-   - Test over SSH with LANG=C to verify fallback
-
-4. **Verify Device AFTER Klipper Restart, Not Before**
-   - Verification polling happens after service.py restarts Klipper
-   - Device may be locked by Klipper during verification (this is OK)
-   - Success criteria: device reappeared with Klipper prefix (not locked/unlocked)
-
-5. **Version Comparison Uses Tuple Parsing**
-   - Parse "v0.12.0-85-gd785b396" to (0, 12, 0) tuple
-   - Compare tuples: (0, 12, 0) > (0, 9, 0) = True
-   - Handle parse failures gracefully (return "unknown", don't crash)
-
-6. **Schema Evolution with Backward-Compat Defaults**
-   - New fields use .get(key, default) in registry loading
-   - Treat missing field as False (flashable) or sensible default (moonraker_url)
-   - Write all fields on save to migrate forward
-
-7. **Error Messages Follow Template Pattern**
-   - messages.py defines templates with {context} placeholders
-   - Each error includes: title, detail, numbered recovery steps
-   - Call format_error(key, **context) for consistent messaging
-
-### v1.0 Recommendations Preserved
-
-8. **Service Lifecycle Context Manager Remains Foundation**
-   - klipper_stopped() with finally block is untouchable
-   - All v2.0 features must work within this pattern
-   - No new code paths that bypass service restart guarantee
-
-9. **Never Use shell=True (v1.0 principle)**
-   - Applies to all new subprocess calls in v2.0 modules
-   - Device paths and URLs from registry are user-controlled data
-
-10. **Atomic Writes for All New Persistence (v1.0 principle)**
-    - Applies to registry schema changes (devices.json)
-    - Write to .tmp, verify, os.rename() to final name
-
-## Conflicts & Tensions
-
-### v2.0 Specific Tensions
-
-1. **Feature Richness vs. Graceful Degradation**
-   - Tension: Rich features (Moonraker check, version detection) vs. working on minimal systems
-   - Resolution: All v2.0 features fail gracefully. If Moonraker unavailable, tool works like v1.0.
-
-2. **TUI Polish vs. Compatibility**
-   - Tension: Unicode box drawing looks nice vs. works everywhere (SSH, old terminals)
-   - Resolution: ASCII fallback. Function over form. Detect encoding, adapt output.
-
-3. **Backward Compatibility vs. Breaking Changes**
-   - Tension: Clean new interface (TUI as default) vs. breaking automation
-   - Resolution: TUI is opt-in (no args + TTY only). All existing flags work identically.
-
-4. **Verification Strictness vs. Flash Reliability**
-   - Tension: Post-flash verification strict (fail if device doesn't reappear) vs. false failures
-   - Resolution: Verification warns on timeout, doesn't block. Show recovery steps, let user decide.
-
-5. **Schema Evolution vs. Migration Pain**
-   - Tension: Add new fields to DeviceEntry vs. breaking existing devices.json
-   - Resolution: Backward-compatible defaults. Missing fields treated as False/default, not error.
-
-### v1.0 Tensions Preserved
-
-6. **Error Messages vs. Output Brevity** — Be verbose on failure, concise on success
-7. **Config Caching Freshness vs. Safety** — Cache aggressively but validate (v2.0 adds --skip-menuconfig flag)
-8. **Subprocess Timeout Values** — Conservative defaults for Pi 3 (slowest platform)
-9. **Device Pattern Specificity vs. Convenience** — Auto-generate specific patterns, warn on collisions
+**Foundation pitfall (from v1.0, still critical):**
+- **Klipper service not restarted after flash failure (CP-1)** — Exception between stop and start leaves printer without thermal protection. **Prevention:** Already mitigated by existing `klipper_service_stopped()` context manager with try/finally. Batch flash MUST use single outer context, not per-device contexts.
 
 ## Implications for Roadmap
 
-Based on research, suggested phase structure prioritizes safety (Moonraker check), then verification (post-flash), then polish (TUI, error messages, install).
+Based on combined research, suggested phase structure prioritizes foundation before features. Critical path: ANSI utilities → theme → panels → batch orchestrator.
 
-### Phase 1: Moonraker Safety Check
-**Rationale:** Highest safety value, prevents flash during active print. Addresses critical pitfall CP-3 (flashing during print). Can be standalone feature that fails gracefully.
-
-**Delivers:**
-- moonraker.py module with MoonrakerClient class
-- Pre-flight Moonraker API query (timeout 5s)
-- Block if print_stats.state is "printing" or "paused"
-- Graceful failure if Moonraker unavailable (warn but continue)
-
-**Addresses:** Print status check (table stakes from FEATURES.md)
-
-**Avoids:** MOON-1 (connection refused), MOON-3 (state misinterpretation)
-
-**Research flag:** MEDIUM — Moonraker API is well-documented, but testing requires live Moonraker instance. Phase should include integration testing with real printer.
-
-### Phase 2: Post-Flash Verification
-**Rationale:** Provides feedback on flash success. Uses existing discovery.py module with time-based polling. Independent of Phase 1.
+### Phase 1: Panel Rendering Foundation
+**Rationale:** ANSI-aware string utilities are prerequisite for all panel rendering. Terminal width detection and screen management establish the rendering contract. Building these first creates testable foundation.
 
 **Delivers:**
-- flasher.py verify_flash_success() function
-- Wait for device reappearance after flash (30s timeout)
-- Initial 2s delay, then poll every 1s
-- Verify Klipper prefix (not Katapult bootloader)
-- Display recovery steps on timeout (don't fail)
+- ANSI escape stripping utilities (`strip_ansi`, `display_width`, `pad_to_width`)
+- Terminal width detection via `shutil.get_terminal_size()` with fallback
+- Screen clearing strategy (cursor-home + overwrite vs full-clear to prevent flicker)
+- Unicode box drawing detection (`sys.stdout.encoding` + `LANG` check)
 
-**Uses:** time.sleep(), discovery.scan_serial_devices()
+**Addresses:** PANEL-1 (ANSI width), PANEL-5 (terminal width), PANEL-6 (screen flicker), PANEL-9 (Unicode detection)
 
-**Avoids:** VERIFY-1 (premature check), VERIFY-3 (prefix confusion), VERIFY-5 (race with klipper restart)
+**Stack elements:** `shutil`, `re`, `os`, `sys`
 
-**Research flag:** LOW — Polling patterns are standard, discovery module already tested.
-
-### Phase 3: Skip Menuconfig Flag
-**Rationale:** High value, low complexity. Builds on existing config.py caching. Enables fast repeat flashing.
+### Phase 2: Truecolor Theme Upgrade
+**Rationale:** Theme enhancement is independent and low-risk. Extending existing `theme.py` with truecolor fallback provides immediate visual improvement without disrupting other modules.
 
 **Delivers:**
-- --skip-menuconfig flag in flash.py
-- Error if no cached config for device
-- Pass flag to build.py run_build()
-- Preserves existing behavior (menuconfig always runs by default)
+- Truecolor detection via `COLORTERM` env var
+- 3-tier Theme system with RGB/256-color/16-color fallback
+- Panel-specific theme fields (panel_border, panel_heading, divider, status indicators)
+- Theme dataclass extension with backward-compatible defaults
 
-**Addresses:** Skip menuconfig (table stakes)
+**Addresses:** PANEL-2 (truecolor compatibility)
 
-**Avoids:** CM-5 (config flow direction errors)
+**Stack elements:** ANSI truecolor escape sequences (`\033[38;2;R;G;Bm`), color approximation for 256-color fallback
 
-**Research flag:** LOW — Straightforward flag addition, no new concepts.
+**Avoids:** Breaking existing ANSI 16 theme users
 
-### Phase 4: Better Error Messages
-**Rationale:** Improves all error paths. Foundation for remaining phases. Can be implemented as messages.py module with template lookup.
-
-**Delivers:**
-- messages.py with error templates
-- Numbered recovery steps for each error type
-- Context-aware formatting (device name, path, MCU type)
-- Integration in flash.py error handlers
-
-**Addresses:** Better error messages (table stakes)
-
-**Avoids:** INT-4 (error message regression)
-
-**Research flag:** LOW — Message writing is content work, not technical complexity.
-
-### Phase 5: Device Exclusion
-**Rationale:** Unblocks Beacon users. Simple registry schema change with backward-compat defaults.
+### Phase 3: Panel Renderer Module
+**Rationale:** Pure rendering module with no I/O creates testable, reusable component. Built on Phase 1 utilities, consumes Phase 2 theme. Can be developed/tested in isolation before TUI integration.
 
 **Delivers:**
-- flashable: bool field in DeviceEntry (default True)
-- Backward-compatible registry.py loading (use .get with default)
-- discovery.py filter_flashable_devices() helper
-- --add-device wizard prompt for exclusion
+- `panels.py` with `render_status_panel()`, `render_device_panel()`, `render_actions_panel()`, `render_config_panel()`
+- DeviceDisplayInfo dataclass for panel data contract
+- Two-column layout calculation for actions panel
+- Grouped device rendering (Registered/New/Blocked sections)
 
-**Addresses:** Beacon probe exclusion (table stakes)
+**Addresses:** Table stakes panel features from FEATURES.md
 
-**Avoids:** EXCL-2 (schema migration)
+**Uses:** Phase 1 utilities for alignment, Phase 2 theme for styling
 
-**Research flag:** LOW — Schema evolution already tested in registry.py.
+**Implements:** Pure rendering layer from ARCHITECTURE.md component map
 
-### Phase 6: TUI Menu
-**Rationale:** Major UX improvement but not safety-critical. Depends on better error messages (Phase 4). Can be simple print-based menu first.
-
-**Delivers:**
-- tui.py module with numbered menu
-- Interactive device selection on no args + TTY
-- Action menu (flash, add, list, remove, exit)
-- Unicode box drawing with ASCII fallback
-
-**Uses:** print() + input() (no curses dependency)
-
-**Avoids:** TUI-1 (encoding failures), INT-1 (breaking CLI), TUI-4 (screen corruption)
-
-**Research flag:** MEDIUM — Terminal compatibility testing needed. ASCII fallback reduces risk, but SSH testing required.
-
-### Phase 7: Version Detection
-**Rationale:** Informational feature, lowest priority. Depends on Moonraker (Phase 1).
+### Phase 4: TUI Refactor to Use Panels
+**Rationale:** Integrates panel renderer into existing TUI. Refactors `_render_menu()` without changing CLI interface. Preserves `--device KEY` bypass behavior.
 
 **Delivers:**
-- Version parsing with regex (handle git describe format)
-- Tuple comparison (0, 12, 0) vs (0, 9, 0)
-- Query MCU version via Moonraker API
-- Warn on mismatch (informational only, don't block)
+- Panel-based main screen composition
+- Config screen as separate view (replaces `_settings_menu()`)
+- Letter-key action dispatch (F/A/C/S/R/Q)
+- Status panel integration (last operation result)
+- Device panel with connection status checks at draw time
 
-**Uses:** re module for version parsing, Moonraker API for MCU version
+**Addresses:** Table stakes for panel TUI workflow
 
-**Avoids:** VER-1 (shallow clone), VER-3 (comparison logic), VER-4 (dirty suffix)
+**Avoids:** INT-1 (breaking existing CLI), INT-2 (bypassing Output protocol)
 
-**Research flag:** MEDIUM — git describe parsing needs testing against real Kalico versions. Shallow clone edge case needs handling. Failure mode is informational-only (low risk).
+**Uses:** Phase 3 panels, Phase 2 theme
 
-### Phase 8: Installation Script
-**Rationale:** One-time setup, improves distribution but not core functionality. Independent of all other phases.
+### Phase 5: Output Protocol Extension
+**Rationale:** Small, focused addition to support batch flash step dividers. Extends Protocol and CliOutput consistently.
 
 **Delivers:**
-- install.sh bash script
-- Symlink to ~/.local/bin (or /usr/local/bin with sudo)
-- PATH check with instructions
-- Python 3.9+ version validation
-- Idempotent (can run multiple times)
+- `divider(label: str)` method in Output Protocol
+- Implementation in CliOutput and NullOutput
 
-**Avoids:** INST-1 (permission denied), INST-2 (symlink exists), INST-4 (relative symlink)
+**Addresses:** Batch flash output formatting
 
-**Research flag:** LOW — Standard Linux installation patterns.
+**Stack elements:** Simple string formatting with theme colors
+
+### Phase 6: Batch Flash Architecture
+**Rationale:** Depends on all foundation work. Two-phase architecture (build then flash) requires careful orchestration and service context decomposition. High complexity, built on stable base.
+
+**Delivers:**
+- `cmd_flash_all()` in `flash.py` with two-phase separation
+- `_flash_device_only()` extracted from single-device flow (no service management)
+- Per-device exception handling with result accumulation
+- BatchFlashResult dataclass for summary
+
+**Addresses:** Flash All table stakes, continue-on-failure, single service bracket
+
+**Avoids:** PANEL-3 (partial completion info), PANEL-4 (build downtime), PANEL-11 (nested context)
+
+**Implements:** Batch orchestrator from ARCHITECTURE.md
+
+### Phase 7: Countdown Timer & Batch UX
+**Rationale:** Adds safety countdown and summary table polish. Can start with simple Enter/Ctrl+C approach, upgrade to raw terminal keypress later.
+
+**Delivers:**
+- Countdown timer (configurable seconds, default 5s)
+- Keypress cancel detection (platform-specific: `termios`+`select` on Unix, `msvcrt` on Windows)
+- Batch flash summary table (Device/Status/Duration columns)
+- Step dividers between devices
+
+**Addresses:** Countdown safety (table stakes), summary table (differentiator)
+
+**Avoids:** PANEL-7 (keypress detection), PANEL-10 (raw mode conflicts)
+
+**Stack elements:** `termios`, `tty`, `select` (Unix), `msvcrt` (Windows), `time`
+
+### Phase 8: Polish & Optimization
+**Rationale:** Optional enhancements that don't affect core functionality. Can be deferred or delivered incrementally.
+
+**Delivers:**
+- Flash All: skip unchanged configs (SHA256 comparison)
+- Spaced panel headers `[ D E V I C E S ]`
+- Screen-aware layout (adaptive panel width)
+
+**Addresses:** Differentiators from FEATURES.md
 
 ### Phase Ordering Rationale
 
-- **Safety first:** Moonraker check (Phase 1) prevents the worst failure mode (flash during print)
-- **Verification second:** Post-flash check (Phase 2) provides confidence in flash success
-- **Quick wins third:** Skip-menuconfig (Phase 3) is simple, high-value for repeat flashing
-- **Foundation before features:** Better errors (Phase 4) before TUI (Phase 6) ensures good UX throughout
-- **Low-risk next:** Device exclusion (Phase 5) is simple registry change
-- **Complex features last:** TUI (Phase 6) depends on error messages, requires compatibility testing
-- **Informational features last:** Version detection (Phase 7) is nice-to-have, not critical
-- **Install script separate:** Phase 8 is distribution, not functionality, can be done anytime
+- **Foundation first:** ANSI utilities and theme are prerequisites for all rendering. Building them first eliminates integration blockers.
+- **Pure modules before integration:** Panel renderer is developed in isolation, then integrated into TUI. Testable components reduce debugging surface.
+- **Batch architecture late:** Highest complexity, depends on stable foundation (panels, theme, output protocol extensions). Two-phase build/flash requires careful orchestration.
+- **Polish last:** Skip-unchanged optimization and adaptive layout are valuable but not essential for MVP.
 
-**Dependency handling:**
-- Phase 1 creates moonraker.py (used by Phase 7 for version query)
-- Phase 4 creates messages.py (used by Phase 6 TUI for error display)
-- Phase 3, 5, 8 are independent (can parallelize if desired)
-- Phase 2 modifies flasher.py (coordinate with service lifecycle, no conflicts)
+**Dependency chain:**
+```
+Phase 1 (ANSI utilities) ──> Phase 3 (panel renderer) ──> Phase 4 (TUI integration)
+Phase 2 (theme) ──────────────────>│                            │
+                                                                 │
+Phase 5 (output protocol) ──> Phase 6 (batch flash) <───────────┘
+                                    │
+Phase 7 (countdown UX) ────────────>│
+                                    │
+Phase 8 (polish) ───────────────────>
+```
 
 ### Research Flags
 
-Phases likely needing deeper research during planning:
-- **Phase 1 (Moonraker):** Requires live Moonraker testing, API endpoint validation, error condition testing (URLError, timeout, klippy not ready states)
-- **Phase 6 (TUI):** Terminal encoding compatibility testing, Unicode fallback verification, SSH testing with various clients
-- **Phase 7 (Version):** git describe format validation against real Kalico versions, shallow clone handling, dirty suffix parsing
+**Phases with standard patterns (low research need):**
+- **Phase 1 (ANSI utilities):** Regex pattern for ANSI stripping is well-documented, stdlib terminal size detection proven.
+- **Phase 2 (theme):** ANSI escape sequences are standardized (ECMA-48), truecolor detection convention is established.
+- **Phase 5 (output protocol):** Simple protocol extension following existing pattern.
 
-Phases with standard patterns (skip research-phase):
-- **Phase 2 (Verification):** Time-based polling is well-understood, discovery.py already tested
-- **Phase 3 (Skip flag):** Straightforward argparse addition, flag passing pattern known
-- **Phase 4 (Error messages):** Content writing, template pattern is standard Python
-- **Phase 5 (Exclusion):** Schema evolution with defaults already proven in v1.0
-- **Phase 8 (Install):** Standard Linux symlink patterns, well-documented
+**Phases needing validation during planning:**
+- **Phase 7 (countdown timer):** Platform-specific keypress detection has edge cases (terminal mode restoration on crash, SSH pseudo-terminal behavior). Validate with live SSH testing.
+
+**Phases with high confidence, no research:**
+- All other phases based on direct codebase analysis and established patterns.
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| **Stack** | HIGH | All stdlib solutions verified against Python docs, Moonraker official docs. urllib.request patterns proven. No external deps. |
-| **Features** | HIGH | Moonraker API verified from official docs. CLI patterns are industry-standard. Feature list covers all v2.0 requirements from project brief. |
-| **Architecture** | HIGH | Extends proven v1.0 hub-and-spoke pattern. No new architectural patterns. New modules follow same "leaf" design. Interface preservation validated. |
-| **Pitfalls** | HIGH | Derived from domain knowledge + codebase analysis + verified web research. v1.0 pitfalls still apply. v2.0 adds 7 new pitfalls with concrete prevention. |
+| Stack | HIGH | All stdlib, verified from Python docs and zen_mockup.py validation |
+| Features | HIGH | KIAUH-style expectations verified, anti-features clearly documented |
+| Architecture | HIGH | Direct codebase analysis, patterns derived from existing hub-and-spoke |
+| Pitfalls | HIGH | Domain knowledge + codebase analysis, critical paths identified |
 
 **Overall confidence:** HIGH
 
-Research is comprehensive and actionable. All technical questions have stdlib solutions. Architecture preserves existing patterns. Pitfalls have concrete prevention strategies. v2.0 builds incrementally on proven v1.0 foundation.
-
 ### Gaps to Address
 
-**Minor gaps to handle during implementation:**
+**Terminal compatibility edge cases:**
+- Some SSH clients (PuTTY with default settings) don't support truecolor. 3-tier fallback handles this, but needs live testing across terminals (PuTTY, kitty, Windows Terminal, tmux, screen).
+- Terminal width detection on non-TTY contexts (piped output, cron) already handled by existing `sys.stdin.isatty()` checks, but panel rendering should gracefully degrade.
 
-- **Terminal encoding edge cases:** Unicode box drawing fallback logic needs live SSH testing with various clients (PuTTY, iTerm, Windows Terminal). Recommendation: Implement ASCII fallback first (works everywhere), add Unicode as enhancement.
+**Keypress detection platform quirks:**
+- Raw terminal mode restoration on exception/signal. `atexit.register()` provides safety net, but SIGHUP during countdown needs testing.
+- Start with Enter/Ctrl+C approach for MVP (simple, no raw mode), upgrade to keypress later.
 
-- **Moonraker API version variance:** Different Moonraker versions may have slightly different response schemas or field names. Recommendation: Use .get() with defaults for all API field access, never assume presence.
+**Batch flash error recovery:**
+- If device 2 of 4 fails during build phase (BEFORE klipper stop), abort entire batch without stopping klipper (correct).
+- If device 2 fails during flash phase (AFTER klipper stop), continue with devices 3-4 (correct).
+- Needs clear user messaging about why some devices were skipped vs attempted.
 
-- **Kalico vs Klipper version format:** Kalico fork may use different git describe format than mainline Klipper (different tag prefixes, branch naming). Recommendation: Version parsing regex should be flexible (handle v prefix optional, commit count optional), gracefully return "unknown" on parse failure.
+**All gaps have mitigation strategies documented in PITFALLS.md.** No blockers, just implementation details to validate during development.
 
-- **Git shallow clone version detection:** git describe fails on shallow clones (common in Docker, some install scripts). Recommendation: Catch subprocess.CalledProcessError, fall back to reading .version file or git log --oneline -1, return "unknown" if all fail (never crash).
+## Cross-Cutting Themes
 
-**No blocking gaps:** All features can be implemented with available information. Edge cases are handled via graceful degradation (the v2.0 design philosophy). If a feature can't operate (Moonraker unavailable, git missing, terminal encoding wrong), tool degrades to v1.0 behavior or ASCII output, never crashes.
+### Safety Invariant: Klipper Always Restarts
+Every code path (success, failure, exception, signal) must ensure klipper restarts. Batch flash must use single outer `klipper_service_stopped()` context, not per-device contexts. Existing context manager already provides try/finally safety; batch architecture must not undermine this.
+
+### ANSI Width as Foundation
+ANSI-aware string utilities are the single most important technical decision. Truecolor adds 19 invisible chars per token. Every padding/alignment calculation must use `display_width()`, never `len()`. This is not an optimization — it's a correctness requirement. Build these utilities FIRST, before any panel code.
+
+### Progressive Enhancement, Not Replacement
+Truecolor theme degrades to ANSI 16. Panel TUI only activates in interactive mode; `--device KEY` bypasses entirely. New features are additive, preserving existing CLI behavior. This maintains backward compatibility for automation.
+
+### Build-Then-Flash Separation
+Batch flash value proposition is efficiency: 4 devices × 3min each = 12min build + 4 devices × 30s each = 2min flash = 14min total. But only 2min klipper downtime instead of 14min. This architectural decision (build phase before flash phase) is what makes batch flash worth building.
+
+## Top Recommendations (Prioritized)
+
+1. **Build ANSI utilities first** — `strip_ansi()`, `display_width()`, `pad_to_width()` are prerequisites for all panel rendering. Without these, panels will be visually broken despite syntactically correct code. Test with BOTH color and no-color themes.
+
+2. **Extract `_flash_device_only()` for batch** — Single-device flash currently uses `klipper_service_stopped()` internally. Batch flash needs flash-without-service-management. Extract this BEFORE implementing batch orchestrator to prevent nested context managers.
+
+3. **Build all, then flash all** — Two-phase architecture (build with klipper running, flash with klipper stopped) is the core batch value. Design this separation into the orchestrator from day one. Don't optimize later — it's fundamental.
+
+4. **3-tier theme fallback, never remove ANSI 16** — Truecolor detection is reliable but not universal. Always fall back to ANSI 16 as baseline. Test degradation path explicitly (set `COLORTERM=""` to force fallback).
+
+5. **Continue on failure with result accumulation** — Batch flash must catch per-device exceptions and accumulate results. Summary table showing Device/Status/Duration is essential UX, not polish.
+
+## Conflicts & Tensions
+
+**Inherited stdio vs panel rendering:**
+- `make` build uses inherited stdio (per existing conventions in SP-1, SP-5). Real-time compiler output is valuable feedback.
+- Panel rendering works best with controlled output.
+- **Resolution:** Suspend panels during build phase. Show step divider before build, let make output scroll naturally, show status panel after build completes. Don't fight inherited stdio.
+
+**Truecolor aesthetics vs terminal compatibility:**
+- Truecolor provides modern look, matches zen_mockup.py vision.
+- Not all terminals support truecolor (PuTTY, old screen).
+- **Resolution:** 3-tier fallback with `COLORTERM` detection. Truecolor is enhancement, not requirement.
+
+**Batch efficiency vs safety:**
+- Maximum efficiency: parallel flash (faster).
+- Reality: USB serial is inherently sequential, parallel causes corruption.
+- **Resolution:** Sequential flash with continue-on-failure. Build-then-flash separation provides efficiency win without parallel risk.
+
+**Feature richness vs stdlib-only constraint:**
+- Rich TUI libraries (`rich`, `blessed`, `textual`) provide polished UX.
+- Project mandates zero external dependencies.
+- **Resolution:** Print-and-clear panels with Unicode box drawing and truecolor ANSI. 80% of polish with 0% dependencies. Avoid curses (Windows issues, overkill for numbered menus).
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- [Moonraker Printer Administration API](https://moonraker.readthedocs.io/en/latest/external_api/printer/) — print_stats endpoint, state values, query endpoint
-- [Moonraker Printer Objects](https://moonraker.readthedocs.io/en/latest/printer_objects/) — mcu object, version fields, status reference
-- [Python urllib.request documentation](https://docs.python.org/3/library/urllib.request.html) — HTTP client patterns, timeout handling, URLError exceptions
-- [Python curses documentation](https://docs.python.org/3/library/curses.html) — Windows limitations verified (not available without third-party wheel)
-- kalico-flash v1.0 codebase (flash.py, registry.py, discovery.py, models.py, errors.py, service.py, output.py) — Architecture patterns, existing interfaces, dataclass contracts
-- Python 3.9+ stdlib documentation (re, time, dataclasses, contextlib)
+- Direct codebase analysis: `tui.py`, `theme.py`, `service.py`, `output.py`, `flash.py`, `models.py` (existing patterns)
+- Python stdlib documentation: `shutil`, `re`, `termios`, `tty`, `select`, `msvcrt`, `time`
+- ECMA-48 standard (ANSI escape code specification)
+- `.working/UI-working/zen_mockup.py` (validates truecolor rendering, escape format, palette)
+- `CLAUDE.md` (architecture principles, hub-and-spoke, dataclass contracts)
 
 ### Secondary (MEDIUM confidence)
-- [Klipper Status Reference](https://www.klipper3d.org/Status_Reference.html) — MCU object structure, print_stats fields
-- [CLI Guidelines](https://clig.dev/) — Error message best practices, recovery steps format
-- [Unicode box drawing characters](https://pythonadventures.wordpress.com/2014/03/20/unicode-box-drawing-characters/) — Terminal rendering, ASCII fallback patterns
-- Community forums (Klipper discourse, Voron) — Real-world failure modes, user pain points with manual flash workflow
+- KIAUH menu patterns (WebSearch results describe structure, exact source not fetched)
+- `COLORTERM` env var convention for truecolor detection (common but not standardized)
+- Evil Martians CLI UX patterns (progress display best practices)
 
 ### Tertiary (LOW confidence)
-- [PEP 440 Version Identification](https://peps.python.org/pep-0440/) — Version comparison (not directly applicable, git describe format differs from PEP 440)
+- None — all findings backed by primary sources or direct codebase analysis
 
 ---
-*Research completed: 2026-01-26 (v2.0) | 2026-01-25 (v1.0)*
+*Research completed: 2026-01-29*
 *Ready for roadmap: yes*

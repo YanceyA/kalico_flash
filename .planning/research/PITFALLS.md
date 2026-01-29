@@ -1,7 +1,7 @@
 # Pitfalls Research: klipper-flash
 
 **Domain:** Python CLI tool for Klipper firmware building and flashing via subprocesses
-**Researched:** 2026-01-25 (v1.0), 2026-01-26 (v2.0 additions)
+**Researched:** 2026-01-25 (v1.0), 2026-01-26 (v2.0 additions), 2026-01-29 (v2.1 panel TUI + batch flash)
 **Overall confidence:** HIGH (domain knowledge from Klipper ecosystem, Linux device model, Python subprocess semantics)
 
 ---
@@ -1349,6 +1349,232 @@ Current registry.py already uses `.get()` pattern - maintain this.
 
 ---
 
+# v2.1 Panel TUI + Batch Flash Pitfalls
+
+The following pitfalls are specific to adding a panel-based TUI with truecolor theming and a "Flash All" batch command. These apply to the existing codebase which already has box-drawing menus (`tui.py`), a theme system (`theme.py`), and a `klipper_service_stopped()` context manager (`service.py`).
+
+---
+
+## Critical Panel TUI Pitfalls
+
+### PANEL-1: ANSI Escape Sequences Break Width Calculations
+
+**What goes wrong:** ANSI escape sequences like `\033[38;2;100;160;180m` are invisible on screen but have string length 19+ characters. Any code using `len(styled_string)` for padding or alignment produces misaligned panels. The existing `_render_menu()` in `tui.py` already has a partial version of this problem -- it calculates `inner_width` from plain text items but embeds `theme.menu_title` (a styled string) into the border line. Currently this works because `len(title_plain)` is used separately, but extending to full panel layouts with multiple styled elements per line will multiply alignment bugs across every row.
+
+**Why it happens:** Python `len()` counts characters including invisible escape codes. Every styled token adds 10-20 invisible characters to a line. With truecolor (`\033[38;2;R;G;Bm`), each color adds 19 chars per token, and a reset adds 4 more. A line with 3 colored tokens has 60+ invisible chars.
+
+**Consequences:** Box borders don't align. Right-side vertical bars appear shifted. Content overflows panel boundaries. The bug is invisible with no-color theme (all escape strings are empty), making it hard to catch during development if NO_COLOR is set.
+
+**Prevention:**
+1. Build a `strip_ansi(text) -> str` utility using `re.sub(r'\033\[[0-9;]*m', '', text)` as the FIRST utility before any panel code
+2. Build `display_width(text) -> int` that returns `len(strip_ansi(text))`
+3. ALL padding, alignment, and ljust/rjust operations must use display width, never raw `len()`
+4. Create a `pad_to_width(text, width) -> str` helper that pads based on display width
+5. Test every panel render with BOTH color and no-color themes
+
+**Detection:** Render panels with truecolor theme and check if right border characters align vertically. If they zigzag, this pitfall is active.
+
+**Phase:** Panel rendering foundation -- must be the very first thing built before any panels.
+
+---
+
+### PANEL-2: Truecolor Not Supported in All Terminals
+
+**What goes wrong:** The mockup uses specific RGB colors (#64A0B4, #82C8DC, etc.) which require truecolor escape sequences (`\033[38;2;R;G;Bm`). Many terminals don't support this: PuTTY (default settings), older `screen` sessions (not `tmux`), some SSH clients, and terminals with `TERM=xterm` (not `xterm-256color` or `xterm-direct`). These terminals will display garbled escape codes as literal text.
+
+**Why it happens:** The existing `theme.py` uses ANSI 16-color codes (`\033[92m` etc.) which are universally supported. Switching to truecolor is a significant compatibility regression unless fallback is handled.
+
+**Consequences:** Garbled output with literal escape sequences visible. On some terminals, the entire output becomes unreadable -- not just ugly colors but corrupted text.
+
+**Prevention:**
+1. Detect truecolor support via `COLORTERM` env var: values `truecolor` or `24bit` indicate support
+2. Build a 3-tier theme system: truecolor (RGB) -> 256-color (approximation) -> 16-color (existing ANSI, current default)
+3. Map each RGB value to nearest 256-color index as fallback: `\033[38;5;{index}m`
+4. Keep current 16-color Theme as the safe baseline -- never remove it
+5. The theme selection should be: `COLORTERM=truecolor` -> truecolor; `TERM` contains `256color` -> 256-color; else -> 16-color
+
+**Detection:** SSH into Pi from PuTTY with default settings. If you see `[38;2;100;160;180m` as literal text, truecolor detection is missing.
+
+**Phase:** Theme enhancement -- must be done before panel rendering uses new colors.
+
+---
+
+### PANEL-3: Batch Flash Partial Completion Without Recovery Info
+
+**What goes wrong:** "Flash All" stops klipper once, flashes N devices sequentially, restarts klipper once. If device 2 of 4 fails (build error, flash timeout, device disconnected), the naive approach raises an exception. The `klipper_service_stopped()` context manager catches it and restarts klipper, but the user has NO record of which devices succeeded and which failed. They must manually check each board.
+
+**Why it happens:** The existing single-device flash flow raises exceptions on failure (correct for single device). Wrapping a loop around it propagates the first failure and abandons remaining devices.
+
+**Consequences:** User doesn't know printer state. Some boards have new firmware, some have old. Klipper may fail to start because MCU protocol versions are mismatched between boards. Worst case: user re-runs "Flash All" and re-flashes already-succeeded boards unnecessarily.
+
+**Prevention:**
+1. Batch flash must catch per-device exceptions and CONTINUE to the next device
+2. Accumulate results into a list: `list[tuple[str, FlashResult | Exception]]`
+3. After ALL devices attempted, display a summary table:
+   ```
+   octopus-pro    [OK]   Flashed successfully
+   nitehawk-36    [FAIL] Build timeout after 300s
+   ebb36          [OK]   Flashed successfully
+   ```
+4. Return non-zero exit code if ANY device failed
+5. The `klipper_service_stopped()` context wraps the ENTIRE batch, not individual devices
+
+**Detection:** Ask "what happens if device 2 of 4 fails?" If the answer is "remaining devices are skipped," this pitfall is active.
+
+**Phase:** Batch flash implementation -- design the result accumulation pattern before coding the loop.
+
+---
+
+### PANEL-4: Klipper Stopped During Build Phase Wastes Downtime
+
+**What goes wrong:** The obvious batch flash implementation: stop klipper -> for each device: (menuconfig -> build -> flash) -> restart klipper. But `make` build takes 1-3 minutes per device. With 4 devices, klipper is down for 4-12 minutes unnecessarily, because building firmware does NOT require klipper to be stopped -- only flashing does.
+
+**Why it happens:** The existing single-device flow interleaves build and flash inside the `klipper_service_stopped()` context. This is fine for one device (build takes 2-3 min, flash takes 30s, total downtime 3 min). For batch, it multiplies.
+
+**Consequences:** Klipper is offline for 10-20 minutes. Moonraker shows "disconnected." User's OctoPrint/Fluidd dashboard shows errors. If heaters were active, thermal runaway protection in firmware handles it but Moonraker cannot monitor temperatures.
+
+**Prevention:**
+1. Split batch flash into two phases:
+   - **Build phase (klipper running):** For each device, run menuconfig (if needed) and `make`. Collect firmware binaries.
+   - **Flash phase (klipper stopped):** Stop klipper ONCE, flash all pre-built binaries, restart klipper ONCE.
+2. This reduces downtime from N * (build + flash) to N * flash_only (roughly 30s per device instead of 3 min per device).
+3. The build phase can even abort early -- if any build fails, don't stop klipper at all.
+4. This is an architectural decision that affects the entire batch flash design.
+
+**Detection:** Time the full batch sequence. If klipper is stopped while `make` is running, this pitfall is active.
+
+**Phase:** Batch flash architecture -- this separation must be designed FIRST, before implementation.
+
+---
+
+## Moderate Panel TUI Pitfalls
+
+### PANEL-5: Terminal Width Handling for Panel Layout
+
+**What goes wrong:** Panel with fixed-width borders is designed for 80+ columns. SSH sessions default to 80x24. tmux panes can be 40 columns. If the terminal is narrower than the panel, borders wrap to the next line, completely destroying the layout.
+
+**Prevention:**
+1. Query width with `shutil.get_terminal_size().columns` (stdlib, already used in concept)
+2. Define minimum viable panel width (e.g., 50 chars)
+3. If terminal < minimum, fall back to non-panel output (plain text with colors)
+4. Truncate content text to fit, NEVER truncate border characters
+5. Consider: panels have a fixed max width (e.g., 60 chars) and center within terminal, rather than stretching to fill
+
+**Phase:** Panel rendering foundation.
+
+---
+
+### PANEL-6: Screen Flicker from Full Clear + Redraw
+
+**What goes wrong:** The existing `clear_screen()` in `theme.py` uses `\033[H\033[J` (cursor home + clear to end). Panel TUI clears and redraws on every state change. Over SSH with 50-200ms latency, the user sees: blank screen -> brief pause -> new content. This creates visible flicker.
+
+**Prevention:**
+1. Use cursor home WITHOUT clear: `\033[H` moves cursor to top-left, then overwrite existing content
+2. Pad each line to terminal width to erase previous content without explicit clear
+3. Buffer entire frame as single string, write with one `sys.stdout.write()` + `flush()` call
+4. For progress updates (flash status), use cursor positioning to update only changed lines: `\033[{row};1H`
+5. Reserve full clear for transitions between major screens (menu -> flash -> menu), not for in-screen updates
+
+**Phase:** Panel rendering foundation -- rendering strategy (full-clear vs. overwrite) is an early choice.
+
+---
+
+### PANEL-7: Countdown Timer Keypress Detection
+
+**What goes wrong:** "Flash All in 5...4...3... press any key to cancel" needs non-blocking keypress detection. Python stdlib has no cross-platform solution. `input()` blocks until Enter. The target platform is Raspberry Pi (Linux), but development is on Windows.
+
+**Prevention:**
+1. **Linux (target):** Use `termios` + `select.select([sys.stdin], [], [], 0.1)` to poll for keypress with 100ms intervals. Set terminal to cbreak mode with `tty.setcbreak()`, restore in `finally` block.
+2. **Windows (dev):** Use `msvcrt.kbhit()` + `msvcrt.getch()` for non-blocking keypress.
+3. Abstract behind `wait_with_cancel(seconds: float) -> bool` that returns True if user pressed a key.
+4. **Simpler alternative:** Use "Press Enter to continue or Ctrl+C to cancel" -- avoids all raw terminal complexity. `input()` with `signal.alarm()` (Unix) for timeout. This is less fancy but zero platform issues.
+5. Always restore terminal mode in `finally` block. Raw/cbreak mode left active will break all subsequent `input()` calls.
+
+**Detection:** Test on both Pi (SSH) and Windows. If countdown doesn't respond to keypress on either platform, the abstraction is incomplete.
+
+**Phase:** Batch flash UX. Can start with simple Enter/Ctrl+C approach and upgrade later.
+
+---
+
+### PANEL-8: `make` Output Corrupts Panel Layout
+
+**What goes wrong:** `make` build and `make flash` use inherited stdio (per project conventions -- SP-1, SP-5). Their output scrolls freely. If a panel frame is drawn around the build, make's output (compiler lines, warnings, progress) overwrites panel borders.
+
+**Prevention:**
+1. During build/flash phases that use inherited stdio, SUSPEND panel rendering entirely
+2. Show a simple pre-build message: `"Building firmware for octopus-pro..."`, let make output scroll normally, show post-build status after make exits
+3. Do NOT try to capture make output and render it inside a panel -- this loses real-time progress and adds complexity
+4. For batch flash, between devices, re-render the summary panel showing completed/pending status
+5. Alternative: capture output with `subprocess.PIPE` and display filtered/summarized, but this contradicts the existing inherited-stdio convention and loses real-time feedback
+
+**Phase:** Batch flash UX -- decide early whether build output is captured or inherited. Recommendation: inherit stdio during build, panels only for pre/post status.
+
+---
+
+### PANEL-9: Unicode Box Drawing Width on Edge Cases
+
+**What goes wrong:** Standard box-drawing characters (U+2500 block) are single-width in all standard terminals. But the existing `_supports_unicode()` in `tui.py` only checks `LANG` and `LC_ALL` env vars. Over SSH, the remote Pi may have `LANG=C` or `LANG=en_GB.UTF-8` while the local terminal supports UTF-8. Misdetection causes ASCII fallback when Unicode would work, or Unicode attempt when ASCII is needed.
+
+**Prevention:**
+1. Also check `sys.stdout.encoding` -- if it reports `utf-8`, the Python IO layer will handle encoding regardless of LANG
+2. Check `TERM` variable -- modern terminals with `xterm-256color` or similar almost always support Unicode
+3. Keep ASCII fallback (already exists in `tui.py`) for truly incapable terminals
+4. For panel text content with user-provided strings (device names), stick to ASCII device names in registry to avoid width calculation issues
+
+**Phase:** Panel rendering foundation.
+
+---
+
+### PANEL-10: Raw Terminal Mode Conflicts with `input()`
+
+**What goes wrong:** If terminal is set to raw/cbreak mode for countdown keypress detection (PANEL-7), any `input()` call elsewhere breaks -- no line editing, no echo, no Enter processing. This is especially dangerous if an exception occurs during raw mode and the `finally` block doesn't execute (e.g., SIGKILL).
+
+**Prevention:**
+1. Use context managers for raw mode: `with cbreak_terminal(): ...`
+2. NEVER leave terminal in raw mode across function boundaries
+3. The countdown timer should be a self-contained function that sets and restores terminal mode internally
+4. If using raw mode, install `atexit.register(restore_terminal)` as a safety net
+5. After any subprocess that uses inherited stdio (`make menuconfig`), terminal mode may already be restored -- but verify with explicit restore
+
+**Phase:** Batch flash UX -- only relevant if implementing non-blocking keypress.
+
+---
+
+### PANEL-11: Service Context Manager Nesting with Batch Flash
+
+**What goes wrong:** The existing `klipper_service_stopped()` context manager stops klipper on entry and restarts on exit. If batch flash code accidentally nests this (e.g., calling single-device flash function that has its own `with klipper_service_stopped()`), klipper gets stopped twice (second stop is a no-op) but the inner context restarts klipper mid-batch. Remaining devices flash with klipper running, which corrupts the serial port.
+
+**Why it happens:** The single-device flash function may contain `with klipper_service_stopped()` internally. Calling it in a loop within an outer `klipper_service_stopped()` context creates nesting.
+
+**Prevention:**
+1. Batch flash must NOT call the single-device flash function as-is. Extract the flash-only logic (no service management) into a separate function.
+2. Structure: `_flash_device_only(device)` does the flash without touching klipper. `cmd_flash_single(device)` wraps it with `klipper_service_stopped()`. `cmd_flash_all(devices)` wraps the loop with a SINGLE `klipper_service_stopped()` and calls `_flash_device_only()` per device.
+3. Alternatively, make `klipper_service_stopped()` reentrant -- track "is already stopped" state and skip nested stop/start. But this adds complexity and hidden state.
+
+**Detection:** Read the batch flash code and check whether `klipper_service_stopped()` appears inside a loop that is itself inside `klipper_service_stopped()`. If yes, this pitfall is active.
+
+**Phase:** Batch flash architecture -- must be designed during the initial batch flash function decomposition.
+
+---
+
+## Phase-Specific Warnings (v2.1 Panel TUI + Batch Flash)
+
+| Phase Topic | Likely Pitfall | Mitigation |
+|-------------|---------------|------------|
+| Panel renderer foundation | ANSI width miscalculation (PANEL-1) | Build `strip_ansi`/`display_width` as FIRST utility |
+| Panel renderer foundation | Terminal width (PANEL-5) | Use `shutil.get_terminal_size()` from day one |
+| Panel renderer foundation | Screen flicker (PANEL-6) | Choose cursor-home + overwrite, not full-clear |
+| Panel renderer foundation | Unicode detection (PANEL-9) | Check `sys.stdout.encoding` in addition to LANG |
+| Theme truecolor upgrade | No truecolor support (PANEL-2) | 3-tier fallback: truecolor -> 256 -> 16-color |
+| Batch flash architecture | Partial completion (PANEL-3) | Per-device try/except with result accumulation |
+| Batch flash architecture | Long klipper downtime (PANEL-4) | Build ALL first, then stop klipper, then flash all |
+| Batch flash architecture | Context manager nesting (PANEL-11) | Extract `_flash_device_only()` without service mgmt |
+| Batch flash UX | Countdown keypress (PANEL-7) | Start with Enter/Ctrl+C, upgrade to raw mode later |
+| Batch flash UX | make output vs panels (PANEL-8) | Suspend panels during inherited-stdio phases |
+| Batch flash UX | Raw mode conflicts (PANEL-10) | Context manager for raw mode, atexit safety net |
+
+---
+
 ## Key Takeaway
 
 The single most important design principle for this tool: **the klipper service must always be restarted**. Every code path -- success, failure, exception, signal, timeout, keyboard interrupt -- must ensure klipper is running when the tool exits. This is not just a convenience issue; it is a safety issue. A printer with heated bed and no firmware control is a fire hazard. Design the entire tool around this invariant.
@@ -1356,6 +1582,11 @@ The single most important design principle for this tool: **the klipper service 
 The second most important principle: **verify before you flash**. Check that the device exists, the config matches the target MCU, and no print is running before touching anything. It is always safer to abort and ask the user than to proceed with uncertain state.
 
 **For v2.0 additions:** Preserve existing behavior. The `--device KEY` flag must continue to work exactly as before. TUI enhancements are additive, not replacements. Follow the hub-and-spoke architecture. All new modules must be leaves that only import models.py and errors.py.
+
+**For v2.1 panel TUI + batch flash:** The three architectural decisions that must be made FIRST:
+1. **ANSI width utilities** (PANEL-1) before any panel rendering code
+2. **Build-then-flash separation** (PANEL-4) before batch flash implementation
+3. **Service context decomposition** (PANEL-11) to prevent nested stop/start
 
 ---
 
@@ -1379,7 +1610,15 @@ The second most important principle: **verify before you flash**. Check that the
 - [Python requests retry patterns](https://www.zenrows.com/blog/python-requests-retry)
 - Existing kalico-flash codebase analysis (flash.py, registry.py, discovery.py, service.py, output.py, etc.)
 
+### v2.1 Research (2026-01-29)
+- Existing codebase analysis: `tui.py` (box-drawing menu, `_render_menu`, `_supports_unicode`), `theme.py` (ANSI 16-color, `supports_color`, `clear_screen`), `service.py` (`klipper_service_stopped` context manager), `output.py` (Output protocol, CliOutput)
+- Python `termios`/`tty` module documentation for raw terminal mode
+- Python `shutil.get_terminal_size()` documentation
+- ANSI escape sequence specifications (SGR parameters for 256-color and truecolor)
+- `COLORTERM` environment variable convention for truecolor detection
+- Python `select` module for non-blocking stdin polling on Unix
+
 ---
 
-*Pitfalls research: 2026-01-25 (v1.0), 2026-01-26 (v2.0 additions)*
-*Confidence: HIGH -- based on Klipper ecosystem domain knowledge, Linux device model semantics, Python subprocess API behavior, codebase analysis, and verified web research.*
+*Pitfalls research: 2026-01-25 (v1.0), 2026-01-26 (v2.0 additions), 2026-01-29 (v2.1 panel TUI + batch flash)*
+*Confidence: HIGH -- based on direct codebase analysis, Klipper ecosystem domain knowledge, Python terminal handling semantics.*

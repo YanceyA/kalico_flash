@@ -21,6 +21,252 @@
 
 ---
 
+## v2.1 TUI Panel Redesign Stack
+
+**Added:** 2026-01-29
+**Focus:** Truecolor panels, two-column layouts, batch flash with staggered output
+
+### 1. Truecolor (24-bit RGB) ANSI Escape Codes
+
+**Foreground:**
+```python
+f"\033[38;2;{r};{g};{b}m"   # or \x1b[38;2;R;G;Bm
+```
+
+**Background:**
+```python
+f"\033[48;2;{r};{g};{b}m"
+```
+
+**Reset:** `\033[0m`
+
+**Combined with modifiers:**
+```python
+f"\033[1;38;2;{r};{g};{b}m"   # bold + truecolor foreground
+f"\033[2;38;2;{r};{g};{b}m"   # dim + truecolor foreground
+```
+
+**Approach:** Extend the existing `Theme` dataclass in `theme.py` to use truecolor strings instead of ANSI 16 codes. The `zen_mockup.py` already demonstrates the exact palette and escape format. Migrate those color constants into `theme.py`.
+
+The existing `_enable_windows_vt_mode()` already enables VT processing on Windows, which includes truecolor support (Windows Terminal, VS Code terminal). The existing `NO_COLOR` / `FORCE_COLOR` / TTY detection chain handles fallback.
+
+**Truecolor detection:**
+```python
+def supports_truecolor() -> bool:
+    """Check COLORTERM env var -- de facto standard for truecolor detection."""
+    colorterm = os.environ.get("COLORTERM", "").lower()
+    return colorterm in ("truecolor", "24bit")
+```
+
+If truecolor is not detected, fall back to the existing ANSI 16 palette. This provides a three-tier theme: truecolor > ANSI 16 > no-color.
+
+**Confidence:** HIGH -- standard ANSI/VT100 escape sequences. Windows Terminal, VS Code terminal, iTerm2, kitty, alacritty, and all modern SSH terminal emulators support truecolor. Raspberry Pi over SSH inherits the client terminal's capabilities.
+
+### 2. Rounded Box Drawing with Unicode
+
+**Characters needed:**
+```python
+ROUNDED_BOX = {
+    "tl": "\u256d",  # rounded top-left
+    "tr": "\u256e",  # rounded top-right
+    "bl": "\u2570",  # rounded bottom-left
+    "br": "\u256f",  # rounded bottom-right
+    "h":  "\u2500",  # horizontal line (same as current)
+    "v":  "\u2502",  # vertical line (same as current)
+}
+```
+
+Add as third option alongside existing `UNICODE_BOX` and `ASCII_BOX` in `tui.py`. Use rounded by default when Unicode is supported.
+
+**Additional box-drawing chars for separators (from mockup):**
+```python
+DOTTED_H = "\u2504"  # dotted horizontal line (section dividers)
+```
+
+**Confidence:** HIGH -- standard Unicode box-drawing characters (U+256D-256F), present in virtually all monospace fonts.
+
+### 3. Terminal Width Detection
+
+**Use `shutil.get_terminal_size()` -- not `os.get_terminal_size()`.**
+
+```python
+import shutil
+width, height = shutil.get_terminal_size(fallback=(80, 24))
+```
+
+**Why `shutil` over `os`:**
+- `shutil.get_terminal_size()` accepts a `fallback` parameter
+- `os.get_terminal_size()` raises `OSError` if no terminal (piped output)
+- `shutil` version handles edge cases (non-TTY, redirected) gracefully
+
+**Usage pattern for responsive panels:**
+```python
+def get_panel_width() -> int:
+    term_width = shutil.get_terminal_size((80, 24)).columns
+    return min(term_width - 2, 76)  # cap at 76 to avoid stretched panels
+```
+
+**Confidence:** HIGH -- stdlib since Python 3.3.
+
+### 4. ANSI-Aware String Length (Critical Utility)
+
+**This is the single most important utility for panel rendering.** ANSI escape codes are invisible on screen but count in `len()`. Every padding/alignment calculation must use this instead of `len()`:
+
+```python
+import re
+_ANSI_RE = re.compile(r"\033\[[0-9;]*m")
+
+def visible_len(s: str) -> int:
+    """Length of string as displayed, stripping ANSI escapes."""
+    return len(_ANSI_RE.sub("", s))
+
+def visible_ljust(s: str, width: int) -> str:
+    """Left-justify string to visible width, ANSI-aware."""
+    pad = width - visible_len(s)
+    return s + " " * max(0, pad)
+```
+
+The existing `_render_menu()` in `tui.py` already has a mild version of this problem -- it tracks plain text width separately from styled title text. The truecolor upgrade makes ANSI-aware length critical everywhere.
+
+**Confidence:** HIGH -- `re` is stdlib, pattern is well-established.
+
+### 5. Two-Column Action Layout
+
+**Technique:** Pure string formatting with calculated column widths.
+
+```python
+def render_two_column(
+    left: list[str], right: list[str], col_width: int, inner_width: int
+) -> list[str]:
+    """Render two columns of action items side by side."""
+    lines = []
+    for i in range(max(len(left), len(right))):
+        l = left[i] if i < len(left) else ""
+        r = right[i] if i < len(right) else ""
+        lines.append(f"   {visible_ljust(l, col_width)}   {r}")
+    return lines
+```
+
+Use `visible_ljust()` from section 4 for alignment. The mockup shows this pattern:
+```
+   1 > Refresh Devices          5 > Flash All Registered
+   2 > Add Device               6 > Config
+   3 > Remove Device            7 > Exit
+   4 > Flash Device
+```
+
+Split `inner_width // 2` for each column. Left column items padded with `visible_ljust()`.
+
+**Confidence:** HIGH -- string formatting, no special modules.
+
+### 6. Keypress Detection for Countdown Timer
+
+**Unix (Raspberry Pi -- primary target):**
+```python
+import sys, select, tty, termios
+
+def wait_with_keypress(seconds: float) -> bool:
+    """Wait up to seconds, return True if key pressed."""
+    fd = sys.stdin.fileno()
+    old_settings = termios.tcgetattr(fd)
+    try:
+        tty.setcbreak(fd)  # char-at-a-time, no echo
+        ready, _, _ = select.select([sys.stdin], [], [], seconds)
+        if ready:
+            sys.stdin.read(1)  # consume the keypress
+            return True
+        return False
+    finally:
+        termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+```
+
+**Windows (dev environment):**
+```python
+import msvcrt, time
+
+def wait_with_keypress_win(seconds: float) -> bool:
+    """Wait up to seconds, return True if key pressed."""
+    start = time.monotonic()
+    while time.monotonic() - start < seconds:
+        if msvcrt.kbhit():
+            msvcrt.getch()
+            return True
+        time.sleep(0.1)
+    return False
+```
+
+**Cross-platform wrapper:**
+```python
+def wait_or_keypress(seconds: float) -> bool:
+    if sys.platform == "win32":
+        return wait_with_keypress_win(seconds)
+    else:
+        return wait_with_keypress(seconds)
+```
+
+**Critical:** Always wrap Unix version in try/finally to restore terminal settings. If left in cbreak mode after a crash, the user's shell session breaks.
+
+**Confidence:** HIGH -- `select`, `tty`, `termios` (Unix) and `msvcrt` (Windows) are all stdlib.
+
+### 7. Countdown Timer with In-Place Update
+
+```python
+def countdown_with_interrupt(seconds: int, message: str) -> bool:
+    """Show countdown, return True if interrupted by keypress."""
+    for remaining in range(seconds, 0, -1):
+        sys.stdout.write(f"\r  {message} {remaining}s... (press any key)  ")
+        sys.stdout.flush()
+        if _check_keypress(timeout=1.0):
+            sys.stdout.write("\r" + " " * 60 + "\r")
+            return True
+    sys.stdout.write("\r" + " " * 60 + "\r")
+    return False
+```
+
+Use `\r` (carriage return) for in-place updates. No cursor movement escape codes needed.
+
+### 8. Batch Flash Sequential Output
+
+No threading or async needed. Flash operations are sequential (stop Klipper -> flash device 1 -> flash device 2 -> restart Klipper). Use the existing `service.py` context manager once, then iterate.
+
+```python
+for i, device in enumerate(devices, 1):
+    print(f"  {SUBTLE}{'─' * 50} {LABEL}{i}/{total} {device.name}{RST}")
+    # build, flash, verify -- reuse existing functions
+```
+
+Between-device delay uses the countdown timer from section 7.
+
+**Confidence:** HIGH -- straightforward sequential loop with existing flash infrastructure.
+
+### v2.1 Stdlib Modules Summary
+
+| Module | Purpose | Platform |
+|--------|---------|----------|
+| `shutil` | `get_terminal_size()` | All |
+| `re` | ANSI escape stripping for `visible_len()` | All |
+| `os` | Env vars (`NO_COLOR`, `COLORTERM`, `LANG`) | All |
+| `sys` | Platform detection, stdin/stdout | All |
+| `select` | Non-blocking stdin poll | Unix only |
+| `tty` | Set cbreak mode | Unix only |
+| `termios` | Save/restore terminal settings | Unix only |
+| `msvcrt` | Keypress detection | Windows only |
+| `time` | `monotonic()` for countdown | All |
+
+All Python 3.9+ stdlib. Zero pip dependencies.
+
+### v2.1 Key Implementation Decisions
+
+1. **Extend existing `Theme` dataclass** -- add truecolor fields, keep ANSI 16 as fallback via `supports_truecolor()` check
+2. **Add `visible_len()` utility early** -- every panel rendering function depends on it
+3. **Use `shutil.get_terminal_size()`** -- never `os.get_terminal_size()`
+4. **Platform-switch for keypress** -- `sys.platform == "win32"` gate
+5. **Sequential batch flash** -- no threading, one context manager wrapping all devices
+6. **Rounded box as default** -- falls back to straight Unicode box, then ASCII
+7. **Three-tier theme** -- truecolor > ANSI 16 > no-color
+
+---
+
 ## 1. Moonraker API Integration
 
 ### Module Selection
@@ -780,7 +1026,7 @@ parser.add_argument(
 
 ---
 
-## Anti-Patterns: What NOT to Use for v2.0
+## Anti-Patterns: What NOT to Use
 
 ### External Dependencies (FORBIDDEN)
 
@@ -789,7 +1035,7 @@ parser.add_argument(
 | `requests` | Not stdlib | `urllib.request` |
 | `httpx` | Not stdlib | `urllib.request` |
 | `aiohttp` | Not stdlib, async unnecessary | `urllib.request` (sync) |
-| `rich` | Not stdlib | Plain print + Unicode box chars |
+| `rich` | Not stdlib | Plain print + Unicode box chars + truecolor ANSI |
 | `blessed` | Not stdlib | Plain print + Unicode box chars |
 | `curses` | Windows issues, overkill | print/input |
 | `semver` | Not stdlib | Custom regex parser |
@@ -802,8 +1048,9 @@ parser.add_argument(
 | `asyncio` for HTTP | Complexity for localhost API | Sync `urllib.request` |
 | Threading for polling | Unnecessary complexity | Simple `time.sleep()` loop |
 | `curses.wrapper()` | Windows compatibility issues | print/input with box chars |
-| Raw ANSI escape codes | Terminal compatibility varies | Let terminal handle Unicode |
+| `len()` on ANSI strings | Wrong padding, broken alignment | `visible_len()` with regex strip |
 | Global Moonraker connection | State management issues | Fresh connection per request |
+| Threading for batch flash | Race conditions with service mgmt | Sequential loop, single context manager |
 
 ### Version Comparison Pitfalls
 
@@ -868,9 +1115,15 @@ def is_flashable_device(filename: str) -> bool:
 
 | Component | Confidence | Rationale |
 |-----------|------------|-----------|
+| Truecolor ANSI escapes | HIGH | ECMA-48 standard, validated in zen_mockup.py |
+| Rounded box drawing | HIGH | Standard Unicode block, tested in mockup |
+| Terminal width detection | HIGH | `shutil.get_terminal_size()` stdlib |
+| ANSI-aware string length | HIGH | `re` stdlib, well-established pattern |
+| Two-column layout | HIGH | String formatting, no special modules |
+| Keypress detection | HIGH | `termios`/`tty`/`select` (Unix), `msvcrt` (Windows) stdlib |
+| Countdown timer | HIGH | `time.monotonic()` + `\r` carriage return |
+| Batch flash | HIGH | Sequential loop with existing infrastructure |
 | Moonraker API | HIGH | Verified from official docs at moonraker.readthedocs.io |
-| urllib.request patterns | HIGH | Python stdlib, well-documented |
-| TUI with print/input | HIGH | Proven pattern in existing v1.0 codebase |
 | Version parsing | HIGH | Regex tested against real Klipper version strings |
 | Post-flash verification | HIGH | Uses existing discovery module, proven polling |
 | Installation script | HIGH | Standard Linux shell patterns |
@@ -879,19 +1132,21 @@ def is_flashable_device(filename: str) -> bool:
 
 ## Sources
 
-**Moonraker API:**
-- [Moonraker Printer Administration API](https://moonraker.readthedocs.io/en/latest/external_api/printer/)
-- [Moonraker Introduction](https://github.com/Arksine/moonraker/blob/master/docs/external_api/introduction.md)
-
-**Klipper Status Reference:**
-- [Klipper Status Reference - MCU Object](https://www.klipper3d.org/Status_Reference.html)
+**Truecolor/ANSI:**
+- ECMA-48 standard (ANSI escape code specification)
+- Existing `zen_mockup.py` in `.working/UI-working/` (validates truecolor rendering)
+- Existing `theme.py` (validates VT mode enable on Windows)
 
 **Python stdlib:**
+- [shutil.get_terminal_size](https://docs.python.org/3/library/shutil.html#shutil.get_terminal_size)
+- [termios module](https://docs.python.org/3/library/termios.html)
+- [tty module](https://docs.python.org/3/library/tty.html)
+- [select module](https://docs.python.org/3/library/select.html)
+- [msvcrt module](https://docs.python.org/3/library/msvcrt.html)
 - [urllib.request documentation](https://docs.python.org/3/library/urllib.request.html)
-- [shutil.which documentation](https://docs.python.org/3/library/shutil.html#shutil.which)
-- [socket module documentation](https://docs.python.org/3/library/socket.html)
 
-**Best Practices:**
-- [Python Timeouts Guide - Better Stack](https://betterstack.com/community/guides/scaling-python/python-timeouts/)
-- [Unicode Box Drawing Characters](https://pythonadventures.wordpress.com/2014/03/20/unicode-box-drawing-characters/)
-- [TTY Detection - GeeksforGeeks](https://www.geeksforgeeks.org/python/python-os-isatty-method/)
+**Moonraker API:**
+- [Moonraker Printer Administration API](https://moonraker.readthedocs.io/en/latest/external_api/printer/)
+
+**Unicode:**
+- [Unicode Box Drawing block (U+2500-U+257F)](https://www.unicode.org/charts/PDF/U2500.pdf)
