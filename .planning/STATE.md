@@ -11,18 +11,18 @@ See: .planning/PROJECT.md (updated 2026-01-29)
 
 Milestone: v3.0 TUI Redesign & Flash All
 Phase: 14 of 14 (Flash All)
-Plan: 1/2 complete
-Status: **In progress — 14-01 complete, 14-02 remaining**
-Last activity: 2026-01-29 — Completed 14-01-PLAN.md
+Plan: 2/2 complete
+Status: **Phase complete**
+Last activity: 2026-01-29 — Completed 14-02-PLAN.md
 
-Progress: [█████████░] 90%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 7 (v3.0)
+- Total plans completed: 8 (v3.0)
 - Average duration: ~3 min
-- Total execution time: ~20 min
+- Total execution time: ~21 min
 
 ## Accumulated Decisions
 
@@ -53,9 +53,9 @@ Progress: [█████████░] 90%
 ## Session Continuity
 
 Last session: 2026-01-29
-Stopped at: Completed 14-01-PLAN.md
+Stopped at: Completed 14-02-PLAN.md (Phase 14 complete)
 Resume file: None
-Next step: Execute 14-02-PLAN.md (Flash All CLI wiring and TUI integration)
+Next step: v3.0 milestone complete — all phases shipped
 
 ---
-*Last updated: 2026-01-29 after 14-01 execution*
+*Last updated: 2026-01-29 after 14-02 execution*
