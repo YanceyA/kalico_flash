@@ -17,14 +17,14 @@
 
 ### TUI Layout
 
-- [ ] **TUI-04**: Status panel at top showing last command result
-- [ ] **TUI-05**: Device panel with devices grouped by status (Registered/New/Blocked)
-- [ ] **TUI-06**: Numbered device references (#1, #2, #3) usable across actions
-- [ ] **TUI-07**: Device rows showing name, truncated serial path, version, status icon
-- [ ] **TUI-08**: Host Klipper version displayed in device panel footer
-- [ ] **TUI-09**: Actions panel with two-column layout and bullets
-- [ ] **TUI-10**: Screen refresh after every command completes (return to full menu)
-- [ ] **TUI-11**: Refresh Devices action replaces List Devices
+- [x] **TUI-04**: Status panel at top showing last command result
+- [x] **TUI-05**: Device panel with devices grouped by status (Registered/New/Blocked)
+- [x] **TUI-06**: Numbered device references (#1, #2, #3) usable across actions
+- [x] **TUI-07**: Device rows showing name, truncated serial path, version, status icon
+- [x] **TUI-08**: Host Klipper version displayed in device panel footer
+- [x] **TUI-09**: Actions panel with two-column layout and bullets
+- [x] **TUI-10**: Screen refresh after every command completes (return to full menu)
+- [x] **TUI-11**: Refresh Devices action replaces List Devices
 - [ ] **TUI-12**: Config screen as dedicated cleared screen with own status panel
 - [ ] **TUI-13**: Config screen shows settings with numbered rows and current values
 - [ ] **TUI-14**: Config screen refreshes after each setting change
@@ -79,14 +79,14 @@
 | REND-05 | Phase 11 | Complete |
 | REND-06 | Phase 11 | Complete |
 | REND-07 | Phase 10 | Complete |
-| TUI-04 | Phase 12 | Pending |
-| TUI-05 | Phase 12 | Pending |
-| TUI-06 | Phase 12 | Pending |
-| TUI-07 | Phase 12 | Pending |
-| TUI-08 | Phase 12 | Pending |
-| TUI-09 | Phase 12 | Pending |
-| TUI-10 | Phase 12 | Pending |
-| TUI-11 | Phase 12 | Pending |
+| TUI-04 | Phase 12 | Complete |
+| TUI-05 | Phase 12 | Complete |
+| TUI-06 | Phase 12 | Complete |
+| TUI-07 | Phase 12 | Complete |
+| TUI-08 | Phase 12 | Complete |
+| TUI-09 | Phase 12 | Complete |
+| TUI-10 | Phase 12 | Complete |
+| TUI-11 | Phase 12 | Complete |
 | TUI-12 | Phase 13 | Pending |
 | TUI-13 | Phase 13 | Pending |
 | TUI-14 | Phase 13 | Pending |
@@ -112,4 +112,4 @@
 
 ---
 *Requirements defined: 2026-01-29*
-*Last updated: 2026-01-29 after roadmap creation*
+*Last updated: 2026-01-29 after Phase 12 completion*

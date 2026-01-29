@@ -5,17 +5,17 @@
 See: .planning/PROJECT.md (updated 2026-01-29)
 
 **Core value:** One command to build and flash any registered board — no remembering serial paths, flash commands, or config locations.
-**Current focus:** v3.0 TUI Redesign & Flash All — Phase 12 (TUI Main Screen)
+**Current focus:** v3.0 TUI Redesign & Flash All — Phase 13 (Config Screen & Settings)
 
 ## Current Position
 
 Milestone: v3.0 TUI Redesign & Flash All
-Phase: 12 of 14 (TUI Main Screen)
+Phase: 12 of 14 (TUI Main Screen) — ✓ Complete
 Plan: 2/2 complete
-Status: **Phase 12 complete**
-Last activity: 2026-01-29 — Completed 12-02-PLAN.md (TUI interactive loop)
+Status: **Phase 12 complete, ready to plan Phase 13**
+Last activity: 2026-01-29 — Phase 12 executed and verified (5/5 must-haves)
 
-Progress: [██████████] 100%
+Progress: [██████░░░░] 60%
 
 ## Performance Metrics
 
@@ -48,8 +48,9 @@ Progress: [██████████] 100%
 ## Session Continuity
 
 Last session: 2026-01-29
-Stopped at: Completed 12-02-PLAN.md (Phase 12 complete)
+Stopped at: Phase 12 complete
 Resume file: None
+Next step: Plan Phase 13
 
 ---
-*Last updated: 2026-01-29 after 12-02 execution*
+*Last updated: 2026-01-29 after Phase 12 execution and verification*

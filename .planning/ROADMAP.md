@@ -8,7 +8,7 @@ Redesign the TUI with panel-based layout using truecolor theming, ANSI-aware ren
 
 - [x] **Phase 10: Rendering Foundation** - Truecolor theme upgrade, ANSI string utilities, terminal width detection
 - [x] **Phase 11: Panel Renderer** - Panel module with bordered panels, two-column layout, step dividers
-- [ ] **Phase 12: TUI Main Screen** - Panel-based main screen with status, devices, and actions panels
+- [x] **Phase 12: TUI Main Screen** - Panel-based main screen with status, devices, and actions panels
 - [ ] **Phase 13: Config Screen & Settings** - Dedicated config screen with settings persistence and countdown timer
 - [ ] **Phase 14: Flash All** - Batch flash command with build-then-flash architecture
 
@@ -51,8 +51,8 @@ Plans:
   5. Refresh Devices action replaces List Devices in action menu
 **Plans:** 2 plans
 Plans:
-- [ ] 12-01-PLAN.md — Screen data model, device aggregation, and panel rendering
-- [ ] 12-02-PLAN.md — Wire panel screen into interactive TUI loop with keypress input
+- [x] 12-01-PLAN.md — Screen data model, device aggregation, and panel rendering
+- [x] 12-02-PLAN.md — Wire panel screen into interactive TUI loop with keypress input
 
 ### Phase 13: Config Screen & Settings
 **Goal**: Users can view and change settings through a dedicated config screen, with all settings persisted and a countdown timer for post-command return
@@ -85,6 +85,6 @@ Plans:
 |-------|----------------|--------|-----------|
 | 10. Rendering Foundation | 1/1 | ✓ Complete | 2026-01-29 |
 | 11. Panel Renderer | 1/1 | ✓ Complete | 2026-01-29 |
-| 12. TUI Main Screen | 0/2 | Not started | - |
+| 12. TUI Main Screen | 2/2 | ✓ Complete | 2026-01-29 |
 | 13. Config Screen & Settings | 0/TBD | Not started | - |
 | 14. Flash All | 0/TBD | Not started | - |
