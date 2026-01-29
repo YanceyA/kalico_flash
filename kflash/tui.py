@@ -407,7 +407,7 @@ def run_menu(registry, out) -> int:
 
             elif key == "c":
                 print(key)
-                _settings_menu(registry, out)
+                _config_screen(registry, out)
                 status_message = "Returned from settings"
                 status_level = "info"
 
@@ -435,106 +435,85 @@ def run_menu(registry, out) -> int:
 # Settings submenu (unchanged)
 # ---------------------------------------------------------------------------
 
-SETTINGS_OPTIONS: list[tuple[str, str]] = [
-    ("1", "Change Klipper directory"),
-    ("2", "Change Katapult directory"),
-    ("3", "View current settings"),
-    ("4", "Toggle flash fallback (Katapult -> make flash)"),
-    ("0", "Back to main menu"),
-]
+def _config_screen(registry, out) -> None:
+    """Config screen with panel-based settings display and inline editing.
 
+    Renders a status panel with instructions and a settings panel with 6
+    numbered rows. Single keypress selects a setting to edit. Toggle settings
+    flip immediately; numeric and path settings prompt for typed input.
+    """
+    from .screen import render_config_screen, SETTINGS
+    from .models import GlobalConfig
+    import dataclasses
 
-def _settings_menu(registry, out) -> None:
-    """Settings submenu for path configuration."""
-    box = _get_box_chars()
-    settings_text = _render_menu(SETTINGS_OPTIONS, box)
+    theme = get_theme()
 
     while True:
+        data = registry.load()
+        gc = data.global_config
+
         clear_screen()
         print()
-        print(settings_text)
+        print(render_config_screen(gc))
         print()
+        print(
+            f"  {theme.prompt}Setting # (or Esc/B to return):{theme.reset} ",
+            end="",
+            flush=True,
+        )
 
-        choice = _get_menu_choice(["0", "1", "2", "3", "4"], out)
-
-        if choice is None or choice == "0":
+        try:
+            key = _getch()
+        except (EOFError, OSError):
             return
 
-        if choice == "1":
-            _update_path(registry, out, "klipper_dir", "Klipper source directory")
-        elif choice == "2":
-            _update_path(registry, out, "katapult_dir", "Katapult source directory")
-        elif choice == "3":
-            _view_settings(registry, out)
-        elif choice == "4":
-            _toggle_flash_fallback(registry, out)
+        # Ctrl+C
+        if key == "\x03":
+            return
 
+        # Escape or B to return
+        if key == "\x1b" or key == "b":
+            return
 
-def _update_path(registry, out, field: str, label: str) -> None:
-    """Prompt for a new path value and persist it to the registry."""
-    data = registry.load()
-    gc = data.global_config
-    if gc is None:
-        out.warn("No global config exists. Run Add Device first.")
-        return
+        # Check for valid setting number
+        if key in ("1", "2", "3", "4", "5", "6"):
+            idx = int(key) - 1
+            setting = SETTINGS[idx]
+            field_key = setting["key"]
+            current = getattr(gc, field_key)
 
-    current = getattr(gc, field)
-    new_path = out.prompt(label, default=current)
+            if setting["type"] == "toggle":
+                # Flip immediately
+                new_gc = dataclasses.replace(gc, **{field_key: not current})
+                registry.save_global(new_gc)
 
-    if new_path == current:
-        out.info("Settings", "No change.")
-        return
+            elif setting["type"] == "numeric":
+                print(key)
+                try:
+                    raw = input(f"  {setting['label']} [{current}]: ").strip()
+                except (EOFError, KeyboardInterrupt):
+                    continue
+                if not raw:
+                    continue
+                try:
+                    val = float(raw)
+                    if val < 0:
+                        continue
+                except ValueError:
+                    continue
+                new_gc = dataclasses.replace(gc, **{field_key: val})
+                registry.save_global(new_gc)
 
-    from .models import GlobalConfig
-
-    kwargs = {
-        "klipper_dir": gc.klipper_dir,
-        "katapult_dir": gc.katapult_dir,
-        "default_flash_method": gc.default_flash_method,
-        "allow_flash_fallback": gc.allow_flash_fallback,
-    }
-    kwargs[field] = new_path
-    registry.save_global(GlobalConfig(**kwargs))
-    out.success(f"{label} updated to: {new_path}")
-
-
-def _view_settings(registry, out) -> None:
-    """Display current global configuration values."""
-    data = registry.load()
-    gc = data.global_config
-    if gc is not None:
-        out.info("Settings", f"Klipper directory:      {gc.klipper_dir}")
-        out.info("Settings", f"Katapult directory:     {gc.katapult_dir}")
-        out.info(
-            "Settings", f"Preferred flash method (global): {gc.default_flash_method}"
-        )
-        fallback_state = "enabled" if gc.allow_flash_fallback else "disabled"
-        out.info("Settings", f"Flash fallback:         {fallback_state}")
-    else:
-        out.info("Settings", "No global configuration set. Run Add Device first.")
-
-
-def _toggle_flash_fallback(registry, out) -> None:
-    """Toggle global flash fallback behavior."""
-    data = registry.load()
-    gc = data.global_config
-    if gc is None:
-        out.warn("No global config exists. Run Add Device first.")
-        return
-
-    from .models import GlobalConfig
-
-    new_value = not gc.allow_flash_fallback
-    registry.save_global(
-        GlobalConfig(
-            klipper_dir=gc.klipper_dir,
-            katapult_dir=gc.katapult_dir,
-            default_flash_method=gc.default_flash_method,
-            allow_flash_fallback=new_value,
-        )
-    )
-    state = "enabled" if new_value else "disabled"
-    out.success(f"Flash fallback {state}")
+            elif setting["type"] == "path":
+                print(key)
+                try:
+                    raw = input(f"  {setting['label']} [{current}]: ").strip()
+                except (EOFError, KeyboardInterrupt):
+                    continue
+                if not raw:
+                    continue
+                new_gc = dataclasses.replace(gc, **{field_key: raw})
+                registry.save_global(new_gc)
 
 
 # ---------------------------------------------------------------------------

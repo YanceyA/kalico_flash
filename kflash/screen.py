@@ -13,8 +13,23 @@ from dataclasses import dataclass, field
 from typing import Optional
 
 from .ansi import display_width
+from .models import GlobalConfig
 from .panels import center_panel, render_panel, render_two_column
 from .theme import get_theme
+
+
+# ---------------------------------------------------------------------------
+# Config screen settings definition
+# ---------------------------------------------------------------------------
+
+SETTINGS: list[dict[str, str]] = [
+    {"key": "skip_menuconfig", "label": "Skip menuconfig", "type": "toggle"},
+    {"key": "stagger_delay", "label": "Stagger delay (seconds)", "type": "numeric"},
+    {"key": "return_delay", "label": "Return delay (seconds)", "type": "numeric"},
+    {"key": "klipper_dir", "label": "Klipper directory", "type": "path"},
+    {"key": "katapult_dir", "label": "Katapult directory", "type": "path"},
+    {"key": "config_cache_dir", "label": "Config cache directory", "type": "path"},
+]
 
 
 # ---------------------------------------------------------------------------
@@ -339,5 +354,49 @@ def render_main_screen(state: ScreenState) -> str:
         render_actions_panel(),
     ]
 
+    centered = [center_panel(p) for p in panels]
+    return "\n\n".join(centered)
+
+
+# ---------------------------------------------------------------------------
+# Config screen rendering
+# ---------------------------------------------------------------------------
+
+def render_config_screen(gc: GlobalConfig) -> str:
+    """Render the config screen with status and settings panels.
+
+    Args:
+        gc: Current global configuration.
+
+    Returns:
+        Multi-line string ready for print().
+    """
+    theme = get_theme()
+
+    # Status panel
+    status_content = [
+        f"{theme.text}Press setting number to edit, Esc to return{theme.reset}"
+    ]
+    status = render_panel("status", status_content)
+
+    # Settings panel
+    settings_lines: list[str] = []
+    for i, setting in enumerate(SETTINGS, 1):
+        value = getattr(gc, setting["key"])
+        if setting["type"] == "toggle":
+            display = "ON" if value else "OFF"
+        elif setting["type"] == "numeric":
+            display = f"{value}s"
+        else:
+            display = str(value)
+        settings_lines.append(
+            f"{theme.label}{i}.{theme.reset} "
+            f"{theme.text}{setting['label']}:{theme.reset} "
+            f"{theme.value}{display}{theme.reset}"
+        )
+
+    settings = render_panel("settings", settings_lines)
+
+    panels = [status, settings]
     centered = [center_panel(p) for p in panels]
     return "\n\n".join(centered)
