@@ -63,7 +63,10 @@ Plans:
   2. User can toggle skip-menuconfig, set stagger delay, and set return delay; screen refreshes after each change
   3. All settings persist in registry JSON global section and survive tool restart
   4. After any command completes, a configurable countdown displays before returning to menu; any keypress skips the countdown immediately
-**Plans**: TBD
+**Plans:** 2 plans
+Plans:
+- [ ] 13-01-PLAN.md — GlobalConfig extension, config screen rendering and interaction
+- [ ] 13-02-PLAN.md — Countdown timer with keypress cancel, wired into action dispatch
 
 ### Phase 14: Flash All
 **Goal**: Users can flash all registered devices in one command with minimal Klipper downtime
@@ -86,5 +89,5 @@ Plans:
 | 10. Rendering Foundation | 1/1 | ✓ Complete | 2026-01-29 |
 | 11. Panel Renderer | 1/1 | ✓ Complete | 2026-01-29 |
 | 12. TUI Main Screen | 2/2 | ✓ Complete | 2026-01-29 |
-| 13. Config Screen & Settings | 0/TBD | Not started | - |
+| 13. Config Screen & Settings | 0/2 | Not started | - |
 | 14. Flash All | 0/TBD | Not started | - |
