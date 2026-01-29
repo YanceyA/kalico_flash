@@ -14,7 +14,7 @@ from typing import Optional
 
 from .ansi import display_width
 from .models import GlobalConfig
-from .panels import center_panel, render_panel, render_two_column
+from .panels import render_panel, render_two_column
 from .theme import get_theme
 
 
@@ -354,8 +354,7 @@ def render_main_screen(state: ScreenState) -> str:
         render_actions_panel(),
     ]
 
-    centered = [center_panel(p) for p in panels]
-    return "\n\n".join(centered)
+    return "\n\n".join(panels)
 
 
 # ---------------------------------------------------------------------------
@@ -398,5 +397,4 @@ def render_config_screen(gc: GlobalConfig) -> str:
     settings = render_panel("settings", settings_lines)
 
     panels = [status, settings]
-    centered = [center_panel(p) for p in panels]
-    return "\n\n".join(centered)
+    return "\n\n".join(panels)
