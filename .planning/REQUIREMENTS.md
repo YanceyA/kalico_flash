@@ -25,9 +25,9 @@
 - [x] **TUI-09**: Actions panel with two-column layout and bullets
 - [x] **TUI-10**: Screen refresh after every command completes (return to full menu)
 - [x] **TUI-11**: Refresh Devices action replaces List Devices
-- [ ] **TUI-12**: Config screen as dedicated cleared screen with own status panel
-- [ ] **TUI-13**: Config screen shows settings with numbered rows and current values
-- [ ] **TUI-14**: Config screen refreshes after each setting change
+- [x] **TUI-12**: Config screen as dedicated cleared screen with own status panel
+- [x] **TUI-13**: Config screen shows settings with numbered rows and current values
+- [x] **TUI-14**: Config screen refreshes after each setting change
 
 ### Flash All
 
@@ -43,11 +43,11 @@
 
 ### Config & Settings
 
-- [ ] **CONF-01**: Skip menuconfig setting (default false) — auto-skip if valid cached config
-- [ ] **CONF-02**: Stagger delay setting for Flash All (default 1s)
-- [ ] **CONF-03**: Return delay setting — countdown before returning to menu (default 5s)
-- [ ] **CONF-04**: Countdown with keypress cancel — any key skips timer, returns immediately
-- [ ] **CONF-05**: Settings persisted in registry JSON (global section)
+- [x] **CONF-01**: Skip menuconfig setting (default false) — auto-skip if valid cached config
+- [x] **CONF-02**: Stagger delay setting for Flash All (default 1s)
+- [x] **CONF-03**: Return delay setting — countdown before returning to menu (default 5s)
+- [x] **CONF-04**: Countdown with keypress cancel — any key skips timer, returns immediately
+- [x] **CONF-05**: Settings persisted in registry JSON (global section)
 
 ## Future Requirements
 

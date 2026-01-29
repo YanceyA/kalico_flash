@@ -9,7 +9,7 @@ Redesign the TUI with panel-based layout using truecolor theming, ANSI-aware ren
 - [x] **Phase 10: Rendering Foundation** - Truecolor theme upgrade, ANSI string utilities, terminal width detection
 - [x] **Phase 11: Panel Renderer** - Panel module with bordered panels, two-column layout, step dividers
 - [x] **Phase 12: TUI Main Screen** - Panel-based main screen with status, devices, and actions panels
-- [ ] **Phase 13: Config Screen & Settings** - Dedicated config screen with settings persistence and countdown timer
+- [x] **Phase 13: Config Screen & Settings** - Dedicated config screen with settings persistence and countdown timer
 - [ ] **Phase 14: Flash All** - Batch flash command with build-then-flash architecture
 
 ## Phase Details
@@ -65,8 +65,8 @@ Plans:
   4. After any command completes, a configurable countdown displays before returning to menu; any keypress skips the countdown immediately
 **Plans:** 2 plans
 Plans:
-- [ ] 13-01-PLAN.md — GlobalConfig extension, config screen rendering and interaction
-- [ ] 13-02-PLAN.md — Countdown timer with keypress cancel, wired into action dispatch
+- [x] 13-01-PLAN.md — GlobalConfig extension, config screen rendering and interaction
+- [x] 13-02-PLAN.md — Countdown timer with keypress cancel, wired into action dispatch
 
 ### Phase 14: Flash All
 **Goal**: Users can flash all registered devices in one command with minimal Klipper downtime
@@ -89,5 +89,5 @@ Plans:
 | 10. Rendering Foundation | 1/1 | ✓ Complete | 2026-01-29 |
 | 11. Panel Renderer | 1/1 | ✓ Complete | 2026-01-29 |
 | 12. TUI Main Screen | 2/2 | ✓ Complete | 2026-01-29 |
-| 13. Config Screen & Settings | 0/2 | Not started | - |
+| 13. Config Screen & Settings | 2/2 | ✓ Complete | 2026-01-29 |
 | 14. Flash All | 0/TBD | Not started | - |
