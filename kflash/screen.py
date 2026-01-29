@@ -87,11 +87,10 @@ def truncate_serial(path: str, max_width: int = 40) -> str:
     """
     if len(path) <= max_width:
         return path
-    # Reserve 3 chars for "..."
-    available = max_width - 3
+    available = max_width - 1  # 1 char for ellipsis
     left = available // 2
     right = available - left
-    return path[:left] + "..." + path[-right:]
+    return path[:left] + "\u2026" + path[-right:]
 
 
 # ---------------------------------------------------------------------------
@@ -240,10 +239,12 @@ def render_device_row(row: DeviceRow) -> str:
     parts = [icon]
     if num:
         parts.append(f" {theme.label}{num}{theme.reset}")
-    parts.append(f"  {theme.text}{row.name}{theme.reset}")
+    display_name = truncate_serial(row.name) if row.group == "new" else row.name
+    parts.append(f"  {theme.text}{display_name}{theme.reset}")
     if row.mcu:
         parts.append(f" {theme.subtle}({row.mcu}){theme.reset}")
-    parts.append(f"  {theme.subtle}{serial}{theme.reset}")
+    if serial != row.name:
+        parts.append(f"  {theme.subtle}{serial}{theme.reset}")
     if ver:
         parts.append(f"  {theme.value}{ver}{theme.reset}")
 
