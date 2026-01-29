@@ -34,6 +34,10 @@ class Registry:
             katapult_dir=global_raw.get("katapult_dir", "~/katapult"),
             default_flash_method=global_raw.get("default_flash_method", "katapult"),
             allow_flash_fallback=global_raw.get("allow_flash_fallback", True),
+            skip_menuconfig=global_raw.get("skip_menuconfig", False),
+            stagger_delay=global_raw.get("stagger_delay", 2.0),
+            return_delay=global_raw.get("return_delay", 5.0),
+            config_cache_dir=global_raw.get("config_cache_dir", "~/.config/kalico-flash/configs"),
         )
         devices: dict[str, DeviceEntry] = {}
         for key, data in raw.get("devices", {}).items():
@@ -75,6 +79,10 @@ class Registry:
                 "katapult_dir": registry.global_config.katapult_dir,
                 "default_flash_method": registry.global_config.default_flash_method,
                 "allow_flash_fallback": registry.global_config.allow_flash_fallback,
+                "skip_menuconfig": registry.global_config.skip_menuconfig,
+                "stagger_delay": registry.global_config.stagger_delay,
+                "return_delay": registry.global_config.return_delay,
+                "config_cache_dir": registry.global_config.config_cache_dir,
             },
             "devices": {},
             "blocked_devices": [],

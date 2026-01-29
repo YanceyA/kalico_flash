@@ -14,6 +14,10 @@ class GlobalConfig:
     katapult_dir: str = "~/katapult"
     default_flash_method: str = "katapult"
     allow_flash_fallback: bool = True
+    skip_menuconfig: bool = False
+    stagger_delay: float = 2.0
+    return_delay: float = 5.0
+    config_cache_dir: str = "~/.config/kalico-flash/configs"
 
 
 @dataclass
