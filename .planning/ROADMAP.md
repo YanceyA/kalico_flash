@@ -78,7 +78,10 @@ Plans:
   3. All devices must have cached configs before batch starts; flash proceeds with configurable stagger delay between devices
   4. If one device fails, remaining devices still flash; a summary table shows device name, status, and version after batch completes
   5. Each device is verified post-flash (reappears as Klipper serial device)
-**Plans**: TBD
+**Plans:** 2 plans
+Plans:
+- [ ] 14-01-PLAN.md — Core orchestration: BatchDeviceResult, quiet builds, cmd_flash_all()
+- [ ] 14-02-PLAN.md — Wire Flash All into TUI dispatch
 
 ## Progress
 
@@ -90,4 +93,4 @@ Plans:
 | 11. Panel Renderer | 1/1 | ✓ Complete | 2026-01-29 |
 | 12. TUI Main Screen | 2/2 | ✓ Complete | 2026-01-29 |
 | 13. Config Screen & Settings | 2/2 | ✓ Complete | 2026-01-29 |
-| 14. Flash All | 0/TBD | Not started | - |
+| 14. Flash All | 0/2 | Not started | - |
