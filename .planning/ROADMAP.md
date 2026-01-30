@@ -7,7 +7,7 @@
 - ✅ **v2.1 TUI Color Theme** - Phases 8-9 (shipped 2026-01-29)
 - ✅ **v3.0 TUI Redesign & Flash All** - Phases 10-14 (shipped 2026-01-30)
 - ✅ **v3.1 Config Validation** - Phase 15 (shipped 2026-01-30)
-- 🚧 **v3.2 Action Dividers** - Phases 16-17 (in progress)
+- ✅ **v3.2 Action Dividers** - Phases 16-17 (shipped 2026-01-31)
 
 ## Phases
 
@@ -158,7 +158,7 @@ Plans:
 
 </details>
 
-### 🚧 v3.2 Action Dividers (In Progress)
+### ✅ v3.2 Action Dividers (Shipped 2026-01-31)
 
 **Milestone Goal:** Add lightweight step dividers to all action workflows for visual separation between steps
 
@@ -192,8 +192,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 17-01-PLAN.md — Add step dividers to cmd_flash, cmd_add_device, cmd_remove_device
-- [ ] 17-02-PLAN.md — Add step and device dividers to cmd_flash_all
+- [x] 17-01: Add step dividers to cmd_flash, cmd_add_device, cmd_remove_device
+- [x] 17-02: Add step and device dividers to cmd_flash_all
 
 ## Progress
 
@@ -218,4 +218,4 @@ Phases execute in numeric order: 16 → 17
 | 14. Flash All | v3.0 | 1/1 | Complete | 2026-01-30 |
 | 15. Config Validation | v3.1 | 1/1 | Complete | 2026-01-30 |
 | 16. Divider Implementation | v3.2 | 1/1 | Complete | 2026-01-30 |
-| 17. Workflow Integration | v3.2 | 0/TBD | Not started | - |
+| 17. Workflow Integration | v3.2 | 2/2 | Complete | 2026-01-31 |

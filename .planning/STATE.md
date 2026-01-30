@@ -5,15 +5,15 @@
 See: .planning/PROJECT.md (updated 2026-01-30)
 
 **Core value:** One command to build and flash any registered board — no remembering serial paths, flash commands, or config locations.
-**Current focus:** Phase 17 - Workflow Integration
+**Current focus:** Milestone v3.2 complete — ready for audit
 
 ## Current Position
 
 Milestone: v3.2 Action Dividers
 Phase: 17 of 17 (Workflow Integration)
 Plan: 2 of 2 in current phase
-Status: Phase complete
-Last activity: 2026-01-31 — Completed 17-02-PLAN.md
+Status: Milestone complete — ready for audit
+Last activity: 2026-01-31 — Phase 17 verified, milestone v3.2 complete
 
 Progress: [██████████████████] 100% (37/37 estimated plans complete across all phases)
 
@@ -58,6 +58,7 @@ Recent decisions affecting v3.2:
 | v2.1 | TUI Color Theme | 8-9 | 2026-01-29 |
 | v3.0 | TUI Redesign & Flash All | 10-14 | 2026-01-30 |
 | v3.1 | Config Validation | 15 | 2026-01-30 |
+| v3.2 | Action Dividers | 16-17 | 2026-01-31 |
 
 ## Quick Tasks Completed
 
@@ -76,7 +77,7 @@ Recent decisions affecting v3.2:
 Last session: 2026-01-31
 Stopped at: Completed 17-02-PLAN.md (Phase 17 complete)
 Resume file: None
-Next step: All phases complete
+Next step: /gsd:audit-milestone
 
 ---
 *Last updated: 2026-01-31 after 17-02 execution*
