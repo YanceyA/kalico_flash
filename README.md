@@ -250,6 +250,15 @@ When you run `kflash`, the tool executes four phases:
 
 1. **Discovery** - Scans `/dev/serial/by-id/` for USB serial devices, matches against registered device patterns
 2. **Config** - Loads cached menuconfig settings, optionally launches menuconfig for review, validates MCU type
+
+   **Config loading behavior:**
+
+   | Scenario | What happens |
+   |----------|-------------|
+   | Device has cached config | Loads saved settings into menuconfig |
+   | Device has no cached config | Clears any stale `.config` so menuconfig starts fresh |
+   | Device removed, config kept | Re-adding loads the kept cached config |
+   | Device removed, config deleted | Re-adding starts menuconfig fresh |
 3. **Build** - Runs `make clean` + `make -j$(nproc)` with timeout protection
 4. **Flash** - Stops Klipper service, flashes via the preferred method, optionally falls back to `make flash`, verifies device reappears, restarts Klipper
 
