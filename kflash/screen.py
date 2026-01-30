@@ -24,8 +24,8 @@ from .theme import get_theme
 
 SETTINGS: list[dict[str, str]] = [
     {"key": "skip_menuconfig", "label": "Skip menuconfig", "type": "toggle"},
-    {"key": "stagger_delay", "label": "Stagger delay (seconds)", "type": "numeric"},
-    {"key": "return_delay", "label": "Return delay (seconds)", "type": "numeric"},
+    {"key": "stagger_delay", "label": "Flash stagger delay (seconds)", "type": "numeric", "min": 0, "max": 30},
+    {"key": "return_delay", "label": "Menu return delay (seconds)", "type": "numeric", "min": 0, "max": 60},
     {"key": "klipper_dir", "label": "Klipper directory", "type": "path"},
     {"key": "katapult_dir", "label": "Katapult directory", "type": "path"},
     {"key": "config_cache_dir", "label": "Config cache directory", "type": "path"},
@@ -129,7 +129,7 @@ def build_device_list(
     """
     import fnmatch
 
-    from .discovery import is_supported_device, match_devices
+    from .discovery import is_supported_device, match_devices, extract_mcu_from_serial
 
     if mcu_versions is None:
         mcu_versions = {}
@@ -216,13 +216,14 @@ def build_device_list(
                 group="blocked",
             ))
         else:
-            # Try to guess MCU from serial name for version lookup
-            new_version = mcu_versions.get("main") if mcu_versions else None
+            # Try to look up version by extracting MCU type from serial name
+            guessed_mcu = extract_mcu_from_serial(device.filename)
+            new_version = _lookup_version(guessed_mcu) if guessed_mcu else None
             new_devices.append(DeviceRow(
                 number=0,
                 key=device.filename,
                 name=device.filename,
-                mcu="unknown",
+                mcu=guessed_mcu or "unknown",
                 serial_path=device.filename,
                 version=new_version,
                 connected=True,

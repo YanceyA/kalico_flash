@@ -633,32 +633,46 @@ def _config_screen(registry, out) -> None:
                 registry.save_global(new_gc)
 
             elif setting["type"] == "numeric":
+                from .validation import validate_numeric_setting
+
                 print(key)
-                try:
-                    raw = input(f"  {setting['label']} [{current}]: ").strip()
-                except (EOFError, KeyboardInterrupt):
-                    continue
-                if not raw:
-                    continue
-                try:
-                    val = float(raw)
-                    if val < 0:
-                        continue
-                except ValueError:
-                    continue
-                new_gc = dataclasses.replace(gc, **{field_key: val})
-                registry.save_global(new_gc)
+                while True:
+                    try:
+                        raw = input(f"  {setting['label']} [{current}]: ").strip()
+                    except (EOFError, KeyboardInterrupt):
+                        raw = ""
+                        break
+                    if not raw:
+                        break
+                    ok, val, err = validate_numeric_setting(raw, setting["min"], setting["max"])
+                    if ok:
+                        new_gc = dataclasses.replace(gc, **{field_key: val})
+                        registry.save_global(new_gc)
+                        break
+                    else:
+                        print(f"  {theme.error}{err}{theme.reset}")
+                continue
 
             elif setting["type"] == "path":
+                from .validation import validate_path_setting
+
                 print(key)
-                try:
-                    raw = input(f"  {setting['label']} [{current}]: ").strip()
-                except (EOFError, KeyboardInterrupt):
-                    continue
-                if not raw:
-                    continue
-                new_gc = dataclasses.replace(gc, **{field_key: raw})
-                registry.save_global(new_gc)
+                while True:
+                    try:
+                        raw = input(f"  {setting['label']} [{current}]: ").strip()
+                    except (EOFError, KeyboardInterrupt):
+                        raw = ""
+                        break
+                    if not raw:
+                        break
+                    ok, err = validate_path_setting(raw, field_key)
+                    if ok:
+                        new_gc = dataclasses.replace(gc, **{field_key: raw})
+                        registry.save_global(new_gc)
+                        break
+                    else:
+                        print(f"  {theme.error}{err}{theme.reset}")
+                continue
 
 
 # ---------------------------------------------------------------------------
