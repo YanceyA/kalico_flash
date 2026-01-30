@@ -1074,6 +1074,28 @@ def cmd_flash_all(registry, out) -> int:
         out.error("No flashable devices registered. Use --add-device to register boards.")
         return 1
 
+    # Filter blocked devices
+    blocked_list = _build_blocked_list(data)
+    blocked_devices: list[tuple] = []
+    unblocked_devices: list = []
+    for entry in flashable_devices:
+        reason = _blocked_reason_for_entry(entry, blocked_list)
+        if reason:
+            blocked_devices.append((entry, reason))
+        else:
+            unblocked_devices.append(entry)
+
+    if blocked_devices:
+        for entry, reason in blocked_devices:
+            out.warn(f"Skipping {entry.name} ({entry.key}): {reason}")
+
+    if not unblocked_devices:
+        out.error("All flashable devices are blocked. Nothing to flash.")
+        return 1
+
+    flashable_devices = unblocked_devices
+
+    # Check cached configs exist
     missing_configs: list[str] = []
     for entry in flashable_devices:
         config_mgr = ConfigManager(entry.key, klipper_dir)
@@ -1087,7 +1109,38 @@ def cmd_flash_all(registry, out) -> int:
         out.error("Run 'kflash -d <device>' for each to configure before using Flash All.")
         return 1
 
-    out.phase("Flash All", f"{len(flashable_devices)} device(s) with cached configs")
+    # Validate MCU match for each cached config
+    from .errors import ConfigError
+    mcu_mismatches: list[tuple[str, str, str]] = []
+    for entry in flashable_devices:
+        config_mgr = ConfigManager(entry.key, klipper_dir)
+        try:
+            config_mgr.load_cached_config()
+            is_match, actual_mcu = config_mgr.validate_mcu(entry.mcu)
+            if not is_match:
+                mcu_mismatches.append((entry.key, entry.mcu, actual_mcu or "unknown"))
+        except ConfigError:
+            mcu_mismatches.append((entry.key, entry.mcu, "corrupt/unreadable"))
+
+    if mcu_mismatches:
+        out.error("MCU type mismatch in cached configs:")
+        for key, expected, actual in mcu_mismatches:
+            out.error(f"  - {key}: expected {expected}, config has {actual}")
+        out.error("Run 'kflash -d <device>' for each mismatched device to reconfigure.")
+        return 1
+
+    # Display config ages and warn on stale configs
+    stale_warned = False
+    for entry in flashable_devices:
+        config_mgr = ConfigManager(entry.key, klipper_dir)
+        age_display = config_mgr.get_cache_age_display()
+        age_str = age_display or "unknown"
+        out.info("", f"  {entry.name} ({entry.key}): config cached {age_str}")
+        if age_display and "recommend review" in age_display:
+            out.warn(f"  {entry.key} config is very old — consider running 'kflash -d {entry.key}' to review")
+            stale_warned = True
+
+    out.phase("Flash All", f"{len(flashable_devices)} device(s) validated")
 
     # === Stage 2: Version check ===
     host_version = get_host_klipper_version(klipper_dir)
