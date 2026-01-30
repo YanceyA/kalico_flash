@@ -22,7 +22,7 @@ from .theme import get_theme
 # Config screen settings definition
 # ---------------------------------------------------------------------------
 
-SETTINGS: list[dict[str, str]] = [
+SETTINGS: list[dict] = [
     {"key": "skip_menuconfig", "label": "Skip menuconfig", "type": "toggle"},
     {"key": "stagger_delay", "label": "Flash stagger delay (seconds)", "type": "numeric", "min": 0, "max": 30},
     {"key": "return_delay", "label": "Menu return delay (seconds)", "type": "numeric", "min": 0, "max": 60},
