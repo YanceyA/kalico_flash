@@ -350,12 +350,77 @@ def _action_flash_device(registry, out, device_key: str) -> tuple[str, str]:
         return (f"Flash: {exc}", "error")
 
 
-def _action_add_device(registry, out) -> tuple[str, str]:
-    """Launch the add-device wizard. Returns (message, level)."""
+def _prompt_new_device_number(device_map: dict, out):
+    """Prompt for a device number, filtered to only new (unregistered) devices.
+
+    Returns (key, DeviceRow) or (None, None) if cancelled or no new devices.
+    """
+    # Filter to new devices only
+    new_map = {num: row for num, row in device_map.items() if row.group == "new"}
+
+    if not new_map:
+        out.warn("No new devices to add.")
+        return (None, None)
+
+    # Auto-select if only one new device
+    if len(new_map) == 1:
+        num, row = next(iter(new_map.items()))
+        return (row.key, row)
+
+    for attempt in range(3):
+        try:
+            num_str = input("  Device #: ").strip()
+        except (EOFError, KeyboardInterrupt):
+            return (None, None)
+
+        if not num_str or num_str.lower() in ("q", "0"):
+            return (None, None)
+
+        try:
+            num = int(num_str)
+        except ValueError:
+            remaining = 2 - attempt
+            if remaining > 0:
+                out.warn(f"Invalid number '{num_str}'. {remaining} attempts remaining.")
+            continue
+
+        if num in new_map:
+            return (new_map[num].key, new_map[num])
+
+        remaining = 2 - attempt
+        if remaining > 0:
+            out.warn(f"No new device #{num}. {remaining} attempts remaining.")
+
+    return (None, None)
+
+
+def _action_add_device(registry, out, device_row=None) -> tuple[str, str]:
+    """Launch the add-device wizard. Returns (message, level).
+
+    Args:
+        registry: Registry instance.
+        out: Output interface.
+        device_row: Optional DeviceRow from TUI prompt. When provided,
+            finds the matching DiscoveredDevice and passes it to
+            cmd_add_device to skip discovery output.
+    """
     from .flash import cmd_add_device
 
     try:
-        result = cmd_add_device(registry, out)
+        if device_row is not None:
+            # Find matching DiscoveredDevice by scanning USB
+            from .discovery import scan_serial_devices
+            usb_devices = scan_serial_devices()
+            matched_device = None
+            for dev in usb_devices:
+                if dev.path == device_row.serial_path:
+                    matched_device = dev
+                    break
+            if matched_device is None:
+                return ("Add device: device no longer connected", "error")
+            result = cmd_add_device(registry, out, selected_device=matched_device)
+        else:
+            result = cmd_add_device(registry, out)
         if result == 0:
             return ("Device added successfully", "success")
         else:
@@ -451,8 +516,15 @@ def run_menu(registry, out) -> int:
 
             elif key == "a":
                 print(key)
-                status_message, status_level = _action_add_device(registry, out)
-                _countdown_return(registry.load().global_config.return_delay)
+                device_key, device_row = _prompt_new_device_number(device_map, out)
+                if device_row:
+                    status_message, status_level = _action_add_device(
+                        registry, out, device_row
+                    )
+                    _countdown_return(registry.load().global_config.return_delay)
+                else:
+                    status_message = "Add: no device selected"
+                    status_level = "warning"
 
             elif key == "r":
                 print(key)
