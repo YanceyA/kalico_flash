@@ -1136,7 +1136,7 @@ def cmd_flash_all(registry, out) -> int:
         age_display = config_mgr.get_cache_age_display()
         age_str = age_display or "unknown"
         out.info("", f"  {entry.name} ({entry.key}): config cached {age_str}")
-        if age_display and "recommend review" in age_display:
+        if age_display and "Recommend Review" in age_display:
             out.warn(f"  {entry.key} config is very old — consider running 'kflash -d {entry.key}' to review")
             stale_warned = True
 

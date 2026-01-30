@@ -211,7 +211,7 @@ class ConfigManager:
     def get_cache_age_display(self) -> Optional[str]:
         """Get human-readable age of cached config.
 
-        Returns e.g. "2 hours ago", "3 days ago", "14 days ago (recommend review)".
+        Returns e.g. "2 hours ago", "3 days ago", "14 days ago (Recommend Review)".
         Returns None if no cached config exists.
         """
         mtime = self.get_cache_mtime()
@@ -233,6 +233,6 @@ class ConfigManager:
         else:
             label = f"{days} days ago" if days > 1 else "1 day ago"
             if days >= 90:
-                label += " (recommend review)"
+                label += " (Recommend Review)"
 
         return label
