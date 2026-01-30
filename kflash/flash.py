@@ -1366,10 +1366,11 @@ def cmd_remove_device(registry, device_key: str, out) -> int:
         out.info("Registry", "Removal cancelled")
         return 0
 
-    out.step_divider()
-
     registry.remove(device_key)
     out.success(f"Removed '{device_key}'")
+
+    out.step_divider()
+
     _remove_cached_config(device_key, out, prompt=True)
 
     return 0

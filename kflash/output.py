@@ -103,11 +103,13 @@ class CliOutput:
     def step_divider(self) -> None:
         """Print an unlabeled step divider line."""
         from .panels import render_action_divider
+        print()
         print(render_action_divider())
 
     def device_divider(self, index: int, total: int, name: str) -> None:
         """Print a labeled device divider for batch operations."""
         from .panels import render_device_divider
+        print()
         print(render_device_divider(index, total, name))
 
 
