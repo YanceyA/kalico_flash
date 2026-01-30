@@ -189,10 +189,11 @@ Plans:
   4. Flash All shows labeled device dividers between each device in build and flash phases
   5. Flash All shows step dividers between major stages (preflight, build, flash, summary)
   6. Dividers appear only between sections, never during countdown timers or inside errors
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 17-01: TBD
+- [ ] 17-01-PLAN.md — Add step dividers to cmd_flash, cmd_add_device, cmd_remove_device
+- [ ] 17-02-PLAN.md — Add step and device dividers to cmd_flash_all
 
 ## Progress
 
