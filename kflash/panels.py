@@ -202,6 +202,25 @@ def render_step_divider(label: str, total_width: int = 60) -> str:
     )
 
 
+def render_action_divider(label: str = "") -> str:
+    """Render a divider line to separate action output from menu.
+
+    Args:
+        label: Optional text to center in the divider. If provided, uses
+               render_step_divider. If empty, produces a simple dashed line.
+
+    Returns:
+        Single formatted line.
+    """
+    if label:
+        return render_step_divider(label)
+
+    theme = get_theme()
+    dash = "\u2504"  # ┄
+    width = 60
+    return f"{theme.subtle}{dash * width}{theme.reset}"
+
+
 # ---------------------------------------------------------------------------
 # Panel centering
 # ---------------------------------------------------------------------------

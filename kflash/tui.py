@@ -468,6 +468,7 @@ def run_menu(registry, out) -> int:
         return 0
 
     from .screen import render_main_screen
+    from .panels import render_action_divider
 
     theme = get_theme()
     status_message = "Welcome to kalico-flash. Select an action below."
@@ -504,11 +505,14 @@ def run_menu(registry, out) -> int:
 
             elif key == "f":
                 print(key)
+                print()
+                print(render_action_divider())
                 device_key = _prompt_device_number(device_map, out)
                 if device_key:
                     status_message, status_level = _action_flash_device(
                         registry, out, device_key
                     )
+                    print()
                     _countdown_return(registry.load().global_config.return_delay)
                 else:
                     status_message = "Flash: no device selected"
@@ -516,11 +520,14 @@ def run_menu(registry, out) -> int:
 
             elif key == "a":
                 print(key)
+                print()
+                print(render_action_divider())
                 device_key, device_row = _prompt_new_device_number(device_map, out)
                 if device_row:
                     status_message, status_level = _action_add_device(
                         registry, out, device_row
                     )
+                    print()
                     _countdown_return(registry.load().global_config.return_delay)
                 else:
                     status_message = "Add: no device selected"
@@ -528,11 +535,14 @@ def run_menu(registry, out) -> int:
 
             elif key == "r":
                 print(key)
+                print()
+                print(render_action_divider())
                 device_key = _prompt_device_number(device_map, out)
                 if device_key:
                     status_message, status_level = _action_remove_device(
                         registry, out, device_key
                     )
+                    print()
                     _countdown_return(registry.load().global_config.return_delay)
                 else:
                     status_message = "Remove: no device selected"
@@ -540,17 +550,23 @@ def run_menu(registry, out) -> int:
 
             elif key == "d":
                 print(key)
+                print()
+                print(render_action_divider())
                 status_message = "Devices refreshed"
                 status_level = "info"
 
             elif key == "c":
                 print(key)
+                print()
+                print(render_action_divider())
                 _config_screen(registry, out)
                 status_message = "Returned from settings"
                 status_level = "info"
 
             elif key == "b":
                 print(key)
+                print()
+                print(render_action_divider())
                 from .flash import cmd_flash_all
                 result = cmd_flash_all(registry, out)
                 if result == 0:
@@ -559,6 +575,7 @@ def run_menu(registry, out) -> int:
                 else:
                     status_message = "Flash All: completed with errors"
                     status_level = "error"
+                print()
                 _countdown_return(registry.load().global_config.return_delay)
 
             else:
