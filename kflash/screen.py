@@ -179,8 +179,7 @@ def build_device_list(
             nl = name.lower()
             if mcu_lower in nl or nl in mcu_lower:
                 return ver
-        # Fall back to "main" for primary MCU
-        return mcu_versions.get("main")
+        return None
 
     for entry in registry_data.devices.values():
         matches = entry_matches.get(entry.key, [])

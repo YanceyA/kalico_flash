@@ -91,7 +91,15 @@ def get_mcu_versions() -> Optional[dict[str, str]]:
                 else:
                     # Strip "mcu " prefix (4 characters)
                     name = mcu_name[4:]
-                versions[name] = mcu_data["mcu_version"]
+                version = mcu_data["mcu_version"]
+                versions[name] = version
+
+                # Also key by chip type (e.g., "stm32h723xx") for
+                # substring matching against device mcu_type fields
+                mcu_constants = mcu_data.get("mcu_constants", {})
+                chip_type = mcu_constants.get("MCU")
+                if chip_type and chip_type not in versions:
+                    versions[chip_type] = version
 
         return versions if versions else None
 
@@ -196,7 +204,7 @@ def get_mcu_version_for_device(mcu_type: str) -> Optional[str]:
     Matching logic (in order):
     1. Exact match on MCU name (e.g., device mcu "nhk" matches Moonraker "nhk")
     2. If device mcu contains the Moonraker mcu name or vice versa
-    3. Fall back to "main" for primary MCU if no match found
+    Returns None if no match found (no fallback to "main").
 
     Args:
         mcu_type: Device MCU type string (e.g., "stm32h723", "rp2040", "nhk")
@@ -220,10 +228,6 @@ def get_mcu_version_for_device(mcu_type: str) -> Optional[str]:
         name_lower = mcu_name.lower()
         if mcu_lower in name_lower or name_lower in mcu_lower:
             return version
-
-    # 3. Fall back to "main" for primary MCU
-    if "main" in mcu_versions:
-        return mcu_versions["main"]
 
     return None
 
