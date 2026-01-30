@@ -45,13 +45,14 @@ Last activity: 2026-01-30 — Milestone v3.2 started
 | 005 | Add-device prompt like remove/flash | 2026-01-30 | e6d4550 | [005-add-device-prompt-like-remove](./quick/005-add-device-prompt-like-remove/) |
 | 006 | Fix MCU version query per-device | 2026-01-30 | 8797650 | [006-fix-mcu-version-query-poll-actual-firmware](./quick/006-fix-mcu-version-query-poll-actual-firmware/) |
 | 007 | Action dividers visual separation | 2026-01-30 | 768e4f0 | [007-action-dividers-visual-separation](./quick/007-action-dividers-visual-separation/) |
+| 008 | Fresh menuconfig for new devices | 2026-01-30 | 4b6a50f | [008-fresh-menuconfig-new-devices](./quick/008-fresh-menuconfig-new-devices/) |
 
 ## Session Continuity
 
 Last session: 2026-01-30
-Stopped at: Completed quick task 007 (action dividers)
+Stopped at: Completed quick task 008 (fresh menuconfig)
 Resume file: None
-Next step: Complete requirements and roadmap for v3.2
+Next step: Continue with v3.2 planning or additional quick tasks
 
 ---
-*Last updated: 2026-01-30 after quick task 007*
+*Last updated: 2026-01-30 after quick task 008*
