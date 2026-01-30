@@ -1208,6 +1208,8 @@ def cmd_flash_all(registry, out) -> int:
 
     try:
         for i, (entry, result) in enumerate(zip(flash_list, results)):
+            if i > 0:
+                out.device_divider(i + 1, total, entry.name)
             print(f"  Building {i + 1}/{total}: {entry.name}...")
             config_mgr = ConfigManager(entry.key, klipper_dir)
             config_mgr.load_cached_config()
@@ -1260,6 +1262,7 @@ def cmd_flash_all(registry, out) -> int:
 
             for entry, result in built_results:
                 if flash_idx > 0:
+                    out.device_divider(flash_idx + 1, flash_total, entry.name)
                     time.sleep(global_config.stagger_delay)
                 flash_idx += 1
 
