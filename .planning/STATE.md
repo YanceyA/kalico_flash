@@ -44,13 +44,14 @@ Last activity: 2026-01-30 — Milestone v3.2 started
 | 004 | Truncate USB ID and fix duplicate display | 2026-01-29 | 9564904 | [004-truncate-usb-id-fix-duplicate](./quick/004-truncate-usb-id-fix-duplicate/) |
 | 005 | Add-device prompt like remove/flash | 2026-01-30 | e6d4550 | [005-add-device-prompt-like-remove](./quick/005-add-device-prompt-like-remove/) |
 | 006 | Fix MCU version query per-device | 2026-01-30 | 8797650 | [006-fix-mcu-version-query-poll-actual-firmware](./quick/006-fix-mcu-version-query-poll-actual-firmware/) |
+| 007 | Action dividers visual separation | 2026-01-30 | 768e4f0 | [007-action-dividers-visual-separation](./quick/007-action-dividers-visual-separation/) |
 
 ## Session Continuity
 
 Last session: 2026-01-30
-Stopped at: Defining requirements for v3.2
+Stopped at: Completed quick task 007 (action dividers)
 Resume file: None
-Next step: Complete requirements and roadmap
+Next step: Complete requirements and roadmap for v3.2
 
 ---
-*Last updated: 2026-01-30 after v3.2 milestone start*
+*Last updated: 2026-01-30 after quick task 007*
