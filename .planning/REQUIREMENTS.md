@@ -58,28 +58,28 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| OUT-01 | TBD | Pending |
-| OUT-02 | TBD | Pending |
-| OUT-03 | TBD | Pending |
-| OUT-04 | TBD | Pending |
-| OUT-05 | TBD | Pending |
-| OUT-06 | TBD | Pending |
-| FLASH-01 | TBD | Pending |
-| FLASH-02 | TBD | Pending |
-| ADD-01 | TBD | Pending |
-| ADD-02 | TBD | Pending |
-| REM-01 | TBD | Pending |
-| BATCH-01 | TBD | Pending |
-| BATCH-02 | TBD | Pending |
-| BATCH-03 | TBD | Pending |
-| TERM-01 | TBD | Pending |
-| TERM-02 | TBD | Pending |
+| OUT-01 | Phase 16 | Pending |
+| OUT-02 | Phase 16 | Pending |
+| OUT-03 | Phase 16 | Pending |
+| OUT-04 | Phase 16 | Pending |
+| OUT-05 | Phase 16 | Pending |
+| OUT-06 | Phase 16 | Pending |
+| TERM-01 | Phase 16 | Pending |
+| TERM-02 | Phase 16 | Pending |
+| FLASH-01 | Phase 17 | Pending |
+| FLASH-02 | Phase 17 | Pending |
+| ADD-01 | Phase 17 | Pending |
+| ADD-02 | Phase 17 | Pending |
+| REM-01 | Phase 17 | Pending |
+| BATCH-01 | Phase 17 | Pending |
+| BATCH-02 | Phase 17 | Pending |
+| BATCH-03 | Phase 17 | Pending |
 
 **Coverage:**
 - v3.2 requirements: 16 total
-- Mapped to phases: 0
-- Unmapped: 16 ⚠️
+- Mapped to phases: 16
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-01-30*
-*Last updated: 2026-01-30 after initial definition*
+*Last updated: 2026-01-30 after roadmap creation*
