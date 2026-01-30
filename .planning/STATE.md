@@ -10,17 +10,17 @@ See: .planning/PROJECT.md (updated 2026-01-30)
 ## Current Position
 
 Milestone: v3.1 Config Validation
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-01-30 — Milestone v3.1 started
+Phase: 15 of 15 (Config Validation)
+Plan: 1 of 1 in phase — COMPLETE
+Status: Phase complete
+Last activity: 2026-01-30 — Completed 15-01-PLAN.md
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 8 (v3.0)
+- Total plans completed: 9 (v3.0: 8, v3.1: 1)
 - Average duration: ~3 min
-- Total execution time: ~21 min
+- Total execution time: ~24 min
 
 ## Accumulated Decisions
 
@@ -39,6 +39,7 @@ Last activity: 2026-01-30 — Milestone v3.1 started
 | 13-02 | Countdown only after flash/add/remove actions | Only destructive/lengthy actions need output review time |
 | 14-01 | Continue-on-failure for build and flash | One device error must never block remaining devices |
 | 14-01 | Firmware copied to temp dir per device | Avoids path collision when building sequentially |
+| 15-01 | Late import of validators inside branches | Consistent with existing lazy-import pattern in tui.py |
 
 ## Shipped Milestones
 
@@ -61,9 +62,9 @@ Last activity: 2026-01-30 — Milestone v3.1 started
 ## Session Continuity
 
 Last session: 2026-01-30
-Stopped at: Milestone v3.1 initialization
+Stopped at: Completed 15-01-PLAN.md
 Resume file: None
-Next step: Define requirements → create roadmap
+Next step: v3.1 complete — ship or add more phases
 
 ---
-*Last updated: 2026-01-30 after v3.1 milestone start*
+*Last updated: 2026-01-30 after 15-01 execution*
