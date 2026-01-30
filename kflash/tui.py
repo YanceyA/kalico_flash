@@ -608,17 +608,14 @@ def _config_screen(registry, out) -> None:
     from .panels import render_action_divider
 
     theme = get_theme()
-    first_config_render = True
 
     while True:
         data = registry.load()
         gc = data.global_config
 
         clear_screen()
-        if not first_config_render:
-            print()
-            print(render_action_divider())
-        first_config_render = False
+        print()
+        print(render_action_divider())
         print()
         print(render_config_screen(gc))
         print()
