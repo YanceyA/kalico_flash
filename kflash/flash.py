@@ -1695,6 +1695,8 @@ def cmd_add_device(registry, out, selected_device=None) -> int:
         _remove_cached_config(existing.key, out, prompt=True)
         registry_data = registry.load()
 
+    out.step_divider()
+
     # Step 3: Global config (first run only)
     if not registry_data.devices:
         out.info("Setup", "First device registration - configuring global paths...")
@@ -1709,6 +1711,8 @@ def cmd_add_device(registry, out, selected_device=None) -> int:
             )
         )
         out.success("Global configuration saved")
+
+    out.step_divider()
 
     # Step 4: Device key
     device_key = None
@@ -1733,10 +1737,14 @@ def cmd_add_device(registry, out, selected_device=None) -> int:
         out.error("Too many invalid inputs.")
         return 1
 
+    out.step_divider()
+
     # Step 5: Display name
     display_name = out.prompt("Display name (e.g., 'Octopus Pro v1.1')")
     if not display_name:
         display_name = device_key  # Fallback to key if empty
+
+    out.step_divider()
 
     # Step 6: MCU auto-detection
     detected_mcu = extract_mcu_from_serial(selected.filename)
@@ -1784,6 +1792,8 @@ def cmd_add_device(registry, out, selected_device=None) -> int:
             )
             return 1
 
+    out.step_divider()
+
     # Step 8: Flash method
     flash_method = None
     default_method = "katapult"
@@ -1817,11 +1827,15 @@ def cmd_add_device(registry, out, selected_device=None) -> int:
         out.error("Too many invalid inputs.")
         return 1
 
+    out.step_divider()
+
     # Step 9: Ask if device is flashable
     exclude_from_flash = out.confirm(
         "Exclude this device from flashing?", default=False
     )
     is_flashable = not exclude_from_flash
+
+    out.step_divider()
 
     # Step 10: Create and save
     entry = DeviceEntry(
