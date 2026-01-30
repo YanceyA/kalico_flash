@@ -1,5 +1,86 @@
 # Project Milestones: kalico-flash
 
+## v3.1 Config Validation (Shipped: 2026-01-30)
+
+**Delivered:** Input validation for all TUI settings — path existence/content checks and numeric bounds with reject-and-reprompt behavior.
+
+**Phases completed:** 15 (1 plan total)
+
+**Key accomplishments:**
+
+- Pure validator functions for path existence and file content checks (validation.py)
+- Numeric range enforcement for stagger_delay (0-30s) and return_delay (0-60s)
+- Reject-and-reprompt loops wired into TUI settings edit flow
+- Tilde expansion before validation, original user input preserved for storage
+
+**Stats:**
+
+- 3 source files (1 created, 2 modified)
+- 5,600 lines of Python (total project)
+- 1 phase, 1 plan
+- Same day (2026-01-30)
+
+**Git range:** `feat(15-01)` → `docs(v3.1)`
+
+**What's next:** TBD
+
+---
+
+## v3.0 TUI Redesign & Flash All (Shipped: 2026-01-30)
+
+**Delivered:** Complete TUI redesign with truecolor panels, numbered device references, config screen with settings persistence, and Flash All with batch processing.
+
+**Phases completed:** 10-14 (8 plans total)
+
+**Key accomplishments:**
+
+- Truecolor RGB palette with 3-tier fallback (truecolor → ANSI 256 → ANSI 16)
+- ANSI-aware string utilities and panel renderer with rounded borders
+- Panel-based main screen with status, devices, and actions sections
+- Config screen with flat numbered settings and type-dispatched editing
+- Countdown timer with keypress cancel for post-action review
+- Flash All with build-then-flash architecture and continue-on-failure
+- Post-flash verification per device in batch mode
+
+**Stats:**
+
+- 13 Python modules
+- 5,500+ lines of Python
+- 5 phases, 8 plans
+- 2 days (2026-01-29 → 2026-01-30)
+
+**Git range:** `feat(10-01)` → `docs(14)`
+
+**What's next:** Config validation for settings
+
+---
+
+## v2.1 TUI Color Theme (Shipped: 2026-01-29)
+
+**Delivered:** Semantic color theming with terminal capability detection and cached singleton pattern.
+
+**Phases completed:** 8-9 (3 plans total)
+
+**Key accomplishments:**
+
+- Theme module with semantic style dataclass
+- Terminal capability detection (TTY, NO_COLOR, FORCE_COLOR)
+- Windows VT mode support via ctypes
+- Colored output messages, device markers, bold prompts, and error headers
+
+**Stats:**
+
+- 13 Python modules (1 new: theme.py)
+- 3,200+ lines of Python
+- 2 phases, 3 plans
+- 1 day (2026-01-29)
+
+**Git range:** `feat(08-01)` → `docs(09)`
+
+**What's next:** TUI redesign
+
+---
+
 ## v2.0 Public Release (Shipped: 2026-01-27)
 
 **Delivered:** Production-ready CLI with interactive menu, print safety checks, version detection, post-flash verification, and comprehensive documentation for public release.

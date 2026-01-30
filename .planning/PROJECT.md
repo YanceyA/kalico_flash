@@ -8,25 +8,27 @@ A Python CLI tool that automates Klipper/Kalico firmware building and flashing f
 
 One command to build and flash any registered board — no remembering serial paths, flash commands, or config locations.
 
-## Current Milestone: v3.1 Config Validation
+## Current Milestone: v3.2 Action Dividers
 
-**Goal:** Add sanity checking and validation to settings — path existence/content checks and numeric bounds
+**Goal:** Add lightweight step dividers to all action workflows for visual separation between steps
 **Started:** 2026-01-30
 
 **Target features:**
-- Path validation: expand, check existence, verify expected content (Makefile in klipper_dir, scripts/flashtool.py in katapult_dir)
-- Reject invalid paths with clear error message, re-prompt for new value
-- Numeric bounds: min/max for stagger_delay and return_delay, reject absurd values
-- Reject invalid numeric input with error message, re-prompt
+- Light dashed `┄` dividers between steps in flash, add-device, remove-device workflows
+- Labeled `─── 1/N DeviceName ───` dividers between devices in flash-all
+- Divider color matches panel border (muted teal #64A0B4)
+- Output protocol extended with divider methods
+- Non-intrusive, consistent with existing Minimalist Zen aesthetic
 
 See: `.planning/ROADMAP.md` for phase breakdown
 See: `.planning/REQUIREMENTS.md` for full requirements list
 
-## Previous State (v2.1 shipped)
+## Previous State (v3.1 shipped)
 
-**Shipped:** 2026-01-29
-**Modules:** 12 Python modules + theme.py
-**Status:** Color theme complete
+**Shipped:** 2026-01-30
+**Modules:** 13 Python modules + validation.py
+**LOC:** 5,600 lines of Python
+**Status:** Config validation complete — all settings validated at edit time
 
 **CLI commands:**
 - `kflash` — Interactive TUI menu with Add/List/Flash/Remove/Settings
@@ -91,9 +93,13 @@ See: `.planning/REQUIREMENTS.md` for full requirements list
 - ✓ Continue-on-failure batch flash — v3.0
 - ✓ Post-flash verification per device — v3.0
 
-### Active (v3.1 Config Validation)
+### Validated (v3.1 Config Validation)
 
-(See `.planning/REQUIREMENTS.md` for full requirements)
+- ✓ Path validation for klipper_dir, katapult_dir, config_cache_dir — v3.1
+- ✓ Content checks (Makefile, scripts/flashtool.py) — v3.1
+- ✓ Numeric bounds for stagger_delay (0-30s) and return_delay (0-60s) — v3.1
+- ✓ Reject-and-reprompt for all invalid input — v3.1
+- ✓ Tilde expansion before validation — v3.1
 
 ### Future Candidates
 
@@ -169,9 +175,9 @@ python3 ~/katapult/scripts/flashtool.py -f ~/klipper/out/klipper.bin -d /dev/ser
 | 30s verification timeout | RP2040 boards need more time to re-enumerate | ✓ Good |
 | Truecolor with ANSI 16 fallback | Modern terminals support RGB; Pi SSH terminals vary | ✓ Good |
 | Flash All: stop once, flash all, restart | Faster than per-device stop/restart cycle | ✓ Good |
-| Reject-and-reprompt for invalid paths | User gets immediate feedback, not runtime errors later | — Pending |
-| Content checks on paths (Makefile, flashtool.py) | Confirms right directory, not just any directory | — Pending |
+| Reject-and-reprompt for invalid paths | User gets immediate feedback, not runtime errors later | ✓ Good |
+| Content checks on paths (Makefile, flashtool.py) | Confirms right directory, not just any directory | ✓ Good |
 | Stdlib only for TUI redesign | No Rich/Textual — pure ANSI codes, maintain constraint | ✓ Good |
 
 ---
-*Last updated: 2026-01-30 after v3.1 milestone initialization*
+*Last updated: 2026-01-30 after v3.2 milestone initialization*

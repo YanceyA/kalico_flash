@@ -5,15 +5,15 @@
 See: .planning/PROJECT.md (updated 2026-01-30)
 
 **Core value:** One command to build and flash any registered board — no remembering serial paths, flash commands, or config locations.
-**Current focus:** v3.1 Config Validation — Phase 15 (Config Validation)
+**Current focus:** v3.2 Action Dividers
 
 ## Current Position
 
-Milestone: v3.1 Config Validation
-Phase: 15 of 15 (Config Validation)
-Plan: 1 of 1 in phase — COMPLETE
-Status: Phase complete
-Last activity: 2026-01-30 — Completed 15-01-PLAN.md
+Milestone: v3.2 Action Dividers
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-01-30 — Milestone v3.2 started
 
 ## Performance Metrics
 
@@ -24,22 +24,7 @@ Last activity: 2026-01-30 — Completed 15-01-PLAN.md
 
 ## Accumulated Decisions
 
-| Phase | Decision | Rationale |
-|-------|----------|-----------|
-| — | Truecolor RGB with ANSI 16 fallback | Modern palette from mockups, graceful degradation |
-| — | Flash All: stop klipper once | Faster than per-device restart cycle |
-| — | Stdlib only maintained | Pure ANSI codes, no Rich/Textual dependency |
-| 10-01 | Legacy color constants removed (kept _BOLD, _DIM, RESET) | All colors derived from PALETTE via rgb_to_ansi |
-| 11-01 | Inner width auto-expands for header | Ensures header text always fits within borders |
-| 11-01 | Left column gets extra item when odd | Standard UX convention for balanced columns |
-| 12-02 | Auto-select single device for F/R actions | Reduces friction when only one device exists |
-| 12-02 | Ctrl+C detected as \x03 in raw mode | tty.setraw doesn't translate signals |
-| 13-01 | dataclasses.replace() for GlobalConfig updates | Preserves all fields automatically, no risk of missing new fields |
-| 13-01 | Flat numbered settings with type dispatch | Context specifies no grouping; type determines edit behavior |
-| 13-02 | Countdown only after flash/add/remove actions | Only destructive/lengthy actions need output review time |
-| 14-01 | Continue-on-failure for build and flash | One device error must never block remaining devices |
-| 14-01 | Firmware copied to temp dir per device | Avoids path collision when building sequentially |
-| 15-01 | Late import of validators inside branches | Consistent with existing lazy-import pattern in tui.py |
+(Full log in PROJECT.md Key Decisions table)
 
 ## Shipped Milestones
 
@@ -49,6 +34,7 @@ Last activity: 2026-01-30 — Completed 15-01-PLAN.md
 | v2.0 | Public Release | 4-7 | 2026-01-27 |
 | v2.1 | TUI Color Theme | 8-9 | 2026-01-29 |
 | v3.0 | TUI Redesign & Flash All | 10-14 | 2026-01-30 |
+| v3.1 | Config Validation | 15 | 2026-01-30 |
 
 ## Quick Tasks Completed
 
@@ -62,9 +48,9 @@ Last activity: 2026-01-30 — Completed 15-01-PLAN.md
 ## Session Continuity
 
 Last session: 2026-01-30
-Stopped at: Completed 15-01-PLAN.md
+Stopped at: Defining requirements for v3.2
 Resume file: None
-Next step: v3.1 complete — ship or add more phases
+Next step: Complete requirements and roadmap
 
 ---
-*Last updated: 2026-01-30 after 15-01 execution*
+*Last updated: 2026-01-30 after v3.2 milestone start*
