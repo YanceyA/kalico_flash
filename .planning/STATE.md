@@ -69,6 +69,7 @@ Recent decisions affecting v3.2:
 | 006 | Fix MCU version query per-device | 2026-01-30 | 8797650 | [006-fix-mcu-version-query-poll-actual-firmware](./quick/006-fix-mcu-version-query-poll-actual-firmware/) |
 | 007 | Action dividers visual separation | 2026-01-30 | 768e4f0 | [007-action-dividers-visual-separation](./quick/007-action-dividers-visual-separation/) |
 | 008 | Fresh menuconfig for new devices | 2026-01-30 | 4b6a50f | [008-fresh-menuconfig-new-devices](./quick/008-fresh-menuconfig-new-devices/) |
+| 009 | Flash-all config validation guard | 2026-01-31 | 60aa5f8 | [009-flash-all-config-validation-guard](./quick/009-flash-all-config-validation-guard/) |
 
 ## Session Continuity
 
