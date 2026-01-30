@@ -9,7 +9,7 @@ even when content contains color escape sequences.
 
 from __future__ import annotations
 
-from kflash.ansi import display_width, get_terminal_width, pad_to_width, strip_ansi
+from kflash.ansi import display_width, get_terminal_width, pad_to_width, strip_ansi, supports_unicode
 from kflash.theme import get_theme
 
 # ---------------------------------------------------------------------------
@@ -173,18 +173,20 @@ def render_two_column(items: list[tuple[str, str]], gap: int = 4) -> list[str]:
 # Step divider
 # ---------------------------------------------------------------------------
 
-def render_step_divider(label: str, total_width: int = 60) -> str:
+def render_step_divider(label: str, total_width: int | None = None) -> str:
     """Render a partial-width dashed line with centered label.
 
     Args:
         label: Text to center in the divider.
-        total_width: Total character width of the divider.
+        total_width: Total character width (auto-detected if None).
 
     Returns:
         Single formatted line.
     """
     theme = get_theme()
-    dash = "\u2504"  # ┄
+    if total_width is None:
+        total_width = get_terminal_width()
+    dash = "\u2504" if supports_unicode() else "-"  # ┄ or -
 
     label_text = f" {label} "
     label_width = len(label_text)
@@ -196,9 +198,9 @@ def render_step_divider(label: str, total_width: int = 60) -> str:
     right_dashes = dash * (total_width - label_width - side)
 
     return (
-        f"{theme.subtle}{left_dashes}{theme.reset}"
+        f"{theme.border}{left_dashes}{theme.reset}"
         f"{theme.dim}{label_text}{theme.reset}"
-        f"{theme.subtle}{right_dashes}{theme.reset}"
+        f"{theme.border}{right_dashes}{theme.reset}"
     )
 
 
@@ -216,9 +218,40 @@ def render_action_divider(label: str = "") -> str:
         return render_step_divider(label)
 
     theme = get_theme()
-    dash = "\u2504"  # ┄
-    width = 60
-    return f"{theme.subtle}{dash * width}{theme.reset}"
+    dash = "\u2504" if supports_unicode() else "-"  # ┄ or -
+    width = get_terminal_width()
+    return f"{theme.border}{dash * width}{theme.reset}"
+
+
+def render_device_divider(index: int, total: int, name: str, total_width: int | None = None) -> str:
+    """Render a labeled device divider: --- 1/3 DeviceName ---
+
+    Args:
+        index: 1-based device index.
+        total: Total number of devices.
+        name: Device display name.
+        total_width: Override width (auto-detected if None).
+
+    Returns:
+        Single formatted line.
+    """
+    theme = get_theme()
+    if total_width is None:
+        total_width = get_terminal_width()
+    dash = "\u2500" if supports_unicode() else "-"  # ─ or -
+    label = f" {index}/{total} {name} "
+    label_width = len(label)
+    side_left = (total_width - label_width) // 2
+    if side_left < 0:
+        side_left = 0
+    side_right = total_width - label_width - side_left
+    if side_right < 0:
+        side_right = 0
+    return (
+        f"{theme.border}{dash * side_left}{theme.reset}"
+        f"{theme.border}{label}{theme.reset}"
+        f"{theme.border}{dash * side_right}{theme.reset}"
+    )
 
 
 # ---------------------------------------------------------------------------

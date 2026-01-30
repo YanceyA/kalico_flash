@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import re
 import shutil
+import sys
 import unicodedata
 
 _ANSI_RE = re.compile(r"\033\[[0-9;]*[A-Za-z]")
@@ -50,3 +51,9 @@ def get_terminal_width(default: int = 80, minimum: int = 40) -> int:
     """
     cols = shutil.get_terminal_size((default, 24)).columns
     return max(cols, minimum)
+
+
+def supports_unicode() -> bool:
+    """Check if stdout encoding supports Unicode box-drawing characters."""
+    encoding = getattr(sys.stdout, 'encoding', '') or ''
+    return 'utf' in encoding.lower()
