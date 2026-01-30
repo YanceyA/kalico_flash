@@ -6,6 +6,7 @@ import os
 import re
 import shutil
 import tempfile
+import time
 from pathlib import Path
 from typing import Optional
 
@@ -206,3 +207,32 @@ class ConfigManager:
         if not self.cache_path.exists():
             return None
         return self.cache_path.stat().st_mtime
+
+    def get_cache_age_display(self) -> Optional[str]:
+        """Get human-readable age of cached config.
+
+        Returns e.g. "2 hours ago", "3 days ago", "14 days ago (recommend review)".
+        Returns None if no cached config exists.
+        """
+        mtime = self.get_cache_mtime()
+        if mtime is None:
+            return None
+
+        age_seconds = time.time() - mtime
+        if age_seconds < 0:
+            age_seconds = 0
+
+        minutes = int(age_seconds / 60)
+        hours = int(age_seconds / 3600)
+        days = int(age_seconds / 86400)
+
+        if hours < 1:
+            label = f"{max(minutes, 1)} minutes ago"
+        elif days < 1:
+            label = f"{hours} hours ago" if hours > 1 else "1 hour ago"
+        else:
+            label = f"{days} days ago" if days > 1 else "1 day ago"
+            if days >= 90:
+                label += " (recommend review)"
+
+        return label
