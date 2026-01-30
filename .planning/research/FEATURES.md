@@ -6,6 +6,283 @@
 
 ---
 
+## v3.2 Features Research: Visual Dividers for Action Workflows
+
+**Focus:** Lightweight separators between workflow steps in flash, add-device, remove-device, and flash-all
+**Researched:** 2026-01-30
+**Confidence:** HIGH (verified with Docker, Yarn, npm/inquirer.js CLI patterns)
+
+---
+
+### Table Stakes
+
+Features users expect in professional CLI tools with multi-step workflows. Missing these = workflow feels unpolished.
+
+| Feature | Why Expected | Complexity | Notes |
+|---------|--------------|------------|-------|
+| Visual step separation | Users need to scan back through output; separators signal step boundaries | LOW | Simple character-based dividers (┄ or ---) |
+| Consistent placement | Dividers always appear in same position relative to content | LOW | Before prompts, between phases, between devices |
+| Color inheritance | Dividers use existing theme colors for visual coherence | LOW | Already have theme.border (muted teal) and theme.subtle |
+| Lightweight rendering | Dividers don't slow down output or clutter simple workflows | LOW | Single print statement, no animations |
+| Work without Unicode | Fallback to ASCII dashes when UTF-8 unavailable | LOW | Already have _supports_unicode() in tui.py |
+
+### Differentiators
+
+Features that set kalico-flash apart from typical CLI tools. Not required, but valuable.
+
+| Feature | Value Proposition | Complexity | Notes |
+|---------|-------------------|------------|-------|
+| Device-labeled dividers | Flash-all shows ─── 1/N DeviceName ─── for each device | MEDIUM | Helps user track multi-device flash progress visually |
+| Step-labeled dividers | Show step count in flash-all (step 1, step 2, step 3) | LOW | Already common in Docker/yarn; reinforces progress |
+| Adaptive width | Dividers span terminal width for clean edge-to-edge look | MEDIUM | Need to detect terminal width reliably (shutil.get_terminal_size) |
+| Silent mode respected | Dividers disappear when --quiet flag is used | LOW | Respects existing output conventions |
+| Panel integration | Dividers use same border color as panels for unified aesthetic | LOW | Already have theme.border (100, 160, 180) RGB |
+
+### Anti-Features
+
+Features that seem good but create problems in terminal output.
+
+| Feature | Why Requested | Why Problematic | Alternative |
+|---------|---------------|-----------------|-------------|
+| Fancy Unicode art | "Make it look modern" | Breaks on ASCII-only terminals, looks busy, hard to grep | Simple ┄ or --- already professional |
+| Progress bars inside dividers | "Show completion at divider" | Clutters divider area, redraws create flicker | Keep progress separate; divider is static boundary |
+| Colored dividers per status | "Green for success, red for fail" | User scans for divider shape, not color; changing color breaks consistency | Use status markers ([OK], [FAIL]) not divider color |
+| Animated dividers | "Sliding effect when step completes" | Terminal redraws are jarring; breaks scrollback | Static dividers signal completed steps clearly |
+| Multi-line dividers | "Box around each step" | Doubles vertical space; harder to scan output quickly | Single-line divider is cleaner, faster to parse |
+
+### Feature Dependencies
+
+```
+[Theme system (EXISTING)]
+    └──requires──> [Color detection (EXISTING)]
+                       └──enables──> [Colored dividers]
+
+[Unicode detection (EXISTING)]
+    └──enables──> [Unicode dividers (┄) with ASCII fallback (---)]
+
+[Terminal width detection (NEW)]
+    └──enables──> [Adaptive-width dividers]
+    └──optional for──> [Fixed-width dividers (60 chars)]
+
+[Output interface (EXISTING)]
+    └──requires──> [Divider output method]
+                       └──used by──> [Flash workflow]
+                       └──used by──> [Add-device wizard]
+                       └──used by──> [Flash-all batch]
+```
+
+**Dependency Notes:**
+- **Theme system enables colored dividers:** Already have `theme.border` and `theme.subtle` defined in theme.py (RGB: 100,160,180 and 100,120,130). Dividers inherit these colors automatically.
+- **Unicode detection enables ┄ vs ---:** tui.py already has `_supports_unicode()` checking LANG/LC_ALL for UTF-8. Reuse this for divider character selection.
+- **Terminal width optional:** Can use fixed 60-character dividers initially, add adaptive width later if needed.
+- **Output interface needs divider method:** Add `out.step_divider()` and `out.device_divider()` to Output protocol in output.py, implement in CliOutput, NullOutput for testing.
+
+### MVP Definition (Milestone 16)
+
+Launch with minimum viable dividers — what's needed to improve workflow readability.
+
+- [x] Simple dividers before prompts
+  - **Why essential:** Separates user action (input) from system output (info)
+  - **Example:** `┄┄┄┄┄` line before "Device #:" prompt
+- [x] Dividers between flash workflow phases
+  - **Why essential:** Discovery → Config → Build → Flash phases need visual breaks
+  - **Example:** Divider after [Discovery] output, before [Config] starts
+- [x] Device-labeled dividers in flash-all
+  - **Why essential:** Multi-device flash needs clear "now flashing X" boundaries
+  - **Example:** `─── 1/2 Octopus Pro ───` before each device's build/flash output
+- [x] Unicode detection with ASCII fallback
+  - **Why essential:** Can't break on ASCII-only SSH terminals
+  - **Pattern:** `┄` if UTF-8, `---` otherwise
+
+### Add After Validation (v3.3+)
+
+Features to add once core dividers are working and tested.
+
+- [ ] Adaptive terminal width — Trigger: user reports dividers look too short/long
+- [ ] Step-labeled dividers in flash-all — Trigger: user confusion about which step is running
+- [ ] Quiet mode suppression — Trigger: when `--quiet` flag is added
+- [ ] Divider style customization in settings — Trigger: user requests different character
+
+### Future Consideration (v4.0+)
+
+Features to defer until usage patterns are established.
+
+- [ ] Theme-specific divider characters — Why defer: theme system may expand; wait to see what's needed
+- [ ] Section headers with dividers — Why defer: may conflict with panel-based TUI if both are visible
+
+### Feature Prioritization Matrix
+
+| Feature | User Value | Implementation Cost | Priority |
+|---------|------------|---------------------|----------|
+| Simple dividers before prompts | HIGH | LOW | P1 |
+| Dividers between workflow phases | HIGH | LOW | P1 |
+| Device-labeled dividers (flash-all) | HIGH | MEDIUM | P1 |
+| Unicode/ASCII fallback | HIGH | LOW | P1 |
+| Adaptive terminal width | MEDIUM | MEDIUM | P2 |
+| Step-labeled dividers | MEDIUM | LOW | P2 |
+| Quiet mode respected | MEDIUM | LOW | P2 |
+| Colored dividers (theme integration) | LOW | LOW | P3 |
+
+**Priority key:**
+- P1: Must have for launch — improves readability for all workflows
+- P2: Should have, add when possible — polish and edge cases
+- P3: Nice to have, future consideration — theme consistency
+
+### Real-World CLI Patterns (from Research)
+
+**Docker Build Output:**
+- Uses `Step 1/6 : FROM ubuntu` pattern with step numbers and total count
+- Each step separated by blank line and arrow indicator
+- **Lesson:** Numbered steps help users track progress through sequential workflows
+
+**Yarn Install Output:**
+- Four distinct phases: Resolution → Fetch → Link → Build
+- Phase labels printed with timing information
+- No explicit dividers; blank lines separate phases
+- **Lesson:** Phase labels alone may be sufficient for simple flows; dividers add polish
+
+**NPM Package Installers:**
+- Use `─────────────────────────────────────────────────────────────────` (dash lines) for separators
+- Inquirer.js provides `new inquirer.Separator()` that defaults to `--------`
+- Prompts package supports custom separator characters
+- **Lesson:** Industry standard is simple dash/underscore lines, 40-70 chars wide
+
+**Build Tools (Make, CMake):**
+- No built-in dividers; rely on command output echoing (`echo "=== Building X ==="`)
+- Separator scripts print dash lines calculated from terminal width
+- **Lesson:** Users add dividers manually in build scripts because output scanning is hard
+
+**Git Output:**
+- Uses conflict markers `<<<`, `===`, `>>>` as semantic dividers during merge
+- No visual dividers between commands; blank lines only
+- **Lesson:** Git prioritizes machine-parseable output; CLI tools with human workflows benefit from visual structure
+
+### Competitor Feature Analysis
+
+kalico-flash is a niche tool (Klipper firmware flashing), so "competitors" are general CLI workflow tools.
+
+| Feature | Docker Build | Yarn Install | Inquirer.js Prompts | kalico-flash Approach |
+|---------|--------------|--------------|---------------------|----------------------|
+| Step numbering | Yes (Step 1/6) | No | No | Yes (flash-all: 1/2 DeviceName) |
+| Visual dividers | No (blank lines) | No | Yes (Separator class) | Yes (┄ or ---) |
+| Phase labels | Yes ([stage name]) | Yes (Resolution, Fetch) | No | Yes ([Discovery], [Build]) |
+| Color coding | Yes (ANSI colors) | Yes (chalk library) | Yes (ansi colors) | Yes (theme.border) |
+| Unicode support | Yes | Yes (respects NO_COLOR) | Yes | Yes (with ASCII fallback) |
+
+**Our approach:**
+- Combine Docker's step numbering with Inquirer's explicit dividers
+- Lightweight like Yarn (no animations), but clearer than blank lines
+- Honor kalico-flash's existing theme system for consistency
+
+### Design Decisions
+
+**Divider Character: ┄ (box drawings light quadruple dash) vs ─ (box drawings light horizontal)**
+
+**Choice:** Use `┄` (U+2504) for regular dividers, `─` (U+2500) for device-labeled dividers
+
+**Rationale:**
+- `┄` (dotted line) is lighter, less intrusive — good for separating steps within a workflow
+- `─` (solid line) is stronger — good for device-labeled sections in flash-all
+- Both are in the same Unicode block (Box Drawing) so terminals that support one support both
+- ASCII fallback: `┄ → '- '` (dash-space pattern), `─ → '-'` (solid dashes)
+
+**Divider Width: Fixed 60 chars vs Terminal Width**
+
+**Choice:** Start with fixed 60 chars, add adaptive width in P2
+
+**Rationale:**
+- 60 chars fits 80-column terminals with 2-space indent
+- Avoids edge-case bugs (terminal resize mid-output, COLUMNS unset)
+- `shutil.get_terminal_size()` is reliable, but adds complexity for marginal gain
+- Docker and Yarn use fixed-width output; users don't complain
+
+**Placement Rules**
+
+| Workflow | Divider Location | Example |
+|----------|------------------|---------|
+| Flash single device | Before each phase change | After [Discovery], before [Config] |
+| Flash single device | Before confirmation prompts | Before "Flash Octopus Pro? [Y/n]" |
+| Flash-all | Before each device section | ─── 1/2 Octopus Pro ─── |
+| Flash-all | Before build/flash sub-steps | ┄ Building firmware... |
+| Add-device | Before each wizard prompt | ┄ before "Device key:" |
+| Remove-device | Before confirmation prompt | ┄ before "Remove 'octopus-pro'?" |
+| Config menu | Not used (panel-based) | Panel borders provide structure |
+
+**Color: theme.border vs theme.subtle**
+
+**Choice:** Use `theme.border` (100, 160, 180 RGB — muted teal)
+
+**Rationale:**
+- Matches panel border color in TUI for visual consistency
+- `theme.subtle` (100, 120, 130) is too dim; dividers might be invisible on dark terminals
+- Mockup (zen_mockup.py line 42, 47, 51, 84) shows `SUBTLE` color for dividers, but that's `BORDER` variable in mockup palette
+- User's intention: dividers should match panel borders (muted teal, not grey)
+
+### Implementation Notes
+
+**Output Interface Addition**
+
+Add to `output.py` Protocol and CliOutput:
+
+```python
+def step_divider(self) -> None:
+    """Print lightweight divider before workflow steps."""
+    # ┄ (U+2504) if Unicode, else dash-space pattern "- - - - ..."
+
+def device_divider(self, index: int, total: int, device_name: str) -> None:
+    """Print device-labeled divider for flash-all batches."""
+    # Example: ─── 1/2 Octopus Pro ───
+```
+
+**Unicode Detection**
+
+Reuse `tui._supports_unicode()` logic:
+
+```python
+def _get_divider_char() -> str:
+    return "\u2504" if _supports_unicode() else "- "  # ┄ or dash-space
+```
+
+**Width Calculation**
+
+Fixed width for MVP:
+
+```python
+DIVIDER_WIDTH = 60
+divider = char * DIVIDER_WIDTH
+```
+
+Adaptive width (P2):
+
+```python
+import shutil
+width = shutil.get_terminal_size().columns - 4  # Reserve 4 for indent
+```
+
+### Sources
+
+**CLI Best Practices:**
+- [Command Line Interface Guidelines](https://clig.dev/)
+- [CLI UX best practices: 3 patterns for improving progress displays—Martian Chronicles](https://evilmartians.com/chronicles/cli-ux-best-practices-3-patterns-for-improving-progress-displays)
+
+**Docker Build Output:**
+- [Best practices | Docker Docs](https://docs.docker.com/build/building/best-practices/)
+- [Multi-stage | Docker Docs](https://docs.docker.com/build/building/multi-stage/)
+
+**Yarn/NPM Terminal Formatting:**
+- [yarn install | Yarn](https://yarnpkg.com/cli/install)
+- [inquirer - npm](https://www.npmjs.com/package/inquirer)
+- [prompts - npm](https://www.npmjs.com/package/prompts)
+
+**Visual Hierarchy & Separators:**
+- [Visual Dividers in User Interfaces: Types and Design Tips](https://blog.tubikstudio.com/visual-dividers-user-interface/)
+- [Steps UI design tutorial for better multi-step UX](https://www.setproduct.com/blog/steps-ui-design)
+
+**Terminal Separator Scripts:**
+- [GitHub - pjnadolny/separator: A shell script to print separator lines](https://github.com/pjnadolny/separator)
+
+---
+
 ## v2.1 Features Research: Panel TUI and Flash All
 
 **Focus:** Panel-based terminal UI redesign, batch flash, config screen, countdown timer
@@ -734,6 +1011,15 @@ Things to deliberately NOT build and why:
 
 ## Feature Dependencies (All Versions)
 
+### v3.2 dividers depending on v2.1+ capabilities
+
+| v3.2 Feature | Depends On | v2.1+ Capability |
+|--------------|------------|------------------|
+| Step dividers | Output interface | output.py Protocol |
+| Device dividers | Flash-all batch | cmd_flash_all in flash.py |
+| Unicode detection | TUI utils | tui._supports_unicode() |
+| Colored dividers | Theme system | theme.py get_theme() |
+
 ### v2.1 features depending on v2.0 capabilities
 
 | v2.1 Feature | Depends On | v2.0 Capability |
@@ -765,6 +1051,11 @@ Things to deliberately NOT build and why:
 
 | Finding | Confidence | Basis |
 |---------|------------|-------|
+| CLI divider patterns | HIGH | Verified with Docker, Yarn, npm/inquirer.js, separator scripts |
+| ┄ vs ─ character usage | MEDIUM | Box Drawing Unicode block; convention not standardized |
+| Fixed 60-char width | HIGH | Standard 80-column terminal with 2-space indent margin |
+| theme.border color choice | HIGH | Existing theme.py palette; matches panel borders |
+| Unicode fallback to dash-space | MEDIUM | Common pattern; not in official docs but widely used |
 | Panel TUI print-and-clear pattern | HIGH | Standard Unix terminal pattern; KIAUH uses this approach |
 | KIAUH panel layout style | MEDIUM | WebSearch results describe menu structure; could not fetch exact source |
 | Flash All single-bracket pattern | HIGH | Follows from existing `klipper_service_stopped()` context manager design |
