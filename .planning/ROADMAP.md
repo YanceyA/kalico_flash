@@ -6,7 +6,7 @@ Add input validation to settings screen: path existence and content checks for d
 
 ## Phases
 
-- [ ] **Phase 15: Config Validation** - Path and numeric validation for all settings with reject-and-reprompt
+- [x] **Phase 15: Config Validation** - Path and numeric validation for all settings with reject-and-reprompt
 
 ## Phase Details
 
@@ -22,7 +22,7 @@ Add input validation to settings screen: path existence and content checks for d
   5. stagger_delay rejects values outside 0–30s, return_delay rejects values outside 0–60s, both re-prompt on invalid
 **Plans:** 1 plan
 Plans:
-- [ ] 15-01-PLAN.md — Add validation functions and wire into settings edit flow
+- [x] 15-01-PLAN.md — Add validation functions and wire into settings edit flow
 
 ## Progress
 
@@ -30,4 +30,4 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 15. Config Validation | 0/1 | ○ Pending | — |
+| 15. Config Validation | 1/1 | ✓ Complete | 2026-01-30 |
