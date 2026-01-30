@@ -473,6 +473,7 @@ def run_menu(registry, out) -> int:
     theme = get_theme()
     status_message = "Welcome to kalico-flash. Select an action below."
     status_level = "info"
+    first_render = True
 
     while True:
         try:
@@ -483,6 +484,10 @@ def run_menu(registry, out) -> int:
 
             # Render and display
             clear_screen()
+            if not first_render:
+                print()
+                print(render_action_divider())
+            first_render = False
             print()
             print(render_main_screen(state))
             print()
@@ -506,7 +511,6 @@ def run_menu(registry, out) -> int:
             elif key == "f":
                 print(key)
                 print()
-                print(render_action_divider())
                 device_key = _prompt_device_number(device_map, out)
                 if device_key:
                     status_message, status_level = _action_flash_device(
@@ -521,7 +525,6 @@ def run_menu(registry, out) -> int:
             elif key == "a":
                 print(key)
                 print()
-                print(render_action_divider())
                 device_key, device_row = _prompt_new_device_number(device_map, out)
                 if device_row:
                     status_message, status_level = _action_add_device(
@@ -536,7 +539,6 @@ def run_menu(registry, out) -> int:
             elif key == "r":
                 print(key)
                 print()
-                print(render_action_divider())
                 device_key = _prompt_device_number(device_map, out)
                 if device_key:
                     status_message, status_level = _action_remove_device(
@@ -550,15 +552,11 @@ def run_menu(registry, out) -> int:
 
             elif key == "d":
                 print(key)
-                print()
-                print(render_action_divider())
                 status_message = "Devices refreshed"
                 status_level = "info"
 
             elif key == "c":
                 print(key)
-                print()
-                print(render_action_divider())
                 _config_screen(registry, out)
                 status_message = "Returned from settings"
                 status_level = "info"
@@ -566,7 +564,6 @@ def run_menu(registry, out) -> int:
             elif key == "b":
                 print(key)
                 print()
-                print(render_action_divider())
                 from .flash import cmd_flash_all
                 result = cmd_flash_all(registry, out)
                 if result == 0:
@@ -608,13 +605,20 @@ def _config_screen(registry, out) -> None:
     from .models import GlobalConfig
     import dataclasses
 
+    from .panels import render_action_divider
+
     theme = get_theme()
+    first_config_render = True
 
     while True:
         data = registry.load()
         gc = data.global_config
 
         clear_screen()
+        if not first_config_render:
+            print()
+            print(render_action_divider())
+        first_config_render = False
         print()
         print(render_config_screen(gc))
         print()
