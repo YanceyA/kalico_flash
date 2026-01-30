@@ -277,7 +277,9 @@ def render_device_rows(row: DeviceRow, host_version: Optional[str] = None) -> li
     # Indent to align with device name (past "● #N  ")
     indent = "      "  # 6 spaces to align under name
     if row.version:
-        ver_display = f"Klipper {row.version}"
+        from .moonraker import detect_firmware_flavor
+
+        ver_display = f"{detect_firmware_flavor(row.version)} {row.version}"
         if host_version and row.version:
             from .moonraker import is_mcu_outdated
 
@@ -290,7 +292,7 @@ def render_device_rows(row: DeviceRow, host_version: Optional[str] = None) -> li
         lines.append(f"{indent}{theme.subtle}{ver_display}{theme.reset}  {status_icon}")
     elif row.group != "blocked":
         lines.append(
-            f"{indent}{theme.subtle}Klipper Unknown{theme.reset}"
+            f"{indent}{theme.subtle}Firmware Unknown{theme.reset}"
             f"  {theme.subtle}\u25d0{theme.reset}"
         )
 
@@ -373,7 +375,10 @@ def _host_version_line(host_version: Optional[str]) -> str:
     """Build the host version footer line."""
     theme = get_theme()
     if host_version:
-        return f"{theme.subtle}Host Klipper: {host_version}{theme.reset}"
+        from .moonraker import detect_firmware_flavor
+
+        flavor = detect_firmware_flavor(host_version)
+        return f"{theme.subtle}Host: {flavor} {host_version}{theme.reset}"
     return f"{theme.subtle}Host version: unavailable{theme.reset}"
 
 

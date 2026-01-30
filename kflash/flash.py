@@ -609,7 +609,8 @@ def cmd_flash(registry, device_key, out, skip_menuconfig: bool = False) -> int:
 
         # Show host Klipper version before selection
         if host_version:
-            out.info("Version", f"Host Klipper: {host_version}")
+            from .moonraker import detect_firmware_flavor
+            out.info("Version", f"Host: {detect_firmware_flavor(host_version)} {host_version}")
 
         # Single device: auto-select with confirmation
         if len(flashable_matched) == 1:
@@ -750,7 +751,8 @@ def cmd_flash(registry, device_key, out, skip_menuconfig: bool = False) -> int:
     # mcu_versions and host_version already fetched earlier for device selection display
 
     if host_version:
-        out.phase("Version", f"Host Klipper: {host_version}")
+        from .moonraker import detect_firmware_flavor
+        out.phase("Version", f"Host: {detect_firmware_flavor(host_version)} {host_version}")
 
         if mcu_versions:
             # Display all MCU versions, mark target with asterisk
@@ -788,7 +790,7 @@ def cmd_flash(registry, device_key, out, skip_menuconfig: bool = False) -> int:
             out.warn("MCU versions unavailable (Klipper may not be running)")
     elif mcu_versions:
         # Have MCU versions but not host version (unusual)
-        out.warn("Host Klipper version unavailable")
+        out.warn("Host firmware version unavailable")
     # If neither available, skip version display silently (Moonraker down case handled above)
 
     # === Phase 2: Config ===
@@ -1084,7 +1086,8 @@ def cmd_flash_all(registry, out) -> int:
     if host_version is None or mcu_versions is None:
         out.warn("Version check unavailable -- Moonraker not reachable. Flashing all devices.")
     else:
-        out.phase("Version", f"Host Klipper: {host_version}")
+        from .moonraker import detect_firmware_flavor
+        out.phase("Version", f"Host: {detect_firmware_flavor(host_version)} {host_version}")
         outdated: list = []
         current: list = []
 
@@ -1504,7 +1507,8 @@ def cmd_list_devices(registry, out, from_menu: bool = False) -> int:
     # Show host Klipper version at the end
     if host_version:
         out.info("", "")  # blank line for separation
-        out.info("Version", f"Host Klipper: {host_version}")
+        from .moonraker import detect_firmware_flavor
+        out.info("Version", f"Host: {detect_firmware_flavor(host_version)} {host_version}")
 
     return 0
 

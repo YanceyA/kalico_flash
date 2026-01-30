@@ -27,6 +27,17 @@ MOONRAKER_URL = "http://localhost:7125"
 TIMEOUT = 5  # seconds
 
 
+def detect_firmware_flavor(version: Optional[str]) -> str:
+    """Return 'Kalico' or 'Klipper' based on version string format."""
+    if not version:
+        return "Klipper"
+    # Kalico uses date-based tags: v2025.xx, v2026.xx, etc.
+    match = re.match(r"^v?(20[2-9]\d)\.", version)
+    if match and int(match.group(1)) >= 2025:
+        return "Kalico"
+    return "Klipper"
+
+
 def get_print_status() -> Optional[PrintStatus]:
     """Query Moonraker for current print status.
 
