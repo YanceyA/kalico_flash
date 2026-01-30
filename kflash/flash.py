@@ -1543,6 +1543,8 @@ def cmd_add_device(registry, out, selected_device=None) -> int:
     if selected_device is not None:
         # TUI path: device already selected, skip discovery/listing/selection
         selected = selected_device
+        from .screen import truncate_serial
+        out.info("Selected", truncate_serial(selected.filename))
 
         # Determine if this device is already registered
         registry_data = registry.load()
@@ -1660,6 +1662,8 @@ def cmd_add_device(registry, out, selected_device=None) -> int:
             return 0
 
         selected, existing_entry = selectable[int(choice) - 1]
+        from .screen import truncate_serial
+        out.info("Selected", truncate_serial(selected.filename))
 
     # Check if selected device is already registered
     if existing_entry is not None:
