@@ -721,6 +721,8 @@ def cmd_flash(registry, device_key, out, skip_menuconfig: bool = False) -> int:
         "Discovery", f"Target: {entry.name} ({entry.mcu}) at {_short_path(device_path)}"
     )
 
+    out.step_divider()
+
     # === Moonraker Safety Check ===
     print_status = get_print_status()
 
@@ -747,6 +749,8 @@ def cmd_flash(registry, device_key, out, skip_menuconfig: bool = False) -> int:
     else:
         # Safe state - show status and continue
         out.phase("Safety", f"Printer state: {print_status.state} - OK to flash")
+
+    out.step_divider()
 
     # === Version Information ===
     # mcu_versions and host_version already fetched earlier for device selection display
@@ -793,6 +797,8 @@ def cmd_flash(registry, device_key, out, skip_menuconfig: bool = False) -> int:
         # Have MCU versions but not host version (unusual)
         out.warn("Host firmware version unavailable")
     # If neither available, skip version display silently (Moonraker down case handled above)
+
+    out.step_divider()
 
     # === Phase 2: Config ===
     out.phase("Config", f"Loading config for {entry.name}...")
@@ -877,6 +883,8 @@ def cmd_flash(registry, device_key, out, skip_menuconfig: bool = False) -> int:
         )
         return 1
 
+    out.step_divider()
+
     # === Phase 3: Build ===
     out.phase("Build", "Running make clean + make...")
     build_result = run_build(klipper_dir, timeout=TIMEOUT_BUILD)
@@ -897,6 +905,8 @@ def cmd_flash(registry, device_key, out, skip_menuconfig: bool = False) -> int:
         "Build",
         f"Firmware ready: {size_kb:.1f} KB in {build_result.elapsed_seconds:.1f}s",
     )
+
+    out.step_divider()
 
     # === Phase 4: Flash ===
     out.phase("Flash", "Verifying device connection...")
@@ -1289,9 +1299,13 @@ def cmd_remove_device(registry, device_key: str, out) -> int:
         )
         return 1
 
+    out.step_divider()
+
     if not out.confirm(f"Remove '{device_key}' ({entry.name})?"):
         out.info("Registry", "Removal cancelled")
         return 0
+
+    out.step_divider()
 
     registry.remove(device_key)
     out.success(f"Removed '{device_key}'")
