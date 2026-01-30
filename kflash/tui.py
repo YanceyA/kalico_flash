@@ -413,7 +413,7 @@ def _action_add_device(registry, out, device_row=None) -> tuple[str, str]:
             usb_devices = scan_serial_devices()
             matched_device = None
             for dev in usb_devices:
-                if dev.path == device_row.serial_path:
+                if dev.filename == device_row.serial_path:
                     matched_device = dev
                     break
             if matched_device is None:
