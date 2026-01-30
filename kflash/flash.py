@@ -1142,6 +1142,8 @@ def cmd_flash_all(registry, out) -> int:
 
     out.phase("Flash All", f"{len(flashable_devices)} device(s) validated")
 
+    out.step_divider()
+
     # === Stage 2: Version check ===
     host_version = get_host_klipper_version(klipper_dir)
     mcu_versions = get_mcu_versions()
@@ -1199,6 +1201,7 @@ def cmd_flash_all(registry, out) -> int:
         ))
 
     # === Stage 3: Build all firmware ===
+    out.step_divider()
     out.phase("Flash All", f"Building firmware for {len(flash_list)} device(s)...")
     temp_dir = tempfile.mkdtemp(prefix="kalico-flash-")
     total = len(flash_list)
@@ -1233,6 +1236,7 @@ def cmd_flash_all(registry, out) -> int:
             return 1
 
         # === Stage 4: Flash all (inside single service stop) ===
+        out.step_divider()
         out.phase("Flash All", f"Flashing {len(built_results)} device(s)...")
 
         # Safety check: print status
@@ -1307,6 +1311,7 @@ def cmd_flash_all(registry, out) -> int:
         shutil.rmtree(temp_dir, ignore_errors=True)
 
     # === Stage 5: Summary table ===
+    out.step_divider()
     out.phase("Flash All", "Summary:")
     out.info("", "  Device                Build   Flash   Verify")
     out.info("", "  " + "-" * 48)
