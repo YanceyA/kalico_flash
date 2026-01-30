@@ -308,6 +308,7 @@ def cmd_build(registry, device_key: str, out) -> int:
     if config_mgr.load_cached_config():
         out.info("Config", f"Loaded cached config for '{device_key}'")
     else:
+        config_mgr.clear_klipper_config()
         out.info("Config", "No cached config found, starting fresh")
 
     # Step 2: Run menuconfig
@@ -800,6 +801,7 @@ def cmd_flash(registry, device_key, out, skip_menuconfig: bool = False) -> int:
     if config_mgr.load_cached_config():
         out.phase("Config", f"Loaded cached config for '{device_key}'")
     else:
+        config_mgr.clear_klipper_config()
         out.phase("Config", "No cached config found, starting fresh")
 
     # Skip menuconfig if flag is set AND cached config exists

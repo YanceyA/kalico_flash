@@ -106,6 +106,16 @@ class ConfigManager:
         _atomic_copy(str(self.cache_path), str(self.klipper_config_path))
         return True
 
+    def clear_klipper_config(self) -> bool:
+        """Remove .config from klipper directory for fresh menuconfig.
+
+        Returns True if file was removed, False if it didn't exist.
+        """
+        if self.klipper_config_path.exists():
+            self.klipper_config_path.unlink()
+            return True
+        return False
+
     def save_cached_config(self) -> None:
         """Save klipper config to cache.
 
