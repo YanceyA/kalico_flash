@@ -27,6 +27,8 @@ class Output(Protocol):
     def prompt(self, message: str, default: str = "") -> str: ...
     def confirm(self, message: str, default: bool = False) -> bool: ...
     def phase(self, phase_name: str, message: str) -> None: ...
+    def step_divider(self) -> None: ...
+    def device_divider(self, index: int, total: int, name: str) -> None: ...
 
 
 class CliOutput:
@@ -98,6 +100,16 @@ class CliOutput:
         t = self.theme
         print(f"{t.phase}[{phase_name}]{t.reset} {message}")
 
+    def step_divider(self) -> None:
+        """Print an unlabeled step divider line."""
+        from .panels import render_action_divider
+        print(render_action_divider())
+
+    def device_divider(self, index: int, total: int, name: str) -> None:
+        """Print a labeled device divider for batch operations."""
+        from .panels import render_device_divider
+        print(render_device_divider(index, total, name))
+
 
 class NullOutput:
     """Silent output for testing or programmatic use."""
@@ -133,4 +145,10 @@ class NullOutput:
         return default
 
     def phase(self, phase_name: str, message: str) -> None:
+        pass
+
+    def step_divider(self) -> None:
+        pass
+
+    def device_divider(self, index: int, total: int, name: str) -> None:
         pass
