@@ -763,8 +763,10 @@ def cmd_flash(registry, device_key, out, skip_menuconfig: bool = False) -> int:
             # Display all MCU versions, mark target with asterisk
             # Map device MCU type to Moonraker MCU name by checking mcu_constants
             target_mcu = None
-            for mcu_name in mcu_versions:
-                # Simple heuristic: if device mcu contains the mcu_name or vice versa
+            # Check friendly names first (no digits), then chip-type aliases
+            friendly = [n for n in mcu_versions if not any(c.isdigit() for c in n)]
+            chip_keys = [n for n in mcu_versions if any(c.isdigit() for c in n)]
+            for mcu_name in friendly + chip_keys:
                 if (
                     entry.mcu.lower() in mcu_name.lower()
                     or mcu_name.lower() in entry.mcu.lower()
@@ -775,8 +777,26 @@ def cmd_flash(registry, device_key, out, skip_menuconfig: bool = False) -> int:
             if target_mcu is None and "main" in mcu_versions:
                 target_mcu = "main"
 
+            # Build set of friendly names (no digits = not a chip-type alias)
+            friendly_names = {
+                n for n in mcu_versions if not any(c.isdigit() for c in n)
+            }
+            # If target matched a chip-type alias, find the friendly name
+            # with the same version so we can mark it with [*]
+            display_target = target_mcu
+            if target_mcu and target_mcu not in friendly_names:
+                target_ver = mcu_versions[target_mcu]
+                for fn in friendly_names:
+                    if mcu_versions[fn] == target_ver:
+                        display_target = fn
+                        break
+
             for mcu_name, mcu_version in sorted(mcu_versions.items()):
-                marker = "*" if mcu_name == target_mcu else " "
+                # Skip chip-type aliases (e.g. "stm32h723xx", "rp2040") —
+                # these are added for matching, not display
+                if mcu_name not in friendly_names:
+                    continue
+                marker = "*" if mcu_name == display_target else " "
                 out.phase("Version", f"  [{marker}] MCU {mcu_name}: {mcu_version}")
 
             # Check if target MCU is outdated or already current
