@@ -7,12 +7,12 @@
 
 ### Output Protocol
 
-- [ ] **OUT-01**: Output Protocol extended with `step_divider()` method for plain dividers
-- [ ] **OUT-02**: Output Protocol extended with `device_divider(index, total, name)` method for labeled batch dividers
-- [ ] **OUT-03**: CliOutput renders step divider as `┄` line in panel border color (muted teal #64A0B4)
-- [ ] **OUT-04**: CliOutput renders device divider as `─── 1/N DeviceName ───` centered label in border color
-- [ ] **OUT-05**: NullOutput implements both divider methods as no-ops
-- [ ] **OUT-06**: ASCII fallback uses `---` when terminal does not support Unicode
+- [x] **OUT-01**: Output Protocol extended with `step_divider()` method for plain dividers
+- [x] **OUT-02**: Output Protocol extended with `device_divider(index, total, name)` method for labeled batch dividers
+- [x] **OUT-03**: CliOutput renders step divider as `┄` line in panel border color (muted teal #64A0B4)
+- [x] **OUT-04**: CliOutput renders device divider as `─── 1/N DeviceName ───` centered label in border color
+- [x] **OUT-05**: NullOutput implements both divider methods as no-ops
+- [x] **OUT-06**: ASCII fallback uses `---` when terminal does not support Unicode
 
 ### Flash Workflow
 
@@ -36,8 +36,8 @@
 
 ### Terminal Compatibility
 
-- [ ] **TERM-01**: Divider width adapts to terminal width (not hardcoded)
-- [ ] **TERM-02**: Dividers degrade to ASCII `---` on terminals without Unicode support
+- [x] **TERM-01**: Divider width adapts to terminal width (not hardcoded)
+- [x] **TERM-02**: Dividers degrade to ASCII `---` on terminals without Unicode support
 
 ## Future Requirements
 
@@ -58,14 +58,14 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| OUT-01 | Phase 16 | Pending |
-| OUT-02 | Phase 16 | Pending |
-| OUT-03 | Phase 16 | Pending |
-| OUT-04 | Phase 16 | Pending |
-| OUT-05 | Phase 16 | Pending |
-| OUT-06 | Phase 16 | Pending |
-| TERM-01 | Phase 16 | Pending |
-| TERM-02 | Phase 16 | Pending |
+| OUT-01 | Phase 16 | Complete |
+| OUT-02 | Phase 16 | Complete |
+| OUT-03 | Phase 16 | Complete |
+| OUT-04 | Phase 16 | Complete |
+| OUT-05 | Phase 16 | Complete |
+| OUT-06 | Phase 16 | Complete |
+| TERM-01 | Phase 16 | Complete |
+| TERM-02 | Phase 16 | Complete |
 | FLASH-01 | Phase 17 | Pending |
 | FLASH-02 | Phase 17 | Pending |
 | ADD-01 | Phase 17 | Pending |
