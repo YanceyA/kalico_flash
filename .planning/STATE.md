@@ -2,20 +2,18 @@
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-01-29)
+See: .planning/PROJECT.md (updated 2026-01-30)
 
 **Core value:** One command to build and flash any registered board — no remembering serial paths, flash commands, or config locations.
-**Current focus:** v3.0 TUI Redesign & Flash All — Phase 14 (Flash All)
+**Current focus:** v3.1 Config Validation — Phase 15 (Config Validation)
 
 ## Current Position
 
-Milestone: v3.0 TUI Redesign & Flash All
-Phase: 14 of 14 (Flash All)
-Plan: 2/2 complete
-Status: **Phase 14 complete, verified (6/6 must-haves) — milestone ready for audit**
-Last activity: 2026-01-30 — Completed quick task 006: fix MCU version query
-
-Progress: [██████████] 100%
+Milestone: v3.1 Config Validation
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-01-30 — Milestone v3.1 started
 
 ## Performance Metrics
 
@@ -49,6 +47,7 @@ Progress: [██████████] 100%
 | v1.0 | MVP | 1-3 | 2026-01-25 |
 | v2.0 | Public Release | 4-7 | 2026-01-27 |
 | v2.1 | TUI Color Theme | 8-9 | 2026-01-29 |
+| v3.0 | TUI Redesign & Flash All | 10-14 | 2026-01-30 |
 
 ## Quick Tasks Completed
 
@@ -62,9 +61,9 @@ Progress: [██████████] 100%
 ## Session Continuity
 
 Last session: 2026-01-30
-Stopped at: Completed quick task 006
+Stopped at: Milestone v3.1 initialization
 Resume file: None
-Next step: v3.0 milestone complete — all phases shipped
+Next step: Define requirements → create roadmap
 
 ---
-*Last updated: 2026-01-30 after quick-006 execution*
+*Last updated: 2026-01-30 after v3.1 milestone start*

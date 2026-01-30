@@ -8,26 +8,19 @@ A Python CLI tool that automates Klipper/Kalico firmware building and flashing f
 
 One command to build and flash any registered board — no remembering serial paths, flash commands, or config locations.
 
-## Current Milestone: v3.0 TUI Redesign & Flash All
+## Current Milestone: v3.1 Config Validation
 
-**Goal:** Redesign TUI with panel-based layout, truecolor theme, status feedback, and add Flash All batch command
-**Started:** 2026-01-29
+**Goal:** Add sanity checking and validation to settings — path existence/content checks and numeric bounds
+**Started:** 2026-01-30
 
 **Target features:**
-- Panel-based main screen (Status, Devices, Actions panels with rounded borders)
-- Truecolor RGB palette with ANSI 16 fallback
-- Device panel with numbered devices grouped by status (Registered/New/Blocked)
-- Status panel showing last command result
-- Flash All Registered Devices command (stop once, flash all, restart)
-- Dedicated config screen with panel layout
-- Step dividers for terminal output during tasks
-- Configurable skip-menuconfig and timing delays
-- Refresh Devices replaces List Devices
-- Screen refresh after every command completes
+- Path validation: expand, check existence, verify expected content (Makefile in klipper_dir, scripts/flashtool.py in katapult_dir)
+- Reject invalid paths with clear error message, re-prompt for new value
+- Numeric bounds: min/max for stagger_delay and return_delay, reject absurd values
+- Reject invalid numeric input with error message, re-prompt
 
 See: `.planning/ROADMAP.md` for phase breakdown
 See: `.planning/REQUIREMENTS.md` for full requirements list
-See: `.working/UI-working/` for design mockups and style reference
 
 ## Previous State (v2.1 shipped)
 
@@ -85,7 +78,20 @@ See: `.working/UI-working/` for design mockups and style reference
 - ✓ Bold prompts — v2.1
 - ✓ Colored error headers — v2.1
 
-### Active (v3.0 TUI Redesign & Flash All)
+### Validated (v3.0 TUI Redesign & Flash All)
+
+- ✓ Truecolor RGB palette with 3-tier fallback — v3.0
+- ✓ ANSI-aware string utilities — v3.0
+- ✓ Panel renderer with rounded borders — v3.0
+- ✓ Panel-based main screen with status, devices, actions — v3.0
+- ✓ Numbered device references across actions — v3.0
+- ✓ Config screen with settings persistence — v3.0
+- ✓ Countdown timer with keypress cancel — v3.0
+- ✓ Flash All with build-then-flash architecture — v3.0
+- ✓ Continue-on-failure batch flash — v3.0
+- ✓ Post-flash verification per device — v3.0
+
+### Active (v3.1 Config Validation)
 
 (See `.planning/REQUIREMENTS.md` for full requirements)
 
@@ -161,9 +167,11 @@ python3 ~/katapult/scripts/flashtool.py -f ~/klipper/out/klipper.bin -d /dev/ser
 | format_error() for all error output | Consistent 80-column wrapped output with context | ✓ Good |
 | Symlink over wrapper script | Direct symlink to flash.py, uses Python shebang | ✓ Good |
 | 30s verification timeout | RP2040 boards need more time to re-enumerate | ✓ Good |
-| Truecolor with ANSI 16 fallback | Modern terminals support RGB; Pi SSH terminals vary | — Pending |
-| Flash All: stop once, flash all, restart | Faster than per-device stop/restart cycle | — Pending |
+| Truecolor with ANSI 16 fallback | Modern terminals support RGB; Pi SSH terminals vary | ✓ Good |
+| Flash All: stop once, flash all, restart | Faster than per-device stop/restart cycle | ✓ Good |
+| Reject-and-reprompt for invalid paths | User gets immediate feedback, not runtime errors later | — Pending |
+| Content checks on paths (Makefile, flashtool.py) | Confirms right directory, not just any directory | — Pending |
 | Stdlib only for TUI redesign | No Rich/Textual — pure ANSI codes, maintain constraint | ✓ Good |
 
 ---
-*Last updated: 2026-01-29 after v3.0 milestone initialization*
+*Last updated: 2026-01-30 after v3.1 milestone initialization*
