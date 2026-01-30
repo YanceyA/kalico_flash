@@ -173,10 +173,10 @@ Plans:
   4. NullOutput implements both divider methods as no-ops
   5. Dividers adapt to terminal width (not hardcoded 80 chars)
   6. Dividers degrade to ASCII (---) on non-Unicode terminals
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
-- [ ] 16-01: TBD
+- [ ] 16-01: Add divider rendering pipeline and Output Protocol methods
 
 #### Phase 17: Workflow Integration
 **Goal**: Wire dividers into all command workflows
@@ -216,5 +216,5 @@ Phases execute in numeric order: 16 → 17
 | 13. Config Screen | v3.0 | 1/1 | Complete | 2026-01-30 |
 | 14. Flash All | v3.0 | 1/1 | Complete | 2026-01-30 |
 | 15. Config Validation | v3.1 | 1/1 | Complete | 2026-01-30 |
-| 16. Divider Implementation | v3.2 | 0/TBD | Not started | - |
+| 16. Divider Implementation | v3.2 | 0/1 | Not started | - |
 | 17. Workflow Integration | v3.2 | 0/TBD | Not started | - |
