@@ -13,7 +13,7 @@ Milestone: v3.0 TUI Redesign & Flash All
 Phase: 14 of 14 (Flash All)
 Plan: 2/2 complete
 Status: **Phase 14 complete, verified (6/6 must-haves) — milestone ready for audit**
-Last activity: 2026-01-29 — Completed quick task 004: truncate USB ID fix duplicate
+Last activity: 2026-01-30 — Completed quick task 005: add-device prompt like remove
 
 Progress: [██████████] 100%
 
@@ -56,13 +56,14 @@ Progress: [██████████] 100%
 |---|-------------|------|--------|-----------|
 | 003 | Left-align status and action panels | 2026-01-29 | 80d07fc | [003-left-align-status-action-panels](./quick/003-left-align-status-action-panels/) |
 | 004 | Truncate USB ID and fix duplicate display | 2026-01-29 | 9564904 | [004-truncate-usb-id-fix-duplicate](./quick/004-truncate-usb-id-fix-duplicate/) |
+| 005 | Add-device prompt like remove/flash | 2026-01-30 | e6d4550 | [005-add-device-prompt-like-remove](./quick/005-add-device-prompt-like-remove/) |
 
 ## Session Continuity
 
-Last session: 2026-01-29
-Stopped at: Completed 14-02-PLAN.md (Phase 14 complete)
+Last session: 2026-01-30
+Stopped at: Completed quick task 005
 Resume file: None
 Next step: v3.0 milestone complete — all phases shipped
 
 ---
-*Last updated: 2026-01-29 after 14-02 execution*
+*Last updated: 2026-01-30 after quick-005 execution*
