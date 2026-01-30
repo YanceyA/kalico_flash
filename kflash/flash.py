@@ -1509,8 +1509,15 @@ def cmd_list_devices(registry, out, from_menu: bool = False) -> int:
     return 0
 
 
-def cmd_add_device(registry, out) -> int:
-    """Interactive wizard to register a new device."""
+def cmd_add_device(registry, out, selected_device=None) -> int:
+    """Interactive wizard to register a new device.
+
+    Args:
+        registry: Registry instance for device persistence.
+        out: Output interface for user messages.
+        selected_device: Optional pre-selected DiscoveredDevice (from TUI).
+            When provided, skips discovery scan, listing, and selection prompt.
+    """
     # Import discovery functions for USB scanning
     from .discovery import (
         scan_serial_devices,
@@ -1529,108 +1536,126 @@ def cmd_add_device(registry, out) -> int:
         )
         return 1
 
-    # Step 1: Scan USB devices
-    out.info("Discovery", "Scanning for USB serial devices...")
-    devices = scan_serial_devices()
-    if not devices:
-        out.error("No USB devices found. Plug in a board and try again.")
-        return 1
+    if selected_device is not None:
+        # TUI path: device already selected, skip discovery/listing/selection
+        selected = selected_device
 
-    registry_data = registry.load()
-    blocked_list = _build_blocked_list(registry_data)
+        # Determine if this device is already registered
+        registry_data = registry.load()
+        devices = scan_serial_devices()
+        existing_entry = None
+        for entry in registry_data.devices.values():
+            matches = match_devices(entry.serial_pattern, devices)
+            for matched_dev in matches:
+                if matched_dev.filename == selected.filename:
+                    existing_entry = entry
+                    break
+            if existing_entry is not None:
+                break
+    else:
+        # CLI path: full discovery scan and selection
+        # Step 1: Scan USB devices
+        out.info("Discovery", "Scanning for USB serial devices...")
+        devices = scan_serial_devices()
+        if not devices:
+            out.error("No USB devices found. Plug in a board and try again.")
+            return 1
 
-    entry_matches: dict[str, list] = {}
-    device_matches: dict[str, list] = {}
-    for entry in registry_data.devices.values():
-        matches = match_devices(entry.serial_pattern, devices)
-        entry_matches[entry.key] = matches
-        for device in matches:
-            device_matches.setdefault(device.filename, []).append(entry)
+        registry_data = registry.load()
+        blocked_list = _build_blocked_list(registry_data)
 
-    duplicate_entry_keys = {
-        key for key, matches in entry_matches.items() if len(matches) > 1
-    }
+        entry_matches: dict[str, list] = {}
+        device_matches: dict[str, list] = {}
+        for entry in registry_data.devices.values():
+            matches = match_devices(entry.serial_pattern, devices)
+            entry_matches[entry.key] = matches
+            for device in matches:
+                device_matches.setdefault(device.filename, []).append(entry)
 
-    registered_devices: list[tuple[object, object]] = []
-    new_devices: list = []
-    blocked_devices: list[tuple[object, str]] = []
-    duplicate_devices: list[tuple[object, list]] = []
+        duplicate_entry_keys = {
+            key for key, matches in entry_matches.items() if len(matches) > 1
+        }
 
-    for device in devices:
-        blocked_reason = _blocked_reason_for_filename(device.filename, blocked_list)
-        if blocked_reason or not is_supported_device(device.filename):
-            blocked_devices.append((device, blocked_reason or "Unsupported USB device"))
-            continue
+        registered_devices: list[tuple[object, object]] = []
+        new_devices: list = []
+        blocked_devices: list[tuple[object, str]] = []
+        duplicate_devices: list[tuple[object, list]] = []
 
-        entries = device_matches.get(device.filename, [])
-        if entries and (
-            len(entries) > 1
-            or any(entry.key in duplicate_entry_keys for entry in entries)
-        ):
-            duplicate_devices.append((device, entries))
-            continue
+        for device in devices:
+            blocked_reason = _blocked_reason_for_filename(device.filename, blocked_list)
+            if blocked_reason or not is_supported_device(device.filename):
+                blocked_devices.append((device, blocked_reason or "Unsupported USB device"))
+                continue
 
-        if entries:
-            registered_devices.append((device, entries[0]))
-        else:
-            new_devices.append(device)
+            entries = device_matches.get(device.filename, [])
+            if entries and (
+                len(entries) > 1
+                or any(entry.key in duplicate_entry_keys for entry in entries)
+            ):
+                duplicate_devices.append((device, entries))
+                continue
 
-    summary = (
-        f"{len(devices)} USB devices found: {len(registered_devices)} registered, "
-        f"{len(new_devices)} new, {len(blocked_devices)} blocked, "
-        f"{len(duplicate_devices)} duplicate"
-    )
-    out.info("Discovery", summary)
+            if entries:
+                registered_devices.append((device, entries[0]))
+            else:
+                new_devices.append(device)
 
-    selectable: list[tuple[object, object | None]] = []
-    if registered_devices:
-        out.info("Discovery", f"Registered devices ({len(registered_devices)}):")
-        for device, entry in registered_devices:
-            idx = len(selectable) + 1
-            label = f"{idx}. {device.filename}"
-            detail = f"{entry.key} ({entry.mcu})"
-            out.device_line("REG", label, detail)
-            selectable.append((device, entry))
-
-    if new_devices:
-        out.info("Discovery", f"New devices ({len(new_devices)}):")
-        for device in new_devices:
-            idx = len(selectable) + 1
-            label = f"{idx}. {device.filename}"
-            out.device_line("NEW", label, "Unregistered device")
-            selectable.append((device, None))
-
-    if duplicate_devices:
-        out.info(
-            "Discovery", f"Duplicate devices (not eligible) ({len(duplicate_devices)}):"
+        summary = (
+            f"{len(devices)} USB devices found: {len(registered_devices)} registered, "
+            f"{len(new_devices)} new, {len(blocked_devices)} blocked, "
+            f"{len(duplicate_devices)} duplicate"
         )
-        for device, entries in duplicate_devices:
-            keys = ", ".join(entry.key for entry in entries)
-            out.device_line("DUP", device.filename, f"Matches: {keys}")
+        out.info("Discovery", summary)
 
-    if blocked_devices:
-        out.info(
-            "Discovery", f"Blocked devices (not eligible) ({len(blocked_devices)}):"
+        selectable: list[tuple[object, object | None]] = []
+        if registered_devices:
+            out.info("Discovery", f"Registered devices ({len(registered_devices)}):")
+            for device, entry in registered_devices:
+                idx = len(selectable) + 1
+                label = f"{idx}. {device.filename}"
+                detail = f"{entry.key} ({entry.mcu})"
+                out.device_line("REG", label, detail)
+                selectable.append((device, entry))
+
+        if new_devices:
+            out.info("Discovery", f"New devices ({len(new_devices)}):")
+            for device in new_devices:
+                idx = len(selectable) + 1
+                label = f"{idx}. {device.filename}"
+                out.device_line("NEW", label, "Unregistered device")
+                selectable.append((device, None))
+
+        if duplicate_devices:
+            out.info(
+                "Discovery", f"Duplicate devices (not eligible) ({len(duplicate_devices)}):"
+            )
+            for device, entries in duplicate_devices:
+                keys = ", ".join(entry.key for entry in entries)
+                out.device_line("DUP", device.filename, f"Matches: {keys}")
+
+        if blocked_devices:
+            out.info(
+                "Discovery", f"Blocked devices (not eligible) ({len(blocked_devices)}):"
+            )
+            for device, reason in blocked_devices:
+                out.device_line("BLK", device.filename, reason)
+
+        if not selectable:
+            out.error("No eligible devices available to add.")
+            return 1
+
+        choices = ["0"] + [str(i) for i in range(1, len(selectable) + 1)]
+        choice = _get_menu_choice(
+            choices,
+            out,
+            max_attempts=3,
+            prompt="Select device number (0/q to cancel): ",
         )
-        for device, reason in blocked_devices:
-            out.device_line("BLK", device.filename, reason)
+        if choice is None or choice == "0":
+            out.info("Registry", "Add device cancelled")
+            return 0
 
-    if not selectable:
-        out.error("No eligible devices available to add.")
-        return 1
-
-    choices = ["0"] + [str(i) for i in range(1, len(selectable) + 1)]
-    choice = _get_menu_choice(
-        choices,
-        out,
-        max_attempts=3,
-        prompt="Select device number (0/q to cancel): ",
-    )
-    if choice is None or choice == "0":
-        out.info("Registry", "Add device cancelled")
-        return 0
-
-    selected, existing_entry = selectable[int(choice) - 1]
+        selected, existing_entry = selectable[int(choice) - 1]
 
     # Check if selected device is already registered
     if existing_entry is not None:
