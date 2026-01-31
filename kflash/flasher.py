@@ -8,10 +8,16 @@ from pathlib import Path
 from typing import Callable, Optional
 
 from .errors import DiscoveryError, format_error
-from .models import FlashResult
+from .models import FlashResult, KatapultCheckResult
 
 # Default timeout for flash operations (from CONTEXT.md)
 TIMEOUT_FLASH = 60
+
+# Katapult detection timing (from Phase 21 hardware research)
+BOOTLOADER_ENTRY_TIMEOUT = 5.0   # Max wait for flashtool.py -r
+USB_RESET_SLEEP = 0.5            # Pause between deauthorize/reauthorize
+POLL_INTERVAL = 0.25             # Serial device polling interval
+POLL_TIMEOUT = 5.0               # Max wait for device reappearance
 
 
 def verify_device_path(device_path: str) -> None:

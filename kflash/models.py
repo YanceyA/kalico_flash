@@ -99,3 +99,18 @@ class PrintStatus:
     state: str  # standby, printing, paused, complete, error, cancelled
     filename: Optional[str]  # None if no file loaded
     progress: float  # 0.0 to 1.0
+
+
+@dataclass
+class KatapultCheckResult:
+    """Result of a Katapult bootloader detection check.
+
+    has_katapult is tri-state:
+      True  - Katapult bootloader detected (katapult_ device appeared)
+      False - No Katapult (device entered DFU/BOOTSEL, recovered via USB reset)
+      None  - Inconclusive (error during check, device state unknown)
+    """
+
+    has_katapult: Optional[bool]  # True/False/None tri-state
+    error_message: Optional[str] = None  # Details when None or False
+    elapsed_seconds: float = 0.0
