@@ -24,6 +24,21 @@ One command to build and flash any registered board — no remembering serial pa
 See: `.planning/ROADMAP.md` for phase breakdown
 See: `.planning/REQUIREMENTS.md` for full requirements list
 
+## Next Milestone: v3.4 Check Katapult
+
+**Goal:** Add Katapult bootloader detection to the device config screen — probe a device to determine if Katapult is installed
+**Planned after:** v3.3
+
+**Target features:**
+- "K" key action in device config screen to check Katapult on selected device
+- Warning/confirmation gate before probing (device enters bootloader mode briefly)
+- Core detection via flashtool.py -r with polling for katapult_ device appearance
+- Auto-recovery via sysfs USB reset if device enters DFU/BOOTSEL (no Katapult)
+- Clear result display: detected / not detected / inconclusive
+- Reusable check_katapult() function in flasher.py for future pre-flash integration
+
+See: `.working/check_katapult_plan.md` for detailed plan
+
 ## Previous State (v3.2 shipped)
 
 **Shipped:** 2026-01-31
