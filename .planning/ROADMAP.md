@@ -241,11 +241,11 @@ Plans:
   2. Device config screen has no key edit option (setting removed from DEVICE_SETTINGS)
   3. All user-facing output (device lists, flash messages, batch results) shows `entry.name` not `entry.key`
   4. Existing devices.json keys preserved exactly as-is — no re-derivation or migration on load
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 25-01: Remove key prompt from add-device wizard, wire generate_device_key()
-- [ ] 25-02: Remove key edit from device config screen, replace entry.key with entry.name in all output
+- [ ] 25-01-PLAN.md — Remove key prompt from add-device wizard, wire generate_device_key()
+- [ ] 25-02-PLAN.md — Remove key edit from device config screen, replace entry.key with entry.name in all output
 
 #### Phase 26: Remove CLI
 **Goal**: kflash launches directly into TUI with no argument parsing
