@@ -9,10 +9,10 @@ Requirements for CLI removal and device key internalization.
 
 ### CLI Removal
 
-- [ ] **CLI-01**: `kflash` launches directly into TUI menu with no argument parsing
-- [ ] **CLI-02**: Running `kflash --device X` or any old flag prints a friendly migration message and exits
-- [ ] **CLI-03**: All argparse setup, `_parse_args()`, and flag-driven command routing removed from flash.py
-- [ ] **CLI-04**: Late-import branches that only existed for CLI code paths removed
+- [x] **CLI-01**: `kflash` launches directly into TUI menu with no argument parsing
+- [x] **CLI-02**: Running `kflash --device X` or any old flag — ignored, TUI launches (unreleased tool)
+- [x] **CLI-03**: All argparse setup, `_parse_args()`, and flag-driven command routing removed from flash.py
+- [x] **CLI-04**: Late-import branches that only existed for CLI code paths removed
 
 ### Key Internalization
 
@@ -51,10 +51,10 @@ Requirements for CLI removal and device key internalization.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| CLI-01 | Phase 26 | Pending |
-| CLI-02 | Phase 26 | Pending |
-| CLI-03 | Phase 26 | Pending |
-| CLI-04 | Phase 26 | Pending |
+| CLI-01 | Phase 26 | Complete |
+| CLI-02 | Phase 26 | Complete |
+| CLI-03 | Phase 26 | Complete |
+| CLI-04 | Phase 26 | Complete |
 | KEY-01 | Phase 24 | Complete |
 | KEY-02 | Phase 24 | Complete |
 | KEY-03 | Phase 25 | Complete |
