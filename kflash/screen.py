@@ -80,6 +80,7 @@ ACTIONS: list[tuple[str, str]] = [
     ("B", "Flash All"),
     ("A", "Add Device"),
     ("E", "Config Device"),
+    ("D", "Refresh Devices"),
     ("R", "Remove Device"),
     ("C", "Settings"),
     ("Q", "Quit"),
