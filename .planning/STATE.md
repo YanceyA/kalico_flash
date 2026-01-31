@@ -11,12 +11,12 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 
 Milestone: v3.4 Check Katapult (next to execute)
 Phase: 21 of 27 (Pi Hardware Research)
-Plan: Not started
-Status: Ready to plan
+Plan: 1 of 1 (complete)
+Status: Phase complete
 
 Planned milestone: v4.0 Remove CLI & Internalize Device Keys (phases 24-27, after v3.4)
 
-Progress: [█████████████████████] 41/41 plans (through v3.3)
+Progress: [██████████████████████] 42/42 plans (through phase 21)
 
 ## Shipped Milestones
 
@@ -50,9 +50,9 @@ Progress: [█████████████████████] 41/4
 ## Session Continuity
 
 Last session: 2026-01-31
-Stopped at: v4.0 roadmap created (phases 24-27)
+Stopped at: Completed 21-01-PLAN.md (Pi Hardware Research)
 Resume file: None
-Next step: Complete v3.4 first, then /gsd:plan-phase 24 for v4.0
+Next step: Plan and execute Phase 22 (Core Detection Engine)
 
 ---
-*Last updated: 2026-01-31 after v4.0 roadmap creation*
+*Last updated: 2026-01-31 after Phase 21 completion*
