@@ -270,7 +270,7 @@ Plans:
   2. CLAUDE.md CLI Commands section replaced with TUI Menu section
   3. Error recovery messages reference TUI actions ("Press F to flash") instead of CLI flags ("--device KEY")
   4. install.sh has no flag references (kflash symlink preserved)
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
 - [ ] 27-01: Update README, CLAUDE.md, install.sh for TUI-only operation
