@@ -12,33 +12,33 @@
 
 ### Config Device Screen
 
-- [ ] **CDEV-01**: Config screen shows device identity panel at top (MCU type, serial pattern — read-only)
-- [ ] **CDEV-02**: Config screen shows editable fields panel with numbered options and current values
-- [ ] **CDEV-03**: Screen uses same two-panel visual pattern as global config screen (separate TUI branch)
+- [x] **CDEV-01**: Config screen shows device identity panel at top (MCU type, serial pattern — read-only)
+- [x] **CDEV-02**: Config screen shows editable fields panel with numbered options and current values
+- [x] **CDEV-03**: Screen uses same two-panel visual pattern as global config screen (separate TUI branch)
 
 ### Field Editing
 
-- [ ] **EDIT-01**: User can edit display name (text input, reject empty)
-- [ ] **EDIT-02**: User can edit device key (text input, validate uniqueness, validate format)
-- [ ] **EDIT-03**: User can cycle flash method (default → katapult → make_flash)
-- [ ] **EDIT-04**: User can toggle include/exclude status
-- [ ] **EDIT-05**: User can launch make menuconfig for this device's cached config
+- [x] **EDIT-01**: User can edit display name (text input, reject empty)
+- [x] **EDIT-02**: User can edit device key (text input, validate uniqueness, validate format)
+- [x] **EDIT-03**: User can cycle flash method (default → katapult → make_flash)
+- [x] **EDIT-04**: User can toggle include/exclude status
+- [x] **EDIT-05**: User can launch make menuconfig for this device's cached config
 
 ### Key Rename
 
-- [ ] **KEY-01**: Key rename validates new key is unique in registry
-- [ ] **KEY-02**: Key rename migrates cached config directory to new key name
-- [ ] **KEY-03**: Key rename uses atomic registry save (single save cycle, not delete+add)
+- [x] **KEY-01**: Key rename validates new key is unique in registry
+- [x] **KEY-02**: Key rename migrates cached config directory to new key name
+- [x] **KEY-03**: Key rename uses atomic registry save (single save cycle, not delete+add)
 
 ### Persistence
 
-- [ ] **SAVE-01**: All edits collected in memory, saved on screen exit (collect-then-save pattern)
-- [ ] **SAVE-02**: Registry updated atomically (existing temp file + fsync + rename pattern)
+- [x] **SAVE-01**: All edits collected in memory, saved on screen exit (collect-then-save pattern)
+- [x] **SAVE-02**: Registry updated atomically (existing temp file + fsync + rename pattern)
 
 ### Visual Consistency
 
 - [x] **VIS-01**: Step dividers between sections in config device flow
-- [ ] **VIS-02**: Screen follows Minimalist Zen aesthetic consistent with existing panels
+- [x] **VIS-02**: Screen follows Minimalist Zen aesthetic consistent with existing panels
 
 ## Future Requirements
 
