@@ -1,18 +1,10 @@
 #!/usr/bin/env python3
-"""CLI entry point for kalico-flash.
+"""TUI entry point for kalico-flash.
 
-Unified tool for building and flashing Klipper firmware to USB-connected
-MCU boards. Provides device registration, discovery, and full build/flash
-workflow with phase-labeled output.
+Launches an interactive terminal menu for building and flashing Klipper
+firmware to USB-connected MCU boards. Requires an interactive terminal (TTY).
 
-Usage:
-    kflash --add-device        # Register a new board
-    kflash --list-devices      # Show registered boards and status
-    kflash --remove-device KEY # Remove a registered board
-    kflash --device KEY        # Build and flash the named device
-    kflash                     # Interactive menu (TTY) or help (non-TTY)
-
-This is the CLI entry point. Core logic lives in:
+Core logic lives in:
     - registry.py: Device registry persistence
     - discovery.py: USB device scanning and matching
     - output.py: Pluggable output interface (CLI, future Moonraker)
@@ -22,12 +14,11 @@ This is the CLI entry point. Core logic lives in:
     - build.py: Menuconfig and firmware compilation
     - service.py: Klipper service lifecycle management
     - flasher.py: Dual-method flash operations
-    - tui.py: Interactive menu for no-args mode
+    - tui.py: Interactive menu
 """
 
 from __future__ import annotations
 
-import argparse
 import fnmatch
 import shutil
 import sys
@@ -88,73 +79,6 @@ def _short_path(path_value: str) -> str:
     except (TypeError, ValueError):
         return path_value
 
-
-def build_parser() -> argparse.ArgumentParser:
-    """Build and return the argument parser."""
-    parser = argparse.ArgumentParser(
-        prog="kflash",
-        description="Build and flash Klipper firmware for USB-connected MCU boards.",
-        epilog="Run without args for interactive menu, or use -d KEY "
-        "to flash a specific board. Use -s to skip menuconfig when cached config exists. "
-        "Device management: --add-device, --list-devices, --remove-device, "
-        "--exclude-device, --include-device.",
-    )
-    parser.add_argument(
-        "--version",
-        action="version",
-        version=f"kalico-flash v{VERSION}",
-    )
-    parser.add_argument(
-        "-d",
-        "--device",
-        metavar="KEY",
-        help="Device key to build and flash (run without --device for interactive selection)",
-    )
-    parser.add_argument(
-        "-s",
-        "--skip-menuconfig",
-        action="store_true",
-        help="Skip menuconfig if cached config exists",
-    )
-
-    # Management commands (mutually exclusive)
-    mgmt = parser.add_mutually_exclusive_group()
-    mgmt.add_argument(
-        "--add-device",
-        action="store_true",
-        help="Interactive wizard to register a new device",
-    )
-    mgmt.add_argument(
-        "--list-devices",
-        action="store_true",
-        help="List all registered devices with connection status",
-    )
-    mgmt.add_argument(
-        "--remove-device",
-        metavar="NAME",
-        help="Remove a registered device by key",
-    )
-
-    # Device exclusion commands (not mutually exclusive with management group)
-    parser.add_argument(
-        "--exclude-device",
-        metavar="KEY",
-        help="Mark a device as non-flashable",
-    )
-    parser.add_argument(
-        "--include-device",
-        metavar="KEY",
-        help="Mark a device as flashable",
-    )
-
-    # Future flags (Phase 2/3):
-    # --build-only: Build firmware without flashing
-    # --flash-only: Flash existing firmware without rebuilding
-    # --config PATH: Path to Kconfig fragment
-    # --force: Skip confirmation prompts
-    # --dry-run: Show what would be done without doing it
-
-    return parser
 
 
 def _emit_preflight(out, errors: list[str], warnings: list[str]) -> bool:
@@ -263,7 +187,7 @@ def _remove_cached_config(device_key: str, out, prompt: bool = True, device_name
         out.warn(f"Failed to remove cached config: {exc}")
 
 
-def cmd_build(registry, device_key: str, out, from_tui: bool = False) -> int:
+def cmd_build(registry, device_key: str, out) -> int:
     """Build firmware for a registered device.
 
     Orchestrates: load cached config -> menuconfig -> save config -> MCU validation -> build
@@ -283,15 +207,14 @@ def cmd_build(registry, device_key: str, out, from_tui: bool = False) -> int:
             template["error_type"],
             template["message_template"].format(device=device_key),
             context={"device": device_key},
-            recovery=get_recovery_text("device_not_registered", from_tui),
+            recovery=get_recovery_text("device_not_registered"),
         )
         return 1
 
     # Load global config for klipper_dir
     data = registry.load()
     if data.global_config is None:
-        hint = "Press A to add a device first." if from_tui else "Run --add-device first."
-        out.error(f"Global config not set. {hint}")
+        out.error("Global config not set. Press A to add a device first.")
         return 1
 
     klipper_dir = data.global_config.klipper_dir
@@ -399,7 +322,7 @@ def cmd_build(registry, device_key: str, out, from_tui: bool = False) -> int:
 
 
 def cmd_flash(
-    registry, device_key, out, skip_menuconfig: bool = False, from_tui: bool = False
+    registry, device_key, out, skip_menuconfig: bool = False
 ) -> int:
     """Build and flash firmware for a registered device.
 
@@ -438,14 +361,13 @@ def cmd_flash(
 
     # TTY check for interactive mode
     if device_key is None and not sys.stdin.isatty():
-        out.error("Interactive terminal required. Use --device KEY or run from SSH terminal.")
+        out.error("Interactive terminal required. Run from SSH terminal.")
         return 1
 
     # Load registry data
     data = registry.load()
     if data.global_config is None:
-        hint = "Press A to add a device first." if from_tui else "Run --add-device first."
-        out.error(f"Global config not set. {hint}")
+        out.error("Global config not set. Press A to add a device first.")
         return 1
     blocked_list = _build_blocked_list(data)
 
@@ -531,18 +453,11 @@ def cmd_flash(
                         out.device_line("BLK", f"{entry.name} ({entry.mcu}) [blocked]", reason)
                     return 1
 
-            if from_tui:
-                recovery = (
-                    "1. Press D to refresh devices\n"
-                    "2. Check USB connections\n"
-                    "3. Press A to add a device"
-                )
-            else:
-                recovery = (
-                    "1. List registered devices: kflash --list-devices\n"
-                    "2. Check USB connections\n"
-                    "3. Register new device: kflash --add-device"
-                )
+            recovery = (
+                "1. Press D to refresh devices\n"
+                "2. Check USB connections\n"
+                "3. Press A to add a device"
+            )
             out.error_with_recovery(
                 "Device not found",
                 "No registered devices connected",
@@ -599,7 +514,7 @@ def cmd_flash(
             out.error_with_recovery(
                 template["error_type"],
                 "All connected devices are excluded from flashing",
-                recovery=get_recovery_text("device_excluded", from_tui),
+                recovery=get_recovery_text("device_excluded"),
             )
             return 1
 
@@ -645,7 +560,7 @@ def cmd_flash(
             device_key = entry.key
             device_path = usb_device.path
     else:
-        # Explicit --device KEY mode: verify device exists and is connected
+        # Verify device exists and is connected
         entry = registry.get(device_key)
         if entry is None:
             from .errors import get_recovery_text
@@ -655,7 +570,7 @@ def cmd_flash(
                 template["error_type"],
                 template["message_template"].format(device=device_key),
                 context={"device": device_key},
-                recovery=get_recovery_text("device_not_registered", from_tui),
+                recovery=get_recovery_text("device_not_registered"),
             )
             return 1
 
@@ -674,13 +589,7 @@ def cmd_flash(
 
         # Check if device is excluded from flashing
         if not entry.flashable:
-            if from_tui:
-                recovery_msg = f"The device '{entry.name}' is excluded from flashing."
-            else:
-                recovery_msg = (
-                    f"The device '{entry.name}' is marked as non-flashable. "
-                    f"To make it flashable, run `kflash --include-device {device_key}`."
-                )
+            recovery_msg = f"The device '{entry.name}' is excluded from flashing. Re-include it from the device list."
             out.error_with_recovery(
                 "Device excluded",
                 device_key,
@@ -715,7 +624,7 @@ def cmd_flash(
                 template["error_type"],
                 template["message_template"].format(device=device_key),
                 context={"device": device_key},
-                recovery=get_recovery_text("device_not_connected", from_tui),
+                recovery=get_recovery_text("device_not_connected"),
             )
             return 1
 
@@ -1419,51 +1328,8 @@ def cmd_remove_device(registry, device_key: str, out) -> int:
     return 0
 
 
-def cmd_exclude_device(registry, device_key: str, out) -> int:
-    """Mark a device as non-flashable."""
-    from .errors import ERROR_TEMPLATES
 
-    entry = registry.get(device_key)
-    if entry is None:
-        template = ERROR_TEMPLATES["device_not_registered"]
-        out.error_with_recovery(
-            template["error_type"],
-            template["message_template"].format(device=device_key),
-            context={"device": device_key},
-            recovery=template["recovery_template"],
-        )
-        return 1
-    if not entry.flashable:
-        out.warn(f"Device '{entry.name}' is already excluded")
-        return 0
-    registry.set_flashable(device_key, False)
-    out.success(f"Excluded '{entry.name}' from flashing")
-    return 0
-
-
-def cmd_include_device(registry, device_key: str, out) -> int:
-    """Mark a device as flashable."""
-    from .errors import ERROR_TEMPLATES
-
-    entry = registry.get(device_key)
-    if entry is None:
-        template = ERROR_TEMPLATES["device_not_registered"]
-        out.error_with_recovery(
-            template["error_type"],
-            template["message_template"].format(device=device_key),
-            context={"device": device_key},
-            recovery=template["recovery_template"],
-        )
-        return 1
-    if entry.flashable:
-        out.warn(f"Device '{entry.name}' is already flashable")
-        return 0
-    registry.set_flashable(device_key, True)
-    out.success(f"Included '{entry.name}' for flashing")
-    return 0
-
-
-def cmd_list_devices(registry, out, from_menu: bool = False) -> int:
+def cmd_list_devices(registry, out) -> int:
     """List all registered devices with connection status.
 
     Cross-references registered devices against live USB scan to show:
@@ -1474,7 +1340,6 @@ def cmd_list_devices(registry, out, from_menu: bool = False) -> int:
     Args:
         registry: Registry instance for device lookup.
         out: Output interface for user messages.
-        from_menu: If True, suppress "Use --add-device" hint (menu has its own navigation).
     """
     from .discovery import is_supported_device, match_devices, scan_serial_devices
     from .moonraker import get_host_klipper_version, get_mcu_version_for_device, get_mcu_versions
@@ -1548,10 +1413,7 @@ def cmd_list_devices(registry, out, from_menu: bool = False) -> int:
                 marker = "NEW"
                 detail = "Unregistered device"
             out.device_line(marker, device.filename, detail)
-        hint = (
-            "Press A to register a board." if from_menu else "Run --add-device to register a board."
-        )
-        out.info("Devices", hint)
+        out.info("Devices", "Press A to register a board.")
         return 0
 
     # Normal display: show registered devices with connection status
@@ -1619,9 +1481,9 @@ def cmd_list_devices(registry, out, from_menu: bool = False) -> int:
             for device, reason in blocked_unmatched:
                 out.device_line("BLK", device.filename, reason)
 
-        # Only show hint if there are new devices and not from menu
-        if new_unmatched and not from_menu:
-            out.info("Devices", "Use --add-device to register unknown devices.")
+        # Show hint if there are new unregistered devices
+        if new_unmatched:
+            out.info("Devices", "Press A to register unknown devices.")
 
     # Show host Klipper version at the end
     if host_version:
@@ -1655,7 +1517,7 @@ def cmd_add_device(registry, out, selected_device=None) -> int:
 
     # TTY check: wizard requires interactive terminal
     if not sys.stdin.isatty():
-        out.error("Interactive terminal required for --add-device. Run from SSH terminal.")
+        out.error("Interactive terminal required. Run from SSH terminal.")
         return 1
 
     if selected_device is not None:
@@ -1678,7 +1540,7 @@ def cmd_add_device(registry, out, selected_device=None) -> int:
             if existing_entry is not None:
                 break
     else:
-        # CLI path: full discovery scan and selection
+        # Full discovery scan and selection
         # Step 1: Scan USB devices
         out.info("Discovery", "Scanning for USB serial devices...")
         devices = scan_serial_devices()
@@ -2005,48 +1867,22 @@ def cmd_add_device(registry, out, selected_device=None) -> int:
 
 
 def main() -> int:
-    """Main entry point."""
-    parser = build_parser()
-    args = parser.parse_args()
+    """Main entry point — launch TUI."""
+    if not sys.stdin.isatty():
+        print("kalico-flash requires an interactive terminal.", file=sys.stderr)
+        return 1
 
-    # Late imports for fast startup
     from .errors import KlipperFlashError
     from .output import CliOutput
     from .registry import Registry
 
     out = CliOutput()
-
-    # Registry file lives next to this module
     registry_path = Path(__file__).parent / "devices.json"
     registry = Registry(str(registry_path))
 
     try:
-        # Handle management commands
-        if args.add_device:
-            return cmd_add_device(registry, out)
-        elif args.list_devices:
-            return cmd_list_devices(registry, out)
-        elif args.remove_device:
-            return cmd_remove_device(registry, args.remove_device, out)
-        elif args.exclude_device:
-            return cmd_exclude_device(registry, args.exclude_device, out)
-        elif args.include_device:
-            return cmd_include_device(registry, args.include_device, out)
-
-        # Handle explicit --device flash
-        elif args.device:
-            return cmd_flash(registry, args.device, out, skip_menuconfig=args.skip_menuconfig)
-
-        # No args: interactive menu on TTY, help on non-TTY
-        else:
-            if sys.stdin.isatty():
-                from .tui import run_menu
-
-                return run_menu(registry, out)
-            else:
-                parser.print_help()
-                return 0
-
+        from .tui import run_menu
+        return run_menu(registry, out)
     except KeyboardInterrupt:
         out.warn("Aborted.")
         return 130

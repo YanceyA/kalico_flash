@@ -336,7 +336,7 @@ def _action_flash_device(registry, out, device_key: str) -> tuple[str, str]:
 
     try:
         skip = registry.load().global_config.skip_menuconfig
-        result = cmd_flash(registry, device_key, out, skip_menuconfig=skip, from_tui=True)
+        result = cmd_flash(registry, device_key, out, skip_menuconfig=skip)
         if result == 0:
             entry = registry.get(device_key)
             name = entry.name if entry else device_key
