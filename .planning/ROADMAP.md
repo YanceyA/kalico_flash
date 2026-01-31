@@ -256,10 +256,10 @@ Plans:
   2. Running `kflash --device X` or any old flag prints a friendly migration message and exits cleanly (no traceback)
   3. `build_parser()`, `_parse_args()`, and all argparse imports are deleted from flash.py
   4. Late-import branches that only existed for CLI code paths are removed
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
-- [ ] 26-01: Delete argparse, simplify main() to TUI launcher with migration message for old flags
+- [ ] 26-01: Delete CLI infrastructure, rewrite main() as thin TUI launcher, remove from_tui/from_menu params
 
 #### Phase 27: Documentation & Cleanup
 **Goal**: All docs and error messages reflect TUI-only operation
