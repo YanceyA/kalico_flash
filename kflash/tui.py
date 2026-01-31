@@ -551,12 +551,31 @@ def run_menu(registry, out) -> int:
                 else:
                     device_key = _prompt_device_number(device_map, out)
                     if device_key:
-                        print(render_action_divider())
-                        _device_config_screen(device_key, registry, out)
-                        print(render_action_divider())
-                        status_message = "Returned from device config"
-                        status_level = "info"
-                        _countdown_return(registry.load().global_config.return_delay)
+                        # Check if selected device is unregistered
+                        selected_row = next(
+                            (r for r in device_map.values() if r.key == device_key), None
+                        )
+                        if selected_row and selected_row.group == "new":
+                            try:
+                                answer = input(
+                                    f"  {theme.prompt}Device not registered. Add it now? (y/n):{theme.reset} "
+                                ).strip().lower()
+                            except (EOFError, KeyboardInterrupt):
+                                answer = "n"
+                            if answer in ("y", "yes"):
+                                status_message, status_level = _action_add_device(
+                                    registry, out, device_row=selected_row
+                                )
+                            else:
+                                status_message = "Config: cancelled"
+                                status_level = "info"
+                        else:
+                            print(render_action_divider())
+                            _device_config_screen(device_key, registry, out)
+                            print(render_action_divider())
+                            status_message = "Returned from device config"
+                            status_level = "info"
+                            _countdown_return(registry.load().global_config.return_delay)
                     else:
                         status_message = "Config: no device selected"
                         status_level = "warning"
