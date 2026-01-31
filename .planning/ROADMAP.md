@@ -211,11 +211,11 @@ Plans:
   3. Config screen renders read-only identity panel showing MCU type and serial pattern at top
   4. Config screen renders editable fields panel with numbered options showing current values
   5. Screen follows two-panel visual pattern consistent with existing global config screen
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 18-01: Registry update method, key validation, config cache rename helper
-- [ ] 18-02: Device config screen rendering (DEVICE_SETTINGS, render function, two-panel layout)
+- [ ] 18-01-PLAN.md — Registry update method, key validation, config cache rename helper
+- [ ] 18-02-PLAN.md — Device config screen rendering (DEVICE_SETTINGS, render function, two-panel layout)
 
 #### Phase 19: Edit Interaction
 **Goal**: Users can edit all device properties through the config screen with safe key rename
