@@ -251,7 +251,7 @@ Plans:
   3. Confirmation prompt defaults to No — user must actively opt in
   4. Result displayed clearly: Katapult detected / not detected / inconclusive with explanation
   5. Klipper service stopped before check, guaranteed restart after (via existing context manager)
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
 - [ ] 23-01: Wire "K" key handler in device config screen with warning, confirmation, service lifecycle, result display
