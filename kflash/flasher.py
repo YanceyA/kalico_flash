@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import fnmatch
+import os
+import re
 import subprocess
 import time
 from pathlib import Path
@@ -155,6 +158,58 @@ def _try_make_flash(
             elapsed_seconds=timeout,
             error_message=f"Flash timeout ({timeout}s) - device may need manual recovery",
         )
+
+
+def _resolve_usb_sysfs_path(serial_path: str) -> str:
+    """Resolve /dev/serial/by-id/ symlink to sysfs USB authorized file path."""
+    real_dev = os.path.realpath(serial_path)
+    tty_name = os.path.basename(real_dev)
+    sysfs_device = f"/sys/class/tty/{tty_name}/device"
+    if not os.path.exists(sysfs_device):
+        raise DiscoveryError(f"sysfs path not found: {sysfs_device}")
+    iface_path = os.path.realpath(sysfs_device)
+    usb_dev_path = os.path.dirname(iface_path)
+    authorized = os.path.join(usb_dev_path, "authorized")
+    if not os.path.exists(authorized):
+        raise DiscoveryError(f"USB authorized file not found: {authorized}")
+    return authorized
+
+
+def _usb_sysfs_reset(authorized_path: str) -> None:
+    """Toggle USB device authorized flag to force re-enumeration."""
+    for value in ('0', '1'):
+        result = subprocess.run(
+            ['sudo', 'tee', authorized_path],
+            input=value,
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        if result.returncode != 0:
+            raise DiscoveryError(
+                f"Failed to write '{value}' to {authorized_path}: "
+                f"{result.stderr.strip()}"
+            )
+        if value == '0':
+            time.sleep(USB_RESET_SLEEP)
+
+
+def _poll_for_serial_device(
+    pattern: str,
+    timeout: float = POLL_TIMEOUT,
+) -> Optional[str]:
+    """Poll /dev/serial/by-id/ for device matching glob pattern."""
+    serial_dir = '/dev/serial/by-id'
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        try:
+            for name in os.listdir(serial_dir):
+                if fnmatch.fnmatch(name, pattern):
+                    return os.path.join(serial_dir, name)
+        except FileNotFoundError:
+            pass  # Directory may vanish briefly during USB reset
+        time.sleep(POLL_INTERVAL)
+    return None
 
 
 def flash_device(
