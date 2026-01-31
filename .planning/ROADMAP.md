@@ -223,7 +223,7 @@ Plans:
 **Plans**: 1 plan
 
 Plans:
-- [ ] 21-01: Validate research completeness and write summary
+- [x] 21-01: Validate research completeness and write summary
 
 #### Phase 22: Core Detection Engine
 **Goal**: Reusable check_katapult() function with helpers for bootloader detection and USB recovery
@@ -344,7 +344,7 @@ Phases execute in numeric order: 21 → 22 → 23 → 24 → 25 → 26 → 27
 | 18. Foundation & Screen | v3.3 | 2/2 | Complete | 2026-01-31 |
 | 19. Edit Interaction | v3.3 | 1/1 | Complete | 2026-01-31 |
 | 20. Menu Integration | v3.3 | 1/1 | Complete | 2026-01-31 |
-| 21. Pi Hardware Research | v3.4 | 0/1 | Not started | - |
+| 21. Pi Hardware Research | v3.4 | 1/1 | Complete | 2026-01-31 |
 | 22. Core Detection Engine | v3.4 | 0/1 | Not started | - |
 | 23. TUI Integration | v3.4 | 0/1 | Not started | - |
 | 24. Slug Generation | v4.0 | 0/1 | Not started | - |

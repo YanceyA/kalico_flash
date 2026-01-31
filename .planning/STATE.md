@@ -9,10 +9,10 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 
 ## Current Position
 
-Milestone: v3.4 Check Katapult (next to execute)
-Phase: 21 of 27 (Pi Hardware Research)
-Plan: 1 of 1 (complete)
-Status: Phase complete
+Milestone: v3.4 Check Katapult (in progress)
+Phase: 22 of 27 (Core Detection Engine) — next to plan
+Plan: Not started
+Status: Phase 21 complete, ready to plan Phase 22
 
 Planned milestone: v4.0 Remove CLI & Internalize Device Keys (phases 24-27, after v3.4)
 
