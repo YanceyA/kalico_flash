@@ -338,7 +338,9 @@ def cmd_build(registry, device_key: str, out, from_tui: bool = False) -> int:
             "Config error",
             f"Failed to cache config: {e}",
             context={"device": device_key},
-            recovery="1. Verify Klipper directory is writable\n2. Check disk space\n3. Re-run menuconfig",
+            recovery=(
+                "1. Verify Klipper directory is writable\n2. Check disk space\n3. Re-run menuconfig"
+            ),
         )
         return 1
 
@@ -364,7 +366,11 @@ def cmd_build(registry, device_key: str, out, from_tui: bool = False) -> int:
             "Config error",
             f"MCU validation failed: {e}",
             context={"device": device_key},
-            recovery="1. Run menuconfig and verify MCU selection\n2. Check .config file exists\n3. Ensure CONFIG_MCU is set",
+            recovery=(
+                "1. Run menuconfig and verify MCU selection\n"
+                "2. Check .config file exists\n"
+                "3. Ensure CONFIG_MCU is set"
+            ),
         )
         return 1
 
@@ -513,18 +519,29 @@ def cmd_flash(
                     out.error_with_recovery(
                         "Blocked devices",
                         "Connected registered devices are blocked and cannot be flashed",
-                        recovery="1. Remove blocked entries from devices.json\n2. Or connect a flashable device",
+                        recovery=(
+                            "1. Remove blocked entries from devices.json\n"
+                            "2. Or connect a flashable device"
+                        ),
                     )
                     out.phase("Discovery", "Blocked registered devices:")
-                    for entry, device in blocked_connected:
+                    for entry, _device in blocked_connected:
                         reason = blocked_entries.get(entry.key, "Blocked by policy")
                         out.device_line("BLK", f"{entry.key} ({entry.mcu}) [blocked]", reason)
                     return 1
 
             if from_tui:
-                recovery = "1. Press D to refresh devices\n2. Check USB connections\n3. Press A to add a device"
+                recovery = (
+                    "1. Press D to refresh devices\n"
+                    "2. Check USB connections\n"
+                    "3. Press A to add a device"
+                )
             else:
-                recovery = "1. List registered devices: kflash --list-devices\n2. Check USB connections\n3. Register new device: kflash --add-device"
+                recovery = (
+                    "1. List registered devices: kflash --list-devices\n"
+                    "2. Check USB connections\n"
+                    "3. Register new device: kflash --add-device"
+                )
             out.error_with_recovery(
                 "Device not found",
                 "No registered devices connected",
@@ -570,7 +587,7 @@ def cmd_flash(
             ]
             if blocked_connected:
                 out.phase("Discovery", "Blocked devices (not selectable):")
-                for entry, device in blocked_connected:
+                for entry, _device in blocked_connected:
                     reason = blocked_entries.get(entry.key, "Blocked by policy")
                     out.device_line("BLK", f"{entry.key} ({entry.mcu}) [blocked]", reason)
 
@@ -859,7 +876,11 @@ def cmd_flash(
                 "Config error",
                 f"Failed to cache config: {e}",
                 context={"device": device_key},
-                recovery="1. Verify Klipper directory is writable\n2. Check disk space\n3. Re-run menuconfig",
+                recovery=(
+                    "1. Verify Klipper directory is writable\n"
+                    "2. Check disk space\n"
+                    "3. Re-run menuconfig"
+                ),
             )
             return 1
 
@@ -885,7 +906,11 @@ def cmd_flash(
             "Config error",
             f"MCU validation failed: {e}",
             context={"device": device_key},
-            recovery="1. Run menuconfig and verify MCU selection\n2. Check .config file exists\n3. Ensure CONFIG_MCU is set",
+            recovery=(
+                "1. Run menuconfig and verify MCU selection\n"
+                "2. Check .config file exists\n"
+                "3. Ensure CONFIG_MCU is set"
+            ),
         )
         return 1
 
@@ -923,7 +948,11 @@ def cmd_flash(
             "Device disconnected",
             str(e),
             context={"device": device_key, "path": device_path},
-            recovery="1. Check USB connection and board power\n2. List devices: ls /dev/serial/by-id/\n3. Reconnect and retry flash",
+            recovery=(
+                "1. Check USB connection and board power\n"
+                "2. List devices: ls /dev/serial/by-id/\n"
+                "3. Reconnect and retry flash"
+            ),
         )
         return 1
 
@@ -1136,7 +1165,6 @@ def cmd_flash_all(registry, out) -> int:
         return 1
 
     # Display config ages and warn on stale configs
-    stale_warned = False
     for entry in flashable_devices:
         config_mgr = ConfigManager(entry.key, klipper_dir)
         age_display = config_mgr.get_cache_age_display()
@@ -1144,9 +1172,9 @@ def cmd_flash_all(registry, out) -> int:
         out.info("", f"  {entry.name} ({entry.key}): config cached {age_str}")
         if age_display and "Recommend Review" in age_display:
             out.warn(
-                f"  {entry.key} config is very old — consider flashing individually to review config"
+                f"  {entry.key} config is very old"
+                " — consider flashing individually to review config"
             )
-            stale_warned = True
 
     out.phase("Flash All", f"{len(flashable_devices)} device(s) validated")
 
@@ -1307,13 +1335,12 @@ def cmd_flash_all(registry, out) -> int:
                     )
                     if verified:
                         result.verify_ok = True
-                        print(
-                            f"  \u2713 {entry.name} flashed and verified ({flash_idx}/{flash_total})"
-                        )
+                        print(f"  ✓ {entry.name} flashed and verified ({flash_idx}/{flash_total})")
                     else:
                         result.error_message = error_reason or "Verification failed"
                         print(
-                            f"  \u2717 {entry.name} flash OK but verify failed ({flash_idx}/{flash_total})"
+                            f"  ✗ {entry.name} flash OK but verify failed"
+                            f" ({flash_idx}/{flash_total})"
                         )
 
                     # Re-scan after flash for next device
@@ -1785,7 +1812,7 @@ def cmd_add_device(registry, out, selected_device=None) -> int:
 
     # Step 4: Device key
     device_key = None
-    for attempt in range(3):
+    for _attempt in range(3):
         key_input = out.prompt("Device key (used with --device flag, e.g., 'octopus-pro')")
         if not key_input:
             out.warn("Device key cannot be empty.")
@@ -1871,7 +1898,7 @@ def cmd_add_device(registry, out, selected_device=None) -> int:
             "Flash",
             f"Preferred method default is {default_method}. Flash fallback is {fallback_state}.",
         )
-    for attempt in range(3):
+    for _attempt in range(3):
         method_input = out.prompt("Preferred flash method", default=default_method).strip().lower()
         if method_input in ("katapult", "make_flash"):
             # If same as global default, store None to inherit

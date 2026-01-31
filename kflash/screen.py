@@ -508,7 +508,10 @@ def render_device_config_screen(device_entry: DeviceEntry) -> str:
     # Identity panel (read-only)
     identity_lines = [
         f"{theme.text}MCU Type:{theme.reset} {theme.value}{device_entry.mcu}{theme.reset}",
-        f"{theme.text}Serial Pattern:{theme.reset} {theme.value}{device_entry.serial_pattern}{theme.reset}",
+        (
+            f"{theme.text}Serial Pattern:{theme.reset} "
+            f"{theme.value}{device_entry.serial_pattern}{theme.reset}"
+        ),
     ]
     identity = render_panel("device identity", identity_lines)
 

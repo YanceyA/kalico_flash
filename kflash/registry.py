@@ -26,7 +26,7 @@ class Registry:
         try:
             raw = json.loads(p.read_text(encoding="utf-8"))
         except json.JSONDecodeError as e:
-            raise RegistryError(f"Corrupt registry file: {e}")
+            raise RegistryError(f"Corrupt registry file: {e}") from e
 
         global_raw = raw.get("global", {})
         global_config = GlobalConfig(

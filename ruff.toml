@@ -21,6 +21,7 @@ ignore = [
     "UP045",  # X | None syntax — needs 3.10+ without __future__ annotations everywhere
     "SIM108", # ternary suggestions — often less readable
     "SIM102", # collapsible-if — nested ifs are sometimes clearer
+    "UP036",  # version block outdated — runtime guard is intentional
 ]
 
 [lint.isort]

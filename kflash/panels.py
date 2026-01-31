@@ -144,7 +144,7 @@ def render_two_column(items: list[tuple[str, str]], gap: int = 4) -> list[str]:
     def fmt(number: str, label: str) -> str:
         return f"{theme.label}{number}{theme.reset} {theme.subtle}\u25b8{theme.reset} {label}"
 
-    formatted = [fmt(n, l) for n, l in items]
+    formatted = [fmt(n, label) for n, label in items]
 
     if len(items) == 1:
         return [formatted[0]]

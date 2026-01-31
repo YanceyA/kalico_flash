@@ -56,15 +56,15 @@ def _stop_klipper(timeout: int = TIMEOUT_SERVICE) -> None:
                 context={"stderr": result.stderr.strip()},
                 recovery=template["recovery_template"],
             )
-            raise ServiceError(msg)
-    except subprocess.TimeoutExpired:
+            raise ServiceError(msg) from None
+    except subprocess.TimeoutExpired as exc:
         template = ERROR_TEMPLATES["service_stop_failed"]
         msg = format_error(
             template["error_type"],
             f"Timeout ({timeout}s) stopping Klipper service",
             recovery=template["recovery_template"],
         )
-        raise ServiceError(msg)
+        raise ServiceError(msg) from exc
 
 
 def _start_klipper(timeout: int = TIMEOUT_SERVICE, out=None) -> None:
