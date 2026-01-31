@@ -13,7 +13,7 @@ Milestone: v3.4 Check Katapult
 Phase: 21 of 23 (Pi Hardware Research)
 Plan: Not started
 Status: Ready to plan
-Last activity: 2026-01-31 — Completed quick task 010: Config device prompt to add unregistered
+Last activity: 2026-01-31 — Completed quick task 011: Restore Refresh Devices to actions panel
 
 Progress: [█████████████████████] 41/41 plans (through v3.3)
 
@@ -41,6 +41,7 @@ Progress: [█████████████████████] 41/4
 | 008 | Fresh menuconfig for new devices | 2026-01-30 | 4b6a50f | [008-fresh-menuconfig-new-devices](./quick/008-fresh-menuconfig-new-devices/) |
 | 009 | Flash-all config validation guard | 2026-01-31 | cffdcf9 | [009-flash-all-config-validation-guard](./quick/009-flash-all-config-validation-guard/) |
 | 010 | Config device prompt to add unregistered | 2026-01-31 | b3ce459 | [010-config-device-prompt-add-unregistered](./quick/010-config-device-prompt-add-unregistered/) |
+| 011 | Restore Refresh Devices to actions panel | 2026-01-31 | f2ce437 | [011-restore-refresh-devices-action](./quick/011-restore-refresh-devices-action/) |
 
 ## Session Continuity
 
