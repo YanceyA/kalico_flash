@@ -1,85 +1,89 @@
-# Requirements: v3.2 Action Dividers
+# Requirements: v3.3 Config Device
 
-**Defined:** 2026-01-30
+**Defined:** 2026-01-31
 **Core Value:** One command to build and flash any registered board — no remembering serial paths, flash commands, or config locations.
 
-## v3.2 Requirements
+## v3.3 Requirements
 
-### Output Protocol
+### Menu Integration
 
-- [x] **OUT-01**: Output Protocol extended with `step_divider()` method for plain dividers
-- [x] **OUT-02**: Output Protocol extended with `device_divider(index, total, name)` method for labeled batch dividers
-- [x] **OUT-03**: CliOutput renders step divider as `┄` line in panel border color (muted teal #64A0B4)
-- [x] **OUT-04**: CliOutput renders device divider as `─── 1/N DeviceName ───` centered label in border color
-- [x] **OUT-05**: NullOutput implements both divider methods as no-ops
-- [x] **OUT-06**: ASCII fallback uses `---` when terminal does not support Unicode
+- [ ] **MENU-01**: "Config device" appears as main menu action with "E" key
+- [ ] **MENU-02**: Device selection prompt shows numbered list of registered devices (like Flash/Remove)
 
-### Flash Workflow
+### Config Device Screen
 
-- [x] **FLASH-01**: cmd_flash() shows step divider between major phases (Discovery, Safety, Config, Build, Flash, Verify)
-- [x] **FLASH-02**: Step dividers appear before each phase transition, not within phases
+- [ ] **CDEV-01**: Config screen shows device identity panel at top (MCU type, serial pattern — read-only)
+- [ ] **CDEV-02**: Config screen shows editable fields panel with numbered options and current values
+- [ ] **CDEV-03**: Screen uses same two-panel visual pattern as global config screen (separate TUI branch)
 
-### Add Device Workflow
+### Field Editing
 
-- [x] **ADD-01**: cmd_add_device() shows step divider before each prompt/section (device selection, global setup, device key, display name, MCU confirm, flash method, exclusion, final confirmation)
-- [x] **ADD-02**: Step dividers match mockup placement from dividers.txt
+- [ ] **EDIT-01**: User can edit display name (text input, reject empty)
+- [ ] **EDIT-02**: User can edit device key (text input, validate uniqueness, validate format)
+- [ ] **EDIT-03**: User can cycle flash method (default → katapult → make_flash)
+- [ ] **EDIT-04**: User can toggle include/exclude status
+- [ ] **EDIT-05**: User can launch make menuconfig for this device's cached config
 
-### Remove Device Workflow
+### Key Rename
 
-- [x] **REM-01**: cmd_remove_device() shows step divider before confirmation prompt and before result
+- [ ] **KEY-01**: Key rename validates new key is unique in registry
+- [ ] **KEY-02**: Key rename migrates cached config directory to new key name
+- [ ] **KEY-03**: Key rename uses atomic registry save (single save cycle, not delete+add)
 
-### Flash All Workflow
+### Persistence
 
-- [x] **BATCH-01**: cmd_flash_all() shows labeled device divider `─── 1/N DeviceName ───` between each device during build phase
-- [x] **BATCH-02**: cmd_flash_all() shows labeled device divider between each device during flash phase
-- [x] **BATCH-03**: Step dividers used between major stages (preflight, build, flash, summary)
+- [ ] **SAVE-01**: All edits collected in memory, saved on screen exit (collect-then-save pattern)
+- [ ] **SAVE-02**: Registry updated atomically (existing temp file + fsync + rename pattern)
 
-### Terminal Compatibility
+### Visual Consistency
 
-- [x] **TERM-01**: Divider width adapts to terminal width (not hardcoded)
-- [x] **TERM-02**: Dividers degrade to ASCII `---` on terminals without Unicode support
+- [ ] **VIS-01**: Step dividers between sections in config device flow
+- [ ] **VIS-02**: Screen follows Minimalist Zen aesthetic consistent with existing panels
 
 ## Future Requirements
 
 ### Deferred
 
-- **Contextual divider labels** — Show phase name or step description inside step dividers (e.g., `┄┄┄ Build ┄┄┄`)
+- **Serial pattern editing** — Auto-generated from hardware, free-text editing breaks device matching
+- **MCU editing** — Hardware-derived, not user-changeable
 
 ## Out of Scope
 
 | Feature | Reason |
 |---------|--------|
-| Dividers inside error messages | Errors have their own formatting via format_error() |
-| Dividers during countdown timer | Timer has its own visual pattern |
-| Animated or fancy dividers | Conflicts with lightweight, non-intrusive goal |
-| Dividers in --list-devices output | Not an action workflow, just a display command |
+| MCU type editing | Hardware-derived, not a user property |
+| Serial pattern free-text editing | Auto-generated glob, manual editing breaks matching silently |
+| Key aliases after rename | Complexity for no benefit — old key stops working |
+| Bulk device editing | Single device at a time is sufficient |
+| CLI flag for config device | TUI-only action, consistent with config screen |
 
 ## Traceability
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| OUT-01 | Phase 16 | Complete |
-| OUT-02 | Phase 16 | Complete |
-| OUT-03 | Phase 16 | Complete |
-| OUT-04 | Phase 16 | Complete |
-| OUT-05 | Phase 16 | Complete |
-| OUT-06 | Phase 16 | Complete |
-| TERM-01 | Phase 16 | Complete |
-| TERM-02 | Phase 16 | Complete |
-| FLASH-01 | Phase 17 | Complete |
-| FLASH-02 | Phase 17 | Complete |
-| ADD-01 | Phase 17 | Complete |
-| ADD-02 | Phase 17 | Complete |
-| REM-01 | Phase 17 | Complete |
-| BATCH-01 | Phase 17 | Complete |
-| BATCH-02 | Phase 17 | Complete |
-| BATCH-03 | Phase 17 | Complete |
+| MENU-01 | TBD | Pending |
+| MENU-02 | TBD | Pending |
+| CDEV-01 | TBD | Pending |
+| CDEV-02 | TBD | Pending |
+| CDEV-03 | TBD | Pending |
+| EDIT-01 | TBD | Pending |
+| EDIT-02 | TBD | Pending |
+| EDIT-03 | TBD | Pending |
+| EDIT-04 | TBD | Pending |
+| EDIT-05 | TBD | Pending |
+| KEY-01 | TBD | Pending |
+| KEY-02 | TBD | Pending |
+| KEY-03 | TBD | Pending |
+| SAVE-01 | TBD | Pending |
+| SAVE-02 | TBD | Pending |
+| VIS-01 | TBD | Pending |
+| VIS-02 | TBD | Pending |
 
 **Coverage:**
-- v3.2 requirements: 16 total
-- Mapped to phases: 16
-- Unmapped: 0 ✓
+- v3.3 requirements: 17 total
+- Mapped to phases: 0
+- Unmapped: 17 ⚠️
 
 ---
-*Requirements defined: 2026-01-30*
-*Last updated: 2026-01-30 after roadmap creation*
+*Requirements defined: 2026-01-31*
+*Last updated: 2026-01-31 after initial definition*
