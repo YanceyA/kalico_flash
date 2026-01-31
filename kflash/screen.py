@@ -77,11 +77,11 @@ class ScreenState:
 
 ACTIONS: list[tuple[str, str]] = [
     ("F", "Flash Device"),
-    ("A", "Add Device"),
-    ("R", "Remove Device"),
-    ("D", "Refresh Devices"),
-    ("C", "Config"),
     ("B", "Flash All"),
+    ("A", "Add Device"),
+    ("E", "Config Device"),
+    ("R", "Remove Device"),
+    ("C", "Settings"),
     ("Q", "Quit"),
 ]
 
