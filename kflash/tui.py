@@ -851,7 +851,7 @@ def _device_config_screen(device_key: str, registry, out) -> None:
                     gc = registry.load_global()
                     cm = ConfigManager(original_key, gc.klipper_dir)
                     cm.load_cached_config()
-                    config_path = str(cm.cache_path)
+                    config_path = str(cm.klipper_config_path)
                     ret_code, was_saved = run_menuconfig(gc.klipper_dir, config_path)
                     if was_saved:
                         cm.save_cached_config()
