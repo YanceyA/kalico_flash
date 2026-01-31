@@ -27,6 +27,27 @@ def get_config_dir(device_key: str) -> Path:
     return base / "kalico-flash" / "configs" / device_key
 
 
+def rename_device_config_cache(old_key: str, new_key: str) -> bool:
+    """Rename a device's config cache directory.
+
+    Returns True if cache was moved, False if no cache existed for old_key.
+    Raises FileExistsError if new_key cache already exists.
+    Uses shutil.move for cross-filesystem safety.
+    """
+    old_dir = get_config_dir(old_key)
+    new_dir = get_config_dir(new_key)
+
+    if not old_dir.exists():
+        return False
+
+    if new_dir.exists():
+        raise FileExistsError(f"Config cache for '{new_key}' already exists")
+
+    new_dir.parent.mkdir(parents=True, exist_ok=True)
+    shutil.move(str(old_dir), str(new_dir))
+    return True
+
+
 def parse_mcu_from_config(config_path: str) -> Optional[str]:
     """Extract MCU type from .config file.
 
