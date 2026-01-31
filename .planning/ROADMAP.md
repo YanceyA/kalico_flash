@@ -227,7 +227,7 @@ Plans:
   1. `generate_device_key()` converts "Octopus Pro v1.1" to `octopus-pro-v1-1` (lowercase, hyphens, stripped edges)
   2. When a slug collides with an existing registry key, a numeric suffix is appended (`-2`, `-3`) until unique
   3. Edge cases handled: empty result after strip rejected, long names truncated to 64 chars, path-traversal characters stripped
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
 - [ ] 24-01: Add generate_device_key() to validation.py with slugification and collision handling
