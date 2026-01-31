@@ -5,14 +5,14 @@
 See: .planning/PROJECT.md (updated 2026-01-31)
 
 **Core value:** One command to build and flash any registered board — no remembering serial paths, flash commands, or config locations.
-**Current focus:** v4.0 Remove CLI & Internalize Device Keys (in progress)
+**Current focus:** v4.0 Remove CLI & Internalize Device Keys (complete)
 
 ## Current Position
 
-Milestone: v4.0 Remove CLI & Internalize Device Keys (in progress)
-Phase: 27 of 27 (Documentation Cleanup) — in progress
-Plan: 2 of 2 complete
-Status: In progress
+Milestone: v4.0 Remove CLI & Internalize Device Keys (complete)
+Phase: 27 of 27 (Documentation & Cleanup) — complete, verified ✓
+Plan: 2/2 complete
+Status: All phases complete — milestone ready for audit
 
 Progress: [██████████████████████████] 50/50 plans (through 27-02)
 
@@ -49,9 +49,9 @@ Progress: [███████████████████████
 ## Session Continuity
 
 Last session: 2026-02-01
-Stopped at: Completed 27-01-PLAN.md and 27-02-PLAN.md
+Stopped at: Completed phase 27 (documentation & cleanup) — verified ✓
 Resume file: None
-Next step: Phase 27 complete, milestone v4.0 ready for final verification
+Next step: Milestone audit (/gsd:audit-milestone)
 
 ---
-*Last updated: 2026-02-01 after phase 26 verification*
+*Last updated: 2026-02-01 after phase 27 verification*

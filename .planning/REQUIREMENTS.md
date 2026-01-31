@@ -16,8 +16,8 @@ Requirements for CLI removal and device key internalization.
 
 ### Key Internalization
 
-- [ ] **KEY-01**: New devices get auto-generated slug key from display name (e.g., "Octopus Pro v1.1" to `octopus-pro-v1-1`)
-- [ ] **KEY-02**: Slug collision handling appends numeric suffix (`-2`, `-3`) when key already exists
+- [x] **KEY-01**: New devices get auto-generated slug key from display name (e.g., "Octopus Pro v1.1" to `octopus-pro-v1-1`)
+- [x] **KEY-02**: Slug collision handling appends numeric suffix (`-2`, `-3`) when key already exists
 - [x] **KEY-03**: Add-device wizard no longer prompts for device key — only display name
 - [x] **KEY-04**: Device config screen removes key edit option and hides internal key entirely
 - [x] **KEY-05**: All user-facing output shows `entry.name` instead of `entry.key`
@@ -25,10 +25,10 @@ Requirements for CLI removal and device key internalization.
 
 ### Documentation & Cleanup
 
-- [ ] **DOC-01**: README updated to remove CLI reference section, document TUI-only usage
-- [ ] **DOC-02**: CLAUDE.md updated to remove CLI commands section
-- [ ] **DOC-03**: Error/recovery messages updated to reference TUI actions instead of CLI flags
-- [ ] **DOC-04**: install.sh updated if needed (kflash symlink stays, just remove any flag references)
+- [x] **DOC-01**: README updated to remove CLI reference section, document TUI-only usage
+- [x] **DOC-02**: CLAUDE.md updated to remove CLI commands section
+- [x] **DOC-03**: Error/recovery messages updated to reference TUI actions instead of CLI flags
+- [x] **DOC-04**: install.sh updated if needed (kflash symlink stays, just remove any flag references)
 
 ## Future Requirements
 
@@ -61,10 +61,10 @@ Requirements for CLI removal and device key internalization.
 | KEY-04 | Phase 25 | Complete |
 | KEY-05 | Phase 25 | Complete |
 | KEY-06 | Phase 25 | Complete |
-| DOC-01 | Phase 27 | Pending |
-| DOC-02 | Phase 27 | Pending |
-| DOC-03 | Phase 27 | Pending |
-| DOC-04 | Phase 27 | Pending |
+| DOC-01 | Phase 27 | Complete |
+| DOC-02 | Phase 27 | Complete |
+| DOC-03 | Phase 27 | Complete |
+| DOC-04 | Phase 27 | Complete |
 
 **Coverage:**
 - v4.0 requirements: 14 total

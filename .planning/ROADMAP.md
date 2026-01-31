@@ -273,8 +273,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 27-01: Update README, CLAUDE.md, install.sh for TUI-only operation
-- [ ] 27-02: Audit and update error templates and recovery messages in errors.py
+- [x] 27-01: Update README, CLAUDE.md, install.sh for TUI-only operation
+- [x] 27-02: Audit and update error templates and recovery messages in errors.py
 
 ## Progress
 
@@ -309,4 +309,4 @@ Phases execute in numeric order: 21 → 22 → 23 → 24 → 25 → 26 → 27
 | 24. Slug Generation | v4.0 | 1/1 | Complete | 2026-02-01 |
 | 25. Key Internalization in TUI | v4.0 | 2/2 | Complete | 2026-02-01 |
 | 26. Remove CLI | v4.0 | 1/1 | Complete | 2026-02-01 |
-| 27. Documentation & Cleanup | v4.0 | 0/2 | Not started | - |
+| 27. Documentation & Cleanup | v4.0 | 2/2 | Complete | 2026-02-01 |
