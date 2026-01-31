@@ -136,3 +136,5 @@ def generate_device_key(name: str, registry) -> str:
         candidate = slug[: 64 - len(suffix)] + suffix
         if registry.get(candidate) is None:
             return candidate
+
+    raise RuntimeError("unreachable")  # count() is infinite
