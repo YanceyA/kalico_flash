@@ -1810,31 +1810,32 @@ def cmd_add_device(registry, out, selected_device=None) -> int:
 
     out.step_divider()
 
-    # Step 4: Device key
-    device_key = None
+    # Step 4: Display name (device key is auto-generated)
+    registry_data = registry.load()
+    existing_names = {e.name.lower() for e in registry_data.devices.values()}
+    display_name = None
     for _attempt in range(3):
-        key_input = out.prompt("Device key (used with --device flag, e.g., 'octopus-pro')")
-        if not key_input:
-            out.warn("Device key cannot be empty.")
+        name_input = out.prompt("Display name (e.g., 'Octopus Pro v1.1')")
+        if not name_input:
+            out.warn("Display name cannot be empty.")
             continue
-        if " " in key_input:
-            out.warn("Device key cannot contain spaces.")
+        if name_input.lower() in existing_names:
+            out.warn(f"You already have a device named '{name_input}'. Enter a different name.")
             continue
-        if registry.get(key_input) is not None:
-            out.warn(f"Device '{key_input}' already registered. Choose a different key.")
-            continue
-        device_key = key_input
+        display_name = name_input
         break
-    if device_key is None:
+    if display_name is None:
         out.error("Too many invalid inputs.")
         return 1
 
-    out.step_divider()
+    # Auto-generate device key from display name
+    from .validation import generate_device_key
 
-    # Step 5: Display name
-    display_name = out.prompt("Display name (e.g., 'Octopus Pro v1.1')")
-    if not display_name:
-        display_name = device_key  # Fallback to key if empty
+    try:
+        device_key = generate_device_key(display_name, registry)
+    except ValueError:
+        out.error("Display name must contain at least one letter or number.")
+        return 1
 
     out.step_divider()
 
@@ -1866,7 +1867,6 @@ def cmd_add_device(registry, out, selected_device=None) -> int:
         return 1
 
     # Check for pattern overlap with existing devices
-    registry_data = registry.load()
     for existing_key, existing_entry in registry_data.devices.items():
         if existing_entry.serial_pattern == serial_pattern:
             out.error(
@@ -1930,7 +1930,7 @@ def cmd_add_device(registry, out, selected_device=None) -> int:
         flashable=is_flashable,
     )
     registry.add(entry)
-    out.success(f"Registered '{device_key}' ({display_name})")
+    out.success(f"Device '{display_name}' added successfully.")
 
     # Offer to run menuconfig for the newly registered device
     out.step_divider()
