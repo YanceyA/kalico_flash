@@ -239,7 +239,7 @@ def _resolve_flash_method(entry, global_config) -> str:
     return method.strip().lower()
 
 
-def _remove_cached_config(device_key: str, out, prompt: bool = True) -> None:
+def _remove_cached_config(device_key: str, out, prompt: bool = True, device_name: str | None = None) -> None:
     """Remove cached config directory for a device key."""
     from .config import get_config_dir
 
@@ -249,7 +249,8 @@ def _remove_cached_config(device_key: str, out, prompt: bool = True) -> None:
 
     should_remove = True
     if prompt:
-        should_remove = out.confirm(f"Also remove cached config for '{device_key}'?", default=False)
+        label = device_name or device_key
+        should_remove = out.confirm(f"Also remove cached config for '{label}'?", default=False)
 
     if not should_remove:
         out.info("Registry", "Cached config kept")
@@ -304,7 +305,7 @@ def cmd_build(registry, device_key: str, out, from_tui: bool = False) -> int:
 
     # Step 1: Load cached config (if exists)
     if config_mgr.load_cached_config():
-        out.info("Config", f"Loaded cached config for '{device_key}'")
+        out.info("Config", f"Loaded cached config for '{entry.name}'")
     else:
         config_mgr.clear_klipper_config()
         out.info("Config", "No cached config found, starting fresh")
@@ -332,7 +333,7 @@ def cmd_build(registry, device_key: str, out, from_tui: bool = False) -> int:
     # Step 3: Save config to cache
     try:
         config_mgr.save_cached_config()
-        out.info("Config", f"Cached config for '{device_key}'")
+        out.info("Config", f"Cached config for '{entry.name}'")
     except ConfigError as e:
         out.error_with_recovery(
             "Config error",
@@ -506,7 +507,7 @@ def cmd_flash(
                     if entry is None:
                         continue
                     details = ", ".join(d.filename for d in devices)
-                    out.device_line("DUP", f"{entry.key} ({entry.mcu}) [duplicate]", details)
+                    out.device_line("DUP", f"{entry.name} ({entry.mcu}) [duplicate]", details)
                 return 1
 
             if blocked_entries:
@@ -527,7 +528,7 @@ def cmd_flash(
                     out.phase("Discovery", "Blocked registered devices:")
                     for entry, _device in blocked_connected:
                         reason = blocked_entries.get(entry.key, "Blocked by policy")
-                        out.device_line("BLK", f"{entry.key} ({entry.mcu}) [blocked]", reason)
+                        out.device_line("BLK", f"{entry.name} ({entry.mcu}) [blocked]", reason)
                     return 1
 
             if from_tui:
@@ -567,7 +568,7 @@ def cmd_flash(
                 if entry is None:
                     continue
                 details = ", ".join(d.filename for d in devices)
-                out.device_line("DUP", f"{entry.key} ({entry.mcu}) [duplicate]", details)
+                out.device_line("DUP", f"{entry.name} ({entry.mcu}) [duplicate]", details)
 
         # Filter to only flashable devices for selection
         flashable_matched = [(e, d) for e, d in matched if e.flashable]
@@ -577,7 +578,7 @@ def cmd_flash(
         if excluded_matched:
             out.phase("Discovery", "Excluded devices (not selectable):")
             for entry, device in excluded_matched:
-                out.device_line("REG", f"{entry.key} ({entry.mcu}) [excluded]", device.filename)
+                out.device_line("REG", f"{entry.name} ({entry.mcu}) [excluded]", device.filename)
 
         if blocked_entries:
             blocked_connected = [
@@ -589,7 +590,7 @@ def cmd_flash(
                 out.phase("Discovery", "Blocked devices (not selectable):")
                 for entry, _device in blocked_connected:
                     reason = blocked_entries.get(entry.key, "Blocked by policy")
-                    out.device_line("BLK", f"{entry.key} ({entry.mcu}) [blocked]", reason)
+                    out.device_line("BLK", f"{entry.name} ({entry.mcu}) [blocked]", reason)
 
         if not flashable_matched:
             from .errors import get_recovery_text
@@ -605,7 +606,7 @@ def cmd_flash(
         # Show numbered list of connected flashable devices
         out.phase("Discovery", f"Found {len(flashable_matched)} flashable device(s):")
         for i, (entry, device) in enumerate(flashable_matched):
-            out.device_line(str(i + 1), f"{entry.key} ({entry.mcu})", device.filename)
+            out.device_line(str(i + 1), f"{entry.name} ({entry.mcu})", device.filename)
             # Show MCU software version if available
             if mcu_versions:
                 version = get_mcu_version_for_device(entry.mcu)
@@ -662,7 +663,7 @@ def cmd_flash(
         if blocked_reason:
             out.error_with_recovery(
                 "Device blocked",
-                f"Device '{device_key}' is blocked: {blocked_reason}",
+                f"Device '{entry.name}' is blocked: {blocked_reason}",
                 context={"device": device_key},
                 recovery=(
                     "1. Remove the device from blocked_devices in devices.json\n"
@@ -674,10 +675,10 @@ def cmd_flash(
         # Check if device is excluded from flashing
         if not entry.flashable:
             if from_tui:
-                recovery_msg = f"The device '{device_key}' is excluded from flashing."
+                recovery_msg = f"The device '{entry.name}' is excluded from flashing."
             else:
                 recovery_msg = (
-                    f"The device '{device_key}' is marked as non-flashable. "
+                    f"The device '{entry.name}' is marked as non-flashable. "
                     f"To make it flashable, run `kflash --include-device {device_key}`."
                 )
             out.error_with_recovery(
@@ -692,7 +693,7 @@ def cmd_flash(
         if device_key in duplicate_matches:
             out.error_with_recovery(
                 "Duplicate USB IDs",
-                f"Device '{device_key}' matches multiple connected USB IDs",
+                f"Device '{entry.name}' matches multiple connected USB IDs",
                 context={"device": device_key},
                 recovery=(
                     "1. Unplug duplicate devices so only one remains\n"
@@ -832,7 +833,7 @@ def cmd_flash(
     config_mgr = ConfigManager(device_key, klipper_dir)
 
     if config_mgr.load_cached_config():
-        out.phase("Config", f"Loaded cached config for '{device_key}'")
+        out.phase("Config", f"Loaded cached config for '{entry.name}'")
     else:
         config_mgr.clear_klipper_config()
         out.phase("Config", "No cached config found, starting fresh")
@@ -840,11 +841,11 @@ def cmd_flash(
     # Skip menuconfig if flag is set AND cached config exists
     if skip_menuconfig:
         if config_mgr.has_cached_config():
-            out.phase("Config", f"Using cached config for {device_key}")
+            out.phase("Config", f"Using cached config for {entry.name}")
             # Skip menuconfig but still validate MCU
         else:
             # Per CONTEXT.md: warn and launch menuconfig anyway
-            out.warn(f"No cached config for '{device_key}', launching menuconfig")
+            out.warn(f"No cached config for '{entry.name}', launching menuconfig")
             skip_menuconfig = False  # Fall through to menuconfig
 
     if not skip_menuconfig:
@@ -870,7 +871,7 @@ def cmd_flash(
         # Save config to cache
         try:
             config_mgr.save_cached_config()
-            out.phase("Config", f"Cached config for '{device_key}'")
+            out.phase("Config", f"Cached config for '{entry.name}'")
         except ConfigError as e:
             out.error_with_recovery(
                 "Config error",
@@ -1121,7 +1122,7 @@ def cmd_flash_all(registry, out) -> int:
 
     if blocked_devices:
         for entry, reason in blocked_devices:
-            out.warn(f"Skipping {entry.name} ({entry.key}): {reason}")
+            out.warn(f"Skipping {entry.name}: {reason}")
 
     if not unblocked_devices:
         out.error("All flashable devices are blocked. Nothing to flash.")
@@ -1134,12 +1135,12 @@ def cmd_flash_all(registry, out) -> int:
     for entry in flashable_devices:
         config_mgr = ConfigManager(entry.key, klipper_dir)
         if not config_mgr.cache_path.exists():
-            missing_configs.append(entry.key)
+            missing_configs.append(entry.name)
 
     if missing_configs:
         out.error("The following devices lack cached configs:")
-        for key in missing_configs:
-            out.error(f"  - {key}")
+        for name in missing_configs:
+            out.error(f"  - {name}")
         out.error("Flash each device individually and save config before using Flash All.")
         return 1
 
@@ -1153,14 +1154,14 @@ def cmd_flash_all(registry, out) -> int:
             config_mgr.load_cached_config()
             is_match, actual_mcu = config_mgr.validate_mcu(entry.mcu)
             if not is_match:
-                mcu_mismatches.append((entry.key, entry.mcu, actual_mcu or "unknown"))
+                mcu_mismatches.append((entry.name, entry.mcu, actual_mcu or "unknown"))
         except ConfigError:
-            mcu_mismatches.append((entry.key, entry.mcu, "corrupt/unreadable"))
+            mcu_mismatches.append((entry.name, entry.mcu, "corrupt/unreadable"))
 
     if mcu_mismatches:
         out.error("MCU type mismatch in cached configs:")
-        for key, expected, actual in mcu_mismatches:
-            out.error(f"  - {key}: expected {expected}, config has {actual}")
+        for name, expected, actual in mcu_mismatches:
+            out.error(f"  - {name}: expected {expected}, config has {actual}")
         out.error("Flash each mismatched device individually to reconfigure.")
         return 1
 
@@ -1169,10 +1170,10 @@ def cmd_flash_all(registry, out) -> int:
         config_mgr = ConfigManager(entry.key, klipper_dir)
         age_display = config_mgr.get_cache_age_display()
         age_str = age_display or "unknown"
-        out.info("", f"  {entry.name} ({entry.key}): config cached {age_str}")
+        out.info("", f"  {entry.name}: config cached {age_str}")
         if age_display and "Recommend Review" in age_display:
             out.warn(
-                f"  {entry.key} config is very old"
+                f"  {entry.name} config is very old"
                 " — consider flashing individually to review config"
             )
 
@@ -1216,10 +1217,10 @@ def cmd_flash_all(registry, out) -> int:
             # Some match, some don't
             out.phase("Version", "Outdated devices:")
             for entry in outdated:
-                out.info("", f"  - {entry.name} ({entry.key})")
+                out.info("", f"  - {entry.name}")
             out.phase("Version", "Up-to-date devices:")
             for entry in current:
-                out.info("", f"  - {entry.name} ({entry.key})")
+                out.info("", f"  - {entry.name}")
             try:
                 answer = input("  Flash only outdated devices? [Y/n]: ").strip().lower()
             except (EOFError, KeyboardInterrupt):
@@ -1404,16 +1405,16 @@ def cmd_remove_device(registry, device_key: str, out) -> int:
 
     out.step_divider()
 
-    if not out.confirm(f"Remove '{device_key}' ({entry.name})?"):
+    if not out.confirm(f"Remove '{entry.name}'?"):
         out.info("Registry", "Removal cancelled")
         return 0
 
     registry.remove(device_key)
-    out.success(f"Removed '{device_key}'")
+    out.success(f"Removed '{entry.name}'")
 
     out.step_divider()
 
-    _remove_cached_config(device_key, out, prompt=True)
+    _remove_cached_config(device_key, out, prompt=True, device_name=entry.name)
 
     return 0
 
@@ -1433,10 +1434,10 @@ def cmd_exclude_device(registry, device_key: str, out) -> int:
         )
         return 1
     if not entry.flashable:
-        out.warn(f"Device '{device_key}' is already excluded")
+        out.warn(f"Device '{entry.name}' is already excluded")
         return 0
     registry.set_flashable(device_key, False)
-    out.success(f"Excluded '{device_key}' from flashing")
+    out.success(f"Excluded '{entry.name}' from flashing")
     return 0
 
 
@@ -1455,10 +1456,10 @@ def cmd_include_device(registry, device_key: str, out) -> int:
         )
         return 1
     if entry.flashable:
-        out.warn(f"Device '{device_key}' is already flashable")
+        out.warn(f"Device '{entry.name}' is already flashable")
         return 0
     registry.set_flashable(device_key, True)
-    out.success(f"Included '{device_key}' for flashing")
+    out.success(f"Included '{entry.name}' for flashing")
     return 0
 
 
@@ -1563,7 +1564,7 @@ def cmd_list_devices(registry, out, from_menu: bool = False) -> int:
     for key in sorted(data.devices.keys()):
         entry = data.devices[key]
         # Build name with optional [excluded] marker
-        name_str = f"{entry.key}: {entry.name} ({entry.mcu})"
+        name_str = f"{entry.name} ({entry.mcu})"
         if not entry.flashable:
             name_str += " [excluded]"
         blocked_reason = _blocked_reason_for_entry(entry, blocked_list)
@@ -1734,7 +1735,7 @@ def cmd_add_device(registry, out, selected_device=None) -> int:
             for device, entry in registered_devices:
                 idx = len(selectable) + 1
                 label = f"{idx}. {device.filename}"
-                detail = f"{entry.key} ({entry.mcu})"
+                detail = f"{entry.name} ({entry.mcu})"
                 out.device_line("REG", label, detail)
                 selectable.append((device, entry))
 
@@ -1749,8 +1750,8 @@ def cmd_add_device(registry, out, selected_device=None) -> int:
         if duplicate_devices:
             out.info("Discovery", f"Duplicate devices (not eligible) ({len(duplicate_devices)}):")
             for device, entries in duplicate_devices:
-                keys = ", ".join(entry.key for entry in entries)
-                out.device_line("DUP", device.filename, f"Matches: {keys}")
+                names = ", ".join(entry.name for entry in entries)
+                out.device_line("DUP", device.filename, f"Matches: {names}")
 
         if blocked_devices:
             out.info("Discovery", f"Blocked devices (not eligible) ({len(blocked_devices)}):")
@@ -1781,14 +1782,14 @@ def cmd_add_device(registry, out, selected_device=None) -> int:
     if existing_entry is not None:
         existing = existing_entry
         if not out.confirm(
-            f"Device already registered as '{existing.key}'. Remove and re-add this device?",
+            f"Device already registered as '{existing.name}'. Remove and re-add this device?",
             default=False,
         ):
             out.info("Registry", "Add device cancelled")
             return 0
         registry.remove(existing.key)
-        out.success(f"Removed existing device '{existing.key}'")
-        _remove_cached_config(existing.key, out, prompt=True)
+        out.success(f"Removed existing device '{existing.name}'")
+        _remove_cached_config(existing.key, out, prompt=True, device_name=existing.name)
         registry_data = registry.load()
 
     out.step_divider()
@@ -1950,7 +1951,7 @@ def cmd_add_device(registry, out, selected_device=None) -> int:
 
             # Load or start fresh config
             if config_mgr.load_cached_config():
-                out.info("Config", f"Loaded cached config for '{device_key}'")
+                out.info("Config", f"Loaded cached config for '{entry.name}'")
             else:
                 config_mgr.clear_klipper_config()
                 out.info("Config", "No cached config found, starting fresh")
@@ -1992,7 +1993,7 @@ def cmd_add_device(registry, out, selected_device=None) -> int:
                     else:
                         # MCU matched (while condition became False) -- save now
                         config_mgr.save_cached_config()
-                        out.success(f"Config saved for '{device_key}'")
+                        out.success(f"Config saved for '{entry.name}'")
                 except Exception:
                     pass  # Non-blocking
             else:
