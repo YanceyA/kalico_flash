@@ -1941,11 +1941,12 @@ def cmd_add_device(registry, out, selected_device=None) -> int:
 
             data = registry.load()
             if data.global_config is None:
-                out.warning("Cannot run menuconfig: global config not set")
+                out.warn("Cannot run menuconfig: global config not set")
                 return 0
 
             klipper_dir = data.global_config.klipper_dir
             config_mgr = ConfigManager(device_key, klipper_dir)
+            had_cache = config_mgr.has_cached_config()
 
             # Load or start fresh config
             if config_mgr.load_cached_config():
@@ -1960,25 +1961,46 @@ def cmd_add_device(registry, out, selected_device=None) -> int:
             )
 
             if ret_code != 0:
-                out.warning("menuconfig exited with errors, config not saved")
+                out.warn("menuconfig exited with errors, config not saved")
             elif was_saved:
-                config_mgr.save_cached_config()
-                out.success(f"Config saved for '{device_key}'")
+                # DON'T save to cache yet -- need to validate MCU first
                 try:
                     is_match, actual_mcu = config_mgr.validate_mcu(entry.mcu)
-                    if not is_match:
-                        out.warning(
-                            f"MCU mismatch: config has '{actual_mcu}' but device "
-                            f"'{device_key}' expects '{entry.mcu}'"
-                        )
-                        out.info("Config", "You can re-run menuconfig from the config-device menu to fix this")
-                        input("  Press Enter to continue...")
+                    while not is_match:
+                        choice = out.mcu_mismatch_choice(actual_mcu, entry.mcu, device_key)
+                        if choice == 'r':
+                            out.info("Config", "Re-launching menuconfig...")
+                            ret_code2, was_saved2 = run_menuconfig(
+                                klipper_dir, str(config_mgr.klipper_config_path)
+                            )
+                            if was_saved2:
+                                is_match, actual_mcu = config_mgr.validate_mcu(entry.mcu)
+                            else:
+                                out.info("Config", "menuconfig exited without saving")
+                                break
+                        elif choice == 'd':
+                            # Restore old cache to klipper dir, or delete klipper .config if no prior cache
+                            if had_cache:
+                                config_mgr.load_cached_config()
+                                out.info("Config", "Restored previous cached config")
+                            else:
+                                config_mgr.clear_klipper_config()
+                                out.info("Config", "Discarded config (no previous cache)")
+                            break
+                        else:  # 'k'
+                            config_mgr.save_cached_config()
+                            out.info("Config", "Keeping mismatched config")
+                            break
+                    else:
+                        # MCU matched (while condition became False) -- save now
+                        config_mgr.save_cached_config()
+                        out.success(f"Config saved for '{device_key}'")
                 except Exception:
-                    pass  # Non-blocking — validation errors handled at flash time
+                    pass  # Non-blocking
             else:
                 out.info("Config", "menuconfig exited without saving")
         except Exception as exc:
-            out.warning(f"menuconfig failed: {exc}")
+            out.warn(f"menuconfig failed: {exc}")
 
     return 0
 
