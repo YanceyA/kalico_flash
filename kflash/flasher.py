@@ -212,6 +212,129 @@ def _poll_for_serial_device(
     return None
 
 
+def check_katapult(
+    device_path: str,
+    serial_pattern: str,
+    katapult_dir: str,
+    log: Optional[Callable[[str], None]] = None,
+) -> KatapultCheckResult:
+    """Check whether a device has Katapult bootloader installed.
+
+    Sends flashtool.py -r to enter bootloader mode, then polls for a
+    katapult_ device. If none appears, performs USB sysfs reset to
+    recover the device back to Klipper_ mode.
+
+    Args:
+        device_path: Current /dev/serial/by-id/ path (Klipper_ device).
+        serial_pattern: Glob pattern from DeviceEntry.serial_pattern.
+        katapult_dir: Path to Katapult source (for flashtool.py).
+        log: Optional callback for progress messages.
+
+    Returns:
+        KatapultCheckResult with tri-state has_katapult.
+    """
+    start = time.monotonic()
+
+    # Extract hex serial identifier from device path
+    match = re.search(
+        r'usb-(?:Klipper|katapult)_[a-zA-Z0-9]+_([A-Fa-f0-9]+)',
+        os.path.basename(device_path),
+    )
+    if not match:
+        return KatapultCheckResult(
+            has_katapult=None,
+            error_message="Could not extract serial from device path",
+            elapsed_seconds=time.monotonic() - start,
+        )
+    serial_hex = match.group(1)
+
+    # Resolve sysfs path for USB reset recovery
+    try:
+        authorized_path = _resolve_usb_sysfs_path(device_path)
+    except (DiscoveryError, OSError) as exc:
+        return KatapultCheckResult(
+            has_katapult=None,
+            error_message=f"Failed to resolve sysfs path: {exc}",
+            elapsed_seconds=time.monotonic() - start,
+        )
+
+    # Verify flashtool.py exists
+    flashtool = Path(katapult_dir).expanduser() / "scripts" / "flashtool.py"
+    if not flashtool.exists():
+        return KatapultCheckResult(
+            has_katapult=None,
+            error_message=f"Katapult flashtool not found: {flashtool}",
+            elapsed_seconds=time.monotonic() - start,
+        )
+
+    # Enter bootloader mode
+    if log:
+        log("Entering bootloader mode...")
+    try:
+        result = subprocess.run(
+            ["python3", str(flashtool), "-r", "-d", device_path],
+            capture_output=True,
+            text=True,
+            timeout=BOOTLOADER_ENTRY_TIMEOUT,
+        )
+        if result.returncode != 0:
+            return KatapultCheckResult(
+                has_katapult=None,
+                error_message=result.stderr.strip() or result.stdout.strip(),
+                elapsed_seconds=time.monotonic() - start,
+            )
+    except subprocess.TimeoutExpired:
+        return KatapultCheckResult(
+            has_katapult=None,
+            error_message=f"flashtool.py -r timed out ({BOOTLOADER_ENTRY_TIMEOUT}s)",
+            elapsed_seconds=time.monotonic() - start,
+        )
+    except OSError as exc:
+        return KatapultCheckResult(
+            has_katapult=None,
+            error_message=f"Failed to run flashtool.py: {exc}",
+            elapsed_seconds=time.monotonic() - start,
+        )
+
+    # Poll for Katapult device
+    katapult_pattern = f"usb-katapult_*_{serial_hex}*"
+    if log:
+        log("Polling for Katapult device...")
+    found = _poll_for_serial_device(katapult_pattern)
+
+    if found:
+        return KatapultCheckResult(
+            has_katapult=True,
+            elapsed_seconds=time.monotonic() - start,
+        )
+
+    # No Katapult detected -- recover device via USB reset
+    if log:
+        log("No Katapult detected, recovering device...")
+    try:
+        _usb_sysfs_reset(authorized_path)
+    except (DiscoveryError, OSError) as exc:
+        return KatapultCheckResult(
+            has_katapult=None,
+            error_message=f"USB reset failed: {exc}",
+            elapsed_seconds=time.monotonic() - start,
+        )
+
+    # Poll for Klipper device return
+    recovered = _poll_for_serial_device(serial_pattern)
+    if recovered:
+        return KatapultCheckResult(
+            has_katapult=False,
+            elapsed_seconds=time.monotonic() - start,
+        )
+
+    return KatapultCheckResult(
+        has_katapult=None,
+        error_message="Device did not recover after USB reset",
+        elapsed_seconds=time.monotonic() - start,
+    )
+
+
 def flash_device(
     device_path: str,
     firmware_path: str,
