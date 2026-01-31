@@ -874,6 +874,15 @@ def _device_config_screen(device_key: str, registry, out) -> None:
                     ret_code, was_saved = run_menuconfig(gc.klipper_dir, config_path)
                     if was_saved:
                         cm.save_cached_config()
+                        try:
+                            entry = registry.load().devices.get(original_key)
+                            if entry:
+                                is_match, actual_mcu = cm.validate_mcu(entry.mcu)
+                                if not is_match:
+                                    print(f"  {theme.warning}Warning: Config MCU '{actual_mcu}' "
+                                          f"does not match device MCU '{entry.mcu}'{theme.reset}")
+                        except Exception:
+                            pass
                 except Exception as exc:
                     print(f"  {theme.error}{exc}{theme.reset}")
 

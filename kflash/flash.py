@@ -1964,6 +1964,16 @@ def cmd_add_device(registry, out, selected_device=None) -> int:
             elif was_saved:
                 config_mgr.save_cached_config()
                 out.success(f"Config saved for '{device_key}'")
+                try:
+                    is_match, actual_mcu = config_mgr.validate_mcu(entry.mcu)
+                    if not is_match:
+                        out.warning(
+                            f"MCU mismatch: config has '{actual_mcu}' but device "
+                            f"'{device_key}' expects '{entry.mcu}'"
+                        )
+                        out.info("Config", "You can re-run menuconfig from the config-device menu to fix this")
+                except Exception:
+                    pass  # Non-blocking — validation errors handled at flash time
             else:
                 out.info("Config", "menuconfig exited without saving")
         except Exception as exc:
