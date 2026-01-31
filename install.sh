@@ -87,4 +87,4 @@ fi
 
 # Success message
 success "Installed ${COMMAND_NAME} -> ${TARGET}"
-echo "Run 'kflash --help' to get started"
+echo "Run 'kflash' to start"
