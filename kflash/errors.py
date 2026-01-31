@@ -94,8 +94,8 @@ ERROR_TEMPLATES: dict[str, dict[str, str]] = {
         "error_type": "Device not found",
         "message_template": "No device registered with key '{device}'",
         "recovery_template": (
-            "1. List registered devices: `kflash --list-devices`\n"
-            "2. Register new device: `kflash --add-device`\n"
+            "1. Press D to view registered devices\n"
+            "2. Press A to register a new device\n"
             "3. Check device key spelling (case-sensitive)"
         ),
     },
@@ -105,7 +105,7 @@ ERROR_TEMPLATES: dict[str, dict[str, str]] = {
         "recovery_template": (
             "1. Check USB connection and board power\n"
             "2. List connected devices: `ls /dev/serial/by-id/`\n"
-            "3. If device shows with different name, re-register with `--add-device`"
+            "3. If device shows with different name, press A to re-register"
         ),
     },
     # MCU mismatch errors
@@ -113,7 +113,7 @@ ERROR_TEMPLATES: dict[str, dict[str, str]] = {
         "error_type": "MCU mismatch",
         "message_template": "Config MCU '{actual}' does not match registered MCU '{expected}'",
         "recovery_template": (
-            "1. Run without --skip-menuconfig to reconfigure\n"
+            "1. Re-run menuconfig to reconfigure\n"
             "2. Or update device registration if MCU changed\n"
             "3. Verify config: `grep CONFIG_MCU ~/klipper/.config`"
         ),
@@ -203,11 +203,6 @@ ERROR_TEMPLATES: dict[str, dict[str, str]] = {
         "error_type": "Device excluded",
         "message_template": "Device '{device}' is marked as non-flashable",
         "recovery_template": (
-            "1. Include device: `kflash --include-device {device}`\n"
-            "2. List all devices: `kflash --list-devices`\n"
-            "3. Device was excluded to prevent accidental flash"
-        ),
-        "tui_recovery_template": (
             "1. This device is excluded from flashing\n"
             "2. Press D to view all devices\n"
             "3. Device was excluded to prevent accidental flash"
@@ -215,33 +210,9 @@ ERROR_TEMPLATES: dict[str, dict[str, str]] = {
     },
 }
 
-# TUI-aware recovery text overrides for templates that reference CLI commands.
-# Keys match ERROR_TEMPLATES keys; values are the TUI recovery text.
-_TUI_RECOVERY_OVERRIDES: dict[str, str] = {
-    "device_not_registered": (
-        "1. Press D to view registered devices\n"
-        "2. Press A to register a new device\n"
-        "3. Check device key spelling (case-sensitive)"
-    ),
-    "device_not_connected": (
-        "1. Check USB connection and board power\n"
-        "2. List connected devices: `ls /dev/serial/by-id/`\n"
-        "3. If device shows with different name, press A to re-register"
-    ),
-    "device_excluded": (
-        "1. This device is excluded from flashing\n"
-        "2. Press D to view all devices\n"
-        "3. Device was excluded to prevent accidental flash"
-    ),
-}
-
-
-def get_recovery_text(template_key: str, from_tui: bool = False) -> str:
-    """Get recovery text for an error template, using TUI variant when appropriate."""
-    template = ERROR_TEMPLATES[template_key]
-    if from_tui and template_key in _TUI_RECOVERY_OVERRIDES:
-        return _TUI_RECOVERY_OVERRIDES[template_key]
-    return template["recovery_template"]
+def get_recovery_text(template_key: str) -> str:
+    """Get recovery text for an error template."""
+    return ERROR_TEMPLATES[template_key]["recovery_template"]
 
 
 class KlipperFlashError(Exception):
