@@ -1,90 +1,149 @@
 # Technology Stack
 
-**Project:** kalico-flash "Config Device" feature
+**Project:** kalico-flash CLI removal and device key internalization
 **Researched:** 2026-01-31
-**Overall Confidence:** HIGH (all APIs are Python stdlib, all patterns already proven in codebase)
+**Overall Confidence:** HIGH (all APIs are Python 3.9+ stdlib, patterns proven in codebase)
 
 ---
 
-## Recommended Stack
+## Scope
 
-No new dependencies. This feature uses existing stdlib APIs and existing codebase patterns exclusively.
+This is NOT a greenfield stack selection. kalico-flash is an existing Python 3.9+ stdlib-only tool. This document covers only the stdlib APIs and patterns needed for two changes:
 
-### Stdlib APIs Needed for New Capabilities
-
-| API | Module | Purpose | Why |
-|-----|--------|---------|-----|
-| `shutil.move()` | `shutil` | Rename cached config directory on key change | Handles cross-filesystem moves safely. Already imported in `config.py`. |
-| `dataclasses.replace()` | `dataclasses` | Create modified DeviceEntry with new field values | Already used in `_config_screen` for GlobalConfig edits. Same pattern for DeviceEntry. |
-| `re.match()` | `re` | Validate device key format (slug: lowercase, hyphens, digits) | Already imported in `config.py`. |
-| `Path.exists()` / `Path.is_dir()` | `pathlib` | Check if cached config dir exists before migration | Already used throughout `config.py`. |
-
-### Integration Points with Existing Stack
-
-| Module | Current Role | What's Needed for Config Device |
-|--------|-------------|-------------------------------|
-| `registry.py` | CRUD for devices via `add()`, `remove()`, `get()`, `save()` | Key rename = load registry, delete old key, insert new key, single `save()`. No new Registry methods strictly required. |
-| `config.py` | `get_config_dir(device_key)` returns `~/.config/kalico-flash/configs/{key}/` | Use to locate old/new cache dirs during key rename. No changes to `config.py`. |
-| `tui.py` | `_config_screen()` with `_getch()` + setting dispatch | New `_device_config_screen(registry, out, device_key)` following identical pattern. Reuses `_getch()`, `_countdown_return()`, theme. |
-| `screen.py` | `render_config_screen(gc)` + `SETTINGS` list | Add `render_device_config_screen(device)` + `DEVICE_SETTINGS` list. Same flat-numbered-list panel rendering. |
-| `validation.py` | `validate_numeric_setting()`, `validate_path_setting()` | Add `validate_device_key(key, existing_keys)` for slug format + uniqueness. |
-| `models.py` | `DeviceEntry(key, name, mcu, serial_pattern, flash_method, flashable)` | No changes. All editable fields already exist. |
-| `errors.py` | `RegistryError` for key conflicts | Reuse as-is. No new error types. |
+1. Removing argparse CLI, making TUI the sole entry point
+2. Auto-generating device keys from display names (slugification)
+3. Collision handling for duplicate slugs
+4. Migrating existing user-provided keys to auto-generated ones
 
 ---
 
-## DeviceEntry Fields as Editable Settings
+## Required stdlib APIs
 
-| # | Field | Edit Type | Validation | Side Effects |
-|---|-------|-----------|------------|-------------|
-| 1 | `name` | text input | Non-empty string | Display name only, none |
-| 2 | `key` | text input | `^[a-z0-9][a-z0-9-]*$`, no duplicates | Triggers config cache dir migration |
-| 3 | `flash_method` | cycle | `None` / `"katapult"` / `"make"` | Toggle on keypress like boolean |
-| 4 | `flashable` | toggle | boolean | Flip on keypress |
-| -- | `mcu` | read-only | -- | Derived from serial, not user-editable |
-| -- | `serial_pattern` | read-only | -- | Set at add-device, editing breaks matching |
+### Slug Generation
 
----
+| Module / Function | Version | Purpose | Why |
+|---|---|---|---|
+| `re.sub()` | 3.9+ (stable) | Strip non-alphanumeric chars from display name | Single regex `[^a-z0-9]+` handles all special chars in one pass |
+| `str.lower()` | 3.9+ | Normalize case before slugifying | Keys must be case-insensitive and filesystem-safe (used as config cache dir names) |
+| `str.strip('-')` | 3.9+ | Trim leading/trailing hyphens after regex | Prevents keys like `-octopus-pro-` |
 
-## Key Rename + Config Migration: Implementation Approach
+**Prescriptive slug algorithm:**
 
-**Use `shutil.move()` not `Path.rename()`** because:
-- `shutil.move()` works across filesystems (defensive, even though config cache is likely same FS)
-- Config cache dir is at `~/.config/kalico-flash/configs/{device-key}/`
-- On key rename: `shutil.move(get_config_dir(old_key), get_config_dir(new_key))`
-- If source dir doesn't exist (no cached config yet), skip migration silently
-- If destination dir already exists, block the rename (key conflict -- caught by validation)
+```python
+import re
 
-**Registry update is atomic** because:
-- Load full registry, delete old key, insert new key with updated `.key` field, single `save()` call
-- `_atomic_write_json` in `registry.py` handles the atomicity (temp + fsync + rename)
-- No partial state possible
+def slugify(name: str) -> str:
+    """Convert display name to filesystem-safe key.
 
-**Ordering: migrate config dir BEFORE registry save.** If dir move fails, registry unchanged. If registry save fails after dir move, the orphaned new-key dir is harmless (no registry entry points to it, and it will be found if the user retries the rename).
+    'Octopus Pro v1.1' -> 'octopus-pro-v1-1'
+    'LDO Nitehawk 36'  -> 'ldo-nitehawk-36'
+    """
+    slug = name.lower()
+    slug = re.sub(r'[^a-z0-9]+', '-', slug)
+    return slug.strip('-')
+```
+
+**Why `re.sub` over `str.translate`:** One regex replaces all consecutive non-alphanumeric chars with a single hyphen. `str.translate` would need a translation table plus a separate pass to collapse consecutive separators. The regex is more readable and fewer lines.
+
+**Why NOT `unicodedata.normalize`:** Device names are ASCII (MCU identifiers, board brand names like "BTT", "LDO"). NFKD normalization adds complexity with zero benefit for this domain.
+
+**Why NOT `python-slugify` (PyPI):** Stdlib-only constraint. Four lines of `re.sub` does the job.
+
+### Collision Handling
+
+| Module / Function | Version | Purpose | Why |
+|---|---|---|---|
+| `dict.__contains__` (`in`) | 3.9+ | Check existing keys in registry | Registry devices dict is already in memory; O(1) lookup |
+
+**Prescriptive collision algorithm:**
+
+```python
+def unique_key(slug: str, existing_keys: set[str]) -> str:
+    """Append numeric suffix if slug collides."""
+    if slug not in existing_keys:
+        return slug
+    n = 2
+    while f"{slug}-{n}" in existing_keys:
+        n += 1
+    return f"{slug}-{n}"
+```
+
+Start at 2 (not 1) so the first device gets the clean slug and the second gets `-2`. Matches common conventions (file copies, URLs).
+
+### CLI Removal
+
+| Module / Function | Version | Purpose | Why |
+|---|---|---|---|
+| `sys.argv` | 3.9+ | Detect `--help` / `--version` without argparse | Two string comparisons replace entire argparse setup |
+| `sys.stdin.isatty()` | 3.9+ | Gate TUI entry (already used) | Non-TTY invocations print help and exit |
+
+**No new modules needed.** `flash.py` already imports `sys`. Removing `argparse` is pure deletion.
+
+### Config Cache Migration
+
+| Module / Function | Version | Purpose | Why |
+|---|---|---|---|
+| `shutil.move()` | 3.9+ | Rename config cache dirs from old keys to new slugs | Works across filesystems (defensive); already imported in `config.py` |
+| `Path.exists()` | 3.9+ | Check if old cache dir exists before migration | Already used in `config.py` and `registry.py` |
+| `json` (already imported) | 3.9+ | Rewrite devices.json with new keys | Registry already uses atomic JSON writes via tempfile+fsync+rename |
+
+Migration is a one-time operation on first run after upgrade. The registry `load()` method can detect old-style keys (keys that do not match `slugify(entry.name)`) and offer migration.
+
+**Ordering: migrate config dir BEFORE registry save.** If dir move fails, registry is unchanged. If registry save fails after dir move, the orphaned new-key dir is harmless.
 
 ---
 
 ## What NOT to Add
 
 | Temptation | Why Not |
-|------------|---------|
-| New `Registry.rename()` method | Rename is delete + insert + save, 3 lines in the action handler. A dedicated method adds API surface for a one-off operation. |
-| Separate "editable device" wrapper dataclass | `DeviceEntry` + `dataclasses.replace()` already covers this. |
-| Undo/history for edits | Overengineered. Edits save immediately, matching existing config screen behavior. |
-| Config backup before rename | `shutil.move()` is atomic on same filesystem. The old dir is moved, not copied-then-deleted. |
-| New error types | `RegistryError` covers key conflicts. No new failure modes. |
-| External validation library | `re.match()` for slug format is 1 line. |
+|---|---|
+| `click` / `typer` / any CLI lib | Stdlib-only constraint; argparse is being removed, not replaced |
+| `python-slugify` (PyPI) | Stdlib-only constraint; 4 lines of `re.sub` does the job |
+| `unicodedata` | Device names are ASCII; NFKD normalization is unnecessary complexity |
+| `hashlib` for key generation | Hashes are not human-readable; keys appear in config cache paths and logs |
+| `uuid` for key generation | Same reason as hashlib |
+| `argparse` with reduced flags | Half-measures create confusion; TUI is the sole interface |
+| `shlex` / shell parsing | No command-line parsing needed after argparse removal |
+| New error types | `RegistryError` already covers key conflicts |
+
+---
+
+## Integration Points
+
+### registry.py
+
+- `Registry.add_device()` currently accepts a `DeviceEntry` with a user-provided `key`. After this change, the caller passes only `name`, `mcu`, `serial_pattern`. The registry (or a helper) generates the key via `slugify(name)` + `unique_key()`.
+- `Registry.save()` already handles atomic writes. No change needed.
+- Add a `migrate_keys()` method that iterates devices, computes `slugify(entry.name)`, renames mismatched keys, and renames corresponding config cache directories.
+
+### config.py
+
+- `get_config_dir(device_key)` uses the key as a directory name. Slugs are filesystem-safe by construction (lowercase alphanumeric + hyphens), so this continues working unchanged.
+- No changes to `ConfigManager` needed.
+
+### models.py
+
+- `DeviceEntry.key` field remains. The key is still stored and used; it is just auto-generated instead of user-provided.
+- No schema changes needed.
+
+### flash.py
+
+- Remove `import argparse` and the `_parse_args()` function (and all `--device`, `--add-device`, `--list-devices`, `--remove-device` handling).
+- `main()` becomes: check TTY, check `sys.argv` for `--help`/`--version`, load registry, launch TUI.
+- The `DEFAULT_BLOCKED_DEVICES` list and helper functions (`_normalize_pattern`, `_build_blocked_list`, `_blocked_reason_for_filename`) stay; they are used by the TUI flow, not just CLI.
 
 ---
 
 ## Alternatives Considered
 
 | Decision | Chosen | Alternative | Why Not Alternative |
-|----------|--------|-------------|-------------------|
-| Dir migration | `shutil.move()` | `Path.rename()` | `rename()` fails across filesystems |
-| Registry rename | Delete + insert in handler | New `Registry.rename()` | One-off operation, not worth API surface |
-| Key validation | Regex in `validation.py` | Inline check in TUI | Reusable, testable, consistent with existing validation pattern |
-| flash_method editing | Cycle through options on keypress | Dropdown/sub-menu | Matches toggle pattern already used for booleans in config screen |
+|---|---|---|---|
+| Slug generation | `re.sub` (4 lines) | `python-slugify` PyPI package | Stdlib-only constraint; trivial to implement inline |
+| Collision suffix | Numeric `-2`, `-3` | UUID suffix | Must be human-readable in filesystem paths and debug output |
+| Collision start | Start at 2 | Start at 1 | First device gets clean slug; `-2` clearly means "second" |
+| CLI removal | Full removal | Keep `--help` via argparse | Two `sys.argv` checks replace entire argparse; cleaner |
+| Cache dir rename | `shutil.move()` | `Path.rename()` | `rename()` fails across filesystems |
+| Migration trigger | Detect on `load()` | Separate migration command | Users should not need to know about internal key changes |
 
 ---
 
@@ -100,17 +159,17 @@ No changes. Zero new dependencies.
 
 ## Confidence Assessment
 
-| Component | Confidence | Rationale |
-|-----------|------------|-----------|
-| `shutil.move()` for dir rename | HIGH | stdlib, well-documented, already imported |
-| `dataclasses.replace()` for editing | HIGH | Already used in `_config_screen` for GlobalConfig |
-| Config screen pattern reuse | HIGH | Exact same pattern as existing settings screen |
-| Key validation with regex | HIGH | `re` stdlib, trivial pattern |
-| Atomic registry update | HIGH | Existing `_atomic_write_json` handles this |
+| Recommendation | Confidence | Basis |
+|---|---|---|
+| `re.sub` for slugification | HIGH | Python stdlib docs; well-established pattern |
+| Numeric suffix for collisions | HIGH | Common convention; trivial to implement |
+| Remove argparse entirely | HIGH | TUI already handles all workflows; CLI flags are redundant |
+| `shutil.move()` for cache migration | HIGH | Stdlib, well-documented, already imported in codebase |
+| No external dependencies | HIGH | Project constraint from CLAUDE.md |
 
 ---
 
 ## Sources
 
-- Existing codebase: `registry.py` (atomic save pattern), `config.py` (`get_config_dir`, `shutil` import), `tui.py` (`_config_screen` pattern), `screen.py` (panel rendering), `validation.py` (validation helpers), `models.py` (`DeviceEntry` fields)
-- Python stdlib: `shutil.move()`, `dataclasses.replace()`, `pathlib.Path`, `re` -- all stable, unchanged APIs
+- Existing codebase: `kflash/registry.py` (atomic save pattern), `kflash/config.py` (`get_config_dir`, `shutil` import), `kflash/flash.py` (argparse usage to remove), `kflash/models.py` (`DeviceEntry` fields)
+- Python 3.9 stdlib docs: `re` module, `shutil.move()`, `pathlib.Path`, `sys.argv`

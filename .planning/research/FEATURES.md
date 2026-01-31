@@ -1278,3 +1278,132 @@ Things to deliberately NOT build and why:
 | Sequential-only USB flashing | HIGH | Hardware constraint; USB serial is single-device |
 | Truecolor detection via COLORTERM | MEDIUM | Common convention but not standardized |
 | CLI progress display patterns | MEDIUM | Verified with Evil Martians CLI UX article |
+
+---
+
+## CLI Removal and Device Key Internalization
+
+**Focus:** Removing argparse CLI, making `kflash` launch straight to TUI, auto-generating device keys from display names
+**Researched:** 2026-01-31
+**Confidence:** HIGH (based on thorough codebase analysis of every touchpoint)
+
+---
+
+### Table Stakes
+
+Features that must exist for the transition to feel correct. Missing any of these = broken workflow or data loss.
+
+| Feature | Why Expected | Complexity | Notes |
+|---------|--------------|------------|-------|
+| `kflash` launches TUI directly | With CLI removed, the entry point must go straight to `run_menu()`. Non-TTY should print a brief usage message, not argparse help. | LOW | Remove `build_parser()`, `args` handling in `main()`. Keep TTY check. |
+| Auto-generate key from display name | User provides "Octopus Pro v1.1", system generates `octopus-pro-v1-1` as internal key. User never sees or types keys. | LOW | Slugify function: lowercase, replace non-alphanumeric with hyphens, collapse runs, strip edges. Already have `validate_device_key` regex as spec: `^[a-z0-9][a-z0-9_-]*$`. |
+| Uniqueness handling for generated keys | Two devices named "Nitehawk" must not collide. Append `-2`, `-3` etc. if slug already exists. | LOW | Check registry, increment suffix until unique. |
+| Migration of existing devices.json | Existing registries have user-provided keys. These must continue working without user intervention. | LOW | Keys already conform to `[a-z0-9_-]+` format. No migration needed -- existing keys ARE valid internal keys. Display name already stored separately. |
+| Migration of existing config cache dirs | Config cache dirs at `~/.config/kalico-flash/configs/{key}/` use existing keys. These must remain valid. | LOW | No rename needed. Existing keys stay as-is. New devices get auto-generated keys. |
+| Remove device key from add-device wizard | The "Device key (used with --device flag)" prompt must be removed. User only provides display name. | LOW | Remove step 4 (key prompt) from `cmd_add_device()`. Generate key from display name instead. |
+| Remove device key editing from config screen | `DEVICE_SETTINGS` item 2 ("Device key") must be removed. Keys are internal and not user-editable. | LOW | Remove from `DEVICE_SETTINGS` list and `_device_config_screen` handler. |
+| Remove `--device KEY` references from error messages | Error recovery text currently says "Run --add-device" or "Use --device KEY". Must update to TUI-appropriate hints. | LOW | Grep for `--device`, `--add-device`, `--list-devices`, `--remove-device`, `--exclude-device`, `--include-device` in all output strings. Replace with TUI action references ("Press F to flash", "Press A to add"). |
+| Remove `--skip-menuconfig` CLI flag | This setting already exists as a toggle in the Settings screen (`skip_menuconfig` in GlobalConfig). CLI flag is redundant. | LOW | Already handled by `data.global_config.skip_menuconfig` in TUI flash path. |
+| Show display name everywhere keys were shown | Flash output, error messages, status panel, remove confirmation -- all must use `entry.name` instead of `entry.key`. | LOW | Most places already show name. Audit `device_key` usage in user-facing strings. |
+| Remove `--version` flag handling | Can move version display to Settings screen or status bar. | LOW | Add version to status panel or settings screen. |
+
+### Differentiators
+
+Polish that makes the transition seamless. Not required, but prevents user confusion.
+
+| Feature | Value Proposition | Complexity | Notes |
+|---------|-------------------|------------|-------|
+| Show key in device config screen as read-only | Power users debugging devices.json or config cache paths benefit from seeing the internal key, similar to how MCU and serial pattern are shown read-only. | LOW | Add to identity panel in `render_device_config_screen()`. Not editable, just informational. |
+| Smarter slug generation | Strip common words like "v1.1" version suffixes that add noise to slugs. "BTT Octopus Pro v1.1" becomes `btt-octopus-pro` not `btt-octopus-pro-v1-1`. | LOW | Optional refinement. Simple regex to strip trailing version patterns. |
+| `--help` flag still works | Even without full CLI, `kflash --help` printing a brief message ("Launch kflash for interactive menu") is friendlier than a Python traceback. | LOW | Minimal argparse with no subcommands, or manual `sys.argv` check. |
+
+### Anti-Features
+
+Things to deliberately NOT build during this transition.
+
+| Anti-Feature | Why Avoid | What to Do Instead |
+|--------------|-----------|-------------------|
+| Let users edit auto-generated keys | Re-introduces the concept that keys are user-facing identifiers. Editing a key requires config cache rename, registry rewrite, and validation. All that complexity existed to support CLI `--device KEY` which is being removed. | Keys are internal. Users edit display names. Show key as read-only in device config for debugging. |
+| Keep any CLI flags "just in case" | Half-removing CLI creates confusion: which operations work from CLI vs TUI? Partial CLI means maintaining two code paths indefinitely. | Remove all argparse. Single entry point: TUI. |
+| Auto-rename existing keys to match display names | Existing keys work fine as internal identifiers. Renaming them risks breaking config cache paths and creates unnecessary migration complexity. | Leave existing keys as-is. Only new devices get auto-generated keys. |
+| Generate keys from MCU type or serial pattern | MCU types repeat across devices (two RP2040 boards). Serial patterns are long and ugly. Neither makes a good human-debuggable identifier. | Generate from display name, which is unique and user-meaningful. |
+| Add a new CLI entry point later (e.g., `kflash flash octopus-pro`) | Scope creep. The entire point of this milestone is simplification. Adding CLI back defeats the purpose. If scripting is needed later, that is a separate milestone with its own requirements. | TUI only. Document that scripting is out of scope. |
+| Prompt user to confirm auto-generated key | "Your device key will be 'octopus-pro'. OK?" adds friction for zero value. The key is internal -- the user does not need to approve it. | Generate silently. Show in success message for transparency: "Registered 'Octopus Pro v1.1'". |
+
+### Feature Dependencies
+
+```
+[Remove argparse from flash.py]
+    |-- enables --> [kflash launches TUI directly]
+    |-- requires --> [Remove all --flag references from error messages]
+    |-- requires --> [Remove --device KEY from cmd_flash interactive path]
+
+[Add slug generation function]
+    |-- used by --> [cmd_add_device (replace key prompt)]
+    |-- requires --> [Uniqueness check against registry]
+    |-- spec from --> [validate_device_key regex: ^[a-z0-9][a-z0-9_-]*$]
+
+[Remove key from DEVICE_SETTINGS]
+    |-- requires --> [Remove key edit handler from _device_config_screen]
+    |-- optional --> [Add key as read-only to identity panel]
+
+[Remove key prompt from cmd_add_device]
+    |-- requires --> [Slug generation function]
+    |-- requires --> [Update success message to show name not key]
+```
+
+**Build order:**
+1. Add slug generation utility (pure function, no side effects)
+2. Update `cmd_add_device` to use slug instead of key prompt
+3. Remove argparse and CLI dispatch from `main()`
+4. Remove key editing from device config screen
+5. Audit and update all user-facing strings referencing CLI flags or device keys
+
+### MVP Recommendation
+
+**Must have (blocks the milestone):**
+
+1. Remove `build_parser()` and argparse dispatch from `main()` -- entry point goes straight to TUI
+2. Slug generation function with uniqueness handling
+3. Remove key prompt from add-device wizard, replace with auto-generation
+4. Remove key editing from device config screen
+5. Update error/recovery messages to reference TUI actions instead of CLI flags
+
+**Defer to post-MVP:**
+
+- Smarter slug generation (strip version suffixes) -- low impact, can refine later
+- `--help` minimal flag -- users will figure out `kflash` launches the TUI
+- Showing key as read-only in device config identity panel -- nice but not blocking
+
+### Affected Code Inventory
+
+Every file and function that references CLI flags or user-facing device keys:
+
+| File | What Changes | Complexity |
+|------|-------------|------------|
+| `flash.py` `main()` | Remove argparse, go straight to `run_menu()` | LOW |
+| `flash.py` `build_parser()` | Delete entirely | LOW |
+| `flash.py` `cmd_add_device()` | Remove key prompt (step 4), add slug generation | LOW |
+| `flash.py` `cmd_flash()` | Remove `device_key is None` interactive CLI path (TUI handles selection). Keep function for TUI dispatch with explicit key. | LOW |
+| `flash.py` `cmd_remove_device()` | Update confirmation to show name not key | LOW |
+| `flash.py` `cmd_exclude_device()` / `cmd_include_device()` | Remove entirely (TUI config screen handles flashable toggle) | LOW |
+| `flash.py` `cmd_list_devices()` | Remove `from_menu` parameter (always from TUI now) | LOW |
+| `flash.py` error messages | Replace `--add-device` with "Press A", `--device KEY` with "Press F", etc. | LOW |
+| `tui.py` `_device_config_screen()` | Remove key edit handler (setting index 2) | LOW |
+| `screen.py` `DEVICE_SETTINGS` | Remove key entry from list | LOW |
+| `screen.py` `render_device_config_screen()` | Optionally add key to identity panel as read-only | LOW |
+| `models.py` `DeviceEntry` | No change -- `key` field stays as internal identifier | NONE |
+| `registry.py` | No change -- keys still used as dict keys internally | NONE |
+| `config.py` | No change -- `device_key` still used for cache paths | NONE |
+| `validation.py` `validate_device_key()` | Keep for internal slug validation, remove `registry` uniqueness param (handled by slug generator) | LOW |
+| `errors.py` | Update `ERROR_TEMPLATES` recovery text that references CLI flags | LOW |
+| `kflash.py` (entry point) | No change -- already calls `main()` | NONE |
+
+### Sources
+
+- Codebase analysis: `flash.py` (lines 92-157 argparse, lines 1813-1828 key prompt, lines 1986-2041 main dispatch)
+- Codebase analysis: `screen.py` (lines 479-490 DEVICE_SETTINGS with key edit)
+- Codebase analysis: `tui.py` (lines 730-890 device config screen with key rename handler)
+- Codebase analysis: `validation.py` (lines 55-80 validate_device_key with regex spec)
+- Codebase analysis: `config.py` (lines 16-27 get_config_dir using device_key, lines 30-48 rename_device_config_cache)
+- Codebase analysis: `errors.py` ERROR_TEMPLATES with CLI flag references in recovery text

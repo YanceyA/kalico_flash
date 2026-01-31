@@ -1,8 +1,173 @@
 # Pitfalls Research: klipper-flash
 
 **Domain:** Python CLI tool for Klipper firmware building and flashing via subprocesses
-**Researched:** 2026-01-25 (v1.0), 2026-01-26 (v2.0 additions), 2026-01-29 (v2.1 panel TUI + batch flash), 2026-01-30 (v3.2 visual dividers), 2026-01-31 (v4.0 config device editing)
+**Researched:** 2026-01-25 (v1.0), 2026-01-26 (v2.0 additions), 2026-01-29 (v2.1 panel TUI + batch flash), 2026-01-30 (v3.2 visual dividers), 2026-01-31 (v4.0 config device editing, v5.0 CLI removal + key internalization)
 **Overall confidence:** HIGH (domain knowledge from Klipper ecosystem, codebase analysis of key usage patterns, Python file operation semantics)
+
+---
+
+## v5.0 CLI Removal and Key Internalization Pitfalls
+
+### CLI-1: Existing devices.json Keys Don't Match Slug Algorithm (Critical)
+
+**What goes wrong:** Existing `devices.json` has user-typed keys like `octopus-pro`. New code generates slugs from `entry.name` ("Octopus Pro v1.1") producing `octopus-pro-v1-1`. The config cache at `~/.config/kalico-flash/configs/octopus-pro/` no longer resolves.
+
+**Why it happens:** Slug algorithm and user's original key choice are independent. There is no guarantee `slugify("Octopus Pro v1.1") == "octopus-pro"`.
+
+**Consequences:** All existing devices lose cached configs. User must re-run menuconfig for every board (10+ minutes each of manual TUI interaction on a Pi with multiple boards).
+
+**Prevention:**
+- Keep existing keys as-is forever. Only slugify names for NEW devices added after the migration
+- On `registry.py` load, use the JSON dict key directly as `entry.key` (already the case at line 44-46 -- do not change this)
+- Never call `slugify()` on existing device names during load or save
+- The key is born once at registration and lives forever
+
+**Detection:** If any code path calls `slugify(entry.name)` for an entry that already has a key, this pitfall is active. Grep for `slugify` calls -- they should only appear in the add-device flow.
+
+**Phase:** Data model design. Must be the first decision made.
+
+---
+
+### CLI-2: Slug Collision Silently Overwrites Device (Critical)
+
+**What goes wrong:** Two devices with similar names produce the same slug. "Octopus Pro" and "Octopus-Pro" both become `octopus-pro`. Second device overwrites the first in `devices.json` and clobbers its config cache directory.
+
+**Why it happens:** Slugification collapses spaces, hyphens, underscores, and case into the same output. With board revisions ("v1.0" vs "v1.1"), collisions are more common than expected.
+
+**Consequences:** Silent data loss of one device's registration and menuconfig cache.
+
+**Prevention:**
+- Check slug uniqueness against existing registry keys before inserting
+- On collision: append numeric suffix (`octopus-pro-2`) or reject with clear error
+- Never silently overwrite an existing key in the devices dict
+
+**Detection:** Unit-testable: `assert slugify(name) not in registry.devices` before any insert.
+
+**Phase:** Add-device flow implementation.
+
+---
+
+### CLI-3: Argparse Removal Breaks External Callers (Moderate)
+
+**What goes wrong:** `install.sh` creates the `kflash` symlink. Moonraker update manager or user shell aliases may invoke `kflash` with flags. Removing argparse causes Python tracebacks for any caller passing arguments.
+
+**Why it happens:** CLI flags are an external contract. Even though the tool is moving to TUI-only, external references to `kflash --device octopus-pro` may exist in user scripts, cron jobs, or Moonraker configs.
+
+**Warning signs:**
+- `install.sh` has any argument handling
+- Moonraker `[update_manager]` config references kflash with arguments
+- User has shell aliases like `alias flash-octo='kflash --device octopus-pro'`
+
+**Prevention:**
+- Keep a minimal `sys.argv` check: if any args are passed, print a clear migration message ("CLI flags removed. Run kflash with no arguments to launch the interactive menu.") and exit cleanly
+- Do NOT just let Python traceback on unknown arguments
+- Check `install.sh` and `moonraker.py` for any flag usage before removing
+
+**Detection:** After removal, run `kflash --help`, `kflash --device foo`, `kflash -s` -- all should show the migration message, not a traceback.
+
+**Phase:** CLI removal phase. Must be in the same commit as argparse removal.
+
+---
+
+### CLI-4: 30+ Instances of entry.key in User-Facing Output (Moderate)
+
+**What goes wrong:** `flash.py` displays `entry.key` in output lines like `"octopus-pro (stm32h723)"` over 30 times. After internalization, displaying auto-generated slugs to users is confusing and ugly (`octopus-pro-v1-1` instead of "Octopus Pro v1.1").
+
+**Why it happens:** The key was designed as user-facing. It permeates all output formatting. Grep for `entry.key` in flash.py shows it in device_line calls, info messages, warning messages, and batch result tracking.
+
+**Consequences:** Users see slugified names everywhere instead of their chosen display names. Tool feels broken/ugly.
+
+**Prevention:**
+- Audit every `entry.key` usage in output/display code (all 30+ instances in flash.py)
+- Replace user-facing displays with `entry.name`
+- Keep `entry.key` for: dict lookups, config cache paths, log debugging only
+- `BatchDeviceResult.device_key` stays internal; `device_name` becomes the display field
+
+**Detection:** Grep `entry\.key` in any string formatting, f-string, or output method call. Every instance needs classification as "internal" or "display".
+
+**Phase:** Output refactor, after data model is settled. Can be a separate commit.
+
+---
+
+### CLI-5: Slug Generation Edge Cases (Moderate)
+
+**What goes wrong:** Hand-rolled slugify on Python 3.9 stdlib misses edge cases: leading/trailing hyphens, consecutive hyphens, empty result after stripping, unicode characters, very long names, or filesystem-unsafe characters.
+
+**Why it happens:** Python 3.9 stdlib has no `slugify()`. Django's `slugify` handles these but is not available. Naive `re.sub(r'[^a-z0-9-]', '-', name.lower())` produces ugly results and edge case failures.
+
+**Consequences:** Empty slugs (all-emoji name), filesystem errors (key with `/`), path traversal (`../../../etc/passwd` as device name), or unexpectedly long paths.
+
+**Prevention:**
+- Implementation: `re.sub(r'[^a-z0-9]+', '-', name.lower()).strip('-')` with consecutive hyphen collapse
+- Reject empty result: require at least one alphanumeric char in name
+- Limit slug length (64 chars)
+- Block path-traversal characters before slugification
+- Test with: empty string, all-special-chars, `"../../../etc"`, unicode, 200-char names, names that are only numbers
+
+**Phase:** Slug utility function. Implement and test before any integration.
+
+---
+
+### CLI-6: skip_menuconfig Flag Lost Without CLI (Minor)
+
+**What goes wrong:** The `-s` / `--skip-menuconfig` CLI flag is currently the only way to skip menuconfig. After argparse removal, this capability is lost unless moved to GlobalConfig or TUI.
+
+**Why it happens:** Developer focuses on removing argparse and forgets that some flags control runtime behavior that users depend on.
+
+**Warning signs:** User used `kflash -s --device octopus-pro` in their workflow. After migration, no way to skip menuconfig.
+
+**Prevention:**
+- `skip_menuconfig` already exists in `GlobalConfig` (models.py line 17) and is stored in `devices.json` global section
+- Verify the TUI flow respects `global_config.skip_menuconfig`
+- Consider adding a per-device `skip_menuconfig` toggle in the TUI settings panel
+
+**Phase:** CLI removal phase. Verify all flag behaviors have TUI or config equivalents before removing argparse.
+
+---
+
+### CLI-7: Documentation References Removed CLI Flags (Minor)
+
+**What goes wrong:** README, CLAUDE.md (lines 8-13 of flash.py docstring, CLAUDE.md "CLI Commands" section), and install.sh all reference `--device KEY`, `--add-device`, `--list-devices` etc. Users following docs get confusing errors.
+
+**Prevention:**
+- Update flash.py module docstring, README, CLAUDE.md, and install.sh in the same commit as CLI removal
+- Search for `--device`, `--add-device`, `--list-devices`, `--remove-device`, `--exclude-device`, `--include-device`, `-s` across all files
+
+**Phase:** Same commit/PR as CLI removal.
+
+---
+
+## CLI Removal Phase-Specific Warnings
+
+| Phase Topic | Likely Pitfall | Mitigation |
+|---|---|---|
+| Data model design | Re-deriving keys from names breaks existing devices (CLI-1) | Keys are immutable after creation, slugify only at add time |
+| Slug implementation | Collisions, empty slugs, path traversal (CLI-2, CLI-5) | Collision check + strict filtering + length limit |
+| Argparse removal | External callers get tracebacks (CLI-3) | Graceful migration message for any sys.argv |
+| Output refactor | 30+ key displays become ugly slugs (CLI-4) | Replace entry.key with entry.name in all user-facing output |
+| Flag migration | skip_menuconfig behavior lost (CLI-6) | Verify GlobalConfig.skip_menuconfig is respected by TUI |
+| Documentation | Stale CLI docs everywhere (CLI-7) | Update all docs in same commit |
+
+## "Looks Done But Isn't" Checklist (v5.0)
+
+- [ ] **Existing keys preserved:** `registry.load()` still reads dict key directly, no slugification on load
+- [ ] **Slug collision checked:** New device add rejects duplicate slugs
+- [ ] **Graceful arg rejection:** `kflash --anything` prints migration message, not traceback
+- [ ] **All entry.key displays audited:** User sees `entry.name`, not `entry.key`, in all output
+- [ ] **Slug edge cases tested:** Empty, unicode, path traversal, long names, all-special-chars
+- [ ] **Flag behaviors preserved:** skip_menuconfig works via GlobalConfig without CLI flag
+- [ ] **Docs updated:** flash.py docstring, CLAUDE.md, README all reflect TUI-only interface
+- [ ] **install.sh reviewed:** No flag handling that breaks after argparse removal
+
+## Sources (v5.0)
+
+### Codebase Analysis (HIGH confidence)
+- `kflash/registry.py` lines 43-46: Keys read from JSON dict keys, not derived from names
+- `kflash/models.py` line 27: `DeviceEntry.key` docstring says "user-chosen, used as --device flag"
+- `kflash/config.py` lines 16, 27: `get_config_dir(device_key)` uses key directly as filesystem path component
+- `kflash/flash.py`: 30+ instances of `entry.key` in user-facing output (grep confirmed)
+- `kflash/models.py` line 17: `GlobalConfig.skip_menuconfig` already exists as persistent config
+- `kflash/flash.py` lines 1-26: Module docstring documents CLI flags that will be removed
 
 ---
 
@@ -284,7 +449,7 @@
 
 ---
 
-*[Previous v1.0, v2.0, v2.1, v3.2 pitfalls preserved below for historical context]*
+*[Previous v1.0, v2.0, v2.1, v3.2, v4.0 pitfalls preserved below for historical context]*
 
 ---
 
@@ -670,5 +835,5 @@
 
 ---
 
-*Pitfalls research: 2026-01-25 (v1.0), 2026-01-26 (v2.0 additions), 2026-01-29 (v2.1 panel TUI + batch flash), 2026-01-30 (v3.2 visual dividers), 2026-01-31 (v4.0 config device editing)*
+*Pitfalls research: 2026-01-25 (v1.0), 2026-01-26 (v2.0 additions), 2026-01-29 (v2.1 panel TUI + batch flash), 2026-01-30 (v3.2 visual dividers), 2026-01-31 (v4.0 config device editing, v5.0 CLI removal + key internalization)*
 *Confidence: HIGH -- based on direct codebase analysis of registry.py, config.py, models.py key usage patterns, and Python file operation semantics.*

@@ -1,258 +1,225 @@
-# Architecture Patterns
+# Architecture Patterns: CLI Removal and Device Key Internalization
 
-**Domain:** "Config Device" TUI action for kalico-flash
+**Domain:** kalico-flash CLI-to-TUI-only refactor
 **Researched:** 2026-01-31
-**Confidence:** HIGH (based on direct codebase analysis)
+**Confidence:** HIGH (based on direct codebase analysis of all 16 source files)
 
-## Integration Summary
+## Current Architecture Summary
 
-The "Config device" feature slots cleanly into the existing hub-and-spoke architecture. **No new modules are needed.** The feature follows the exact same pattern as the existing `_config_screen` (global settings) but targets a `DeviceEntry` instead of `GlobalConfig`.
+Hub-and-spoke: `flash.py` is the hub containing `main()` with argparse, all `cmd_*` functions, preflight checks, and blocked-device logic. `tui.py` provides the interactive menu loop. Modules do not cross-import except through flash.py orchestration.
 
-## Modules Requiring Changes
-
-| Module | Change Type | What Changes |
-|--------|------------|--------------|
-| `tui.py` | **Modified** | New `"e"` key handler in `run_menu`, new `_action_config_device` handler, new `_device_config_screen` function |
-| `screen.py` | **Modified** | New `DEVICE_SETTINGS` list, new `render_device_config_screen` function |
-| `registry.py` | **Modified** | New `update_device` method (load-modify-save with key rename support) |
-| `config.py` | **Modified** | New `rename_config_cache` function for key change migration |
-| `validation.py` | **Modified** | New `validate_device_key` function (non-empty, no spaces, not duplicate) |
-| `models.py` | **No change** | `DeviceEntry` already has all needed fields (key, name, mcu, serial_pattern, flash_method, flashable) |
-| `panels.py` | **No change** | `render_panel` already supports arbitrary content |
-| `flash.py` | **No change** | Hub does not need modification; TUI handles dispatch |
-
-## Data Flow: Config Device Action
-
+**Entry flow today:**
 ```
-User presses "E" in main menu
-    |
-    v
-tui.py: run_menu dispatches to _action_config_device
-    |
-    v
-tui.py: _prompt_device_number (reused from Flash/Remove)
-    |
-    v
-tui.py: _device_config_screen(registry, out, device_key)
-    |
-    +-- registry.get(device_key) -> DeviceEntry
-    |
-    +-- screen.render_device_config_screen(entry) -> panel string
-    |
-    +-- getch() -> setting number
-    |
-    +-- Edit loop (same pattern as _config_screen):
-    |     toggle: flip immediately, registry.update_device(...)
-    |     text:   input() with validation, registry.update_device(...)
-    |     key:    input() + validate_device_key() + rename_config_cache()
-    |             + registry.update_device(old_key, new_entry)
-    |
-    +-- Loop back to render until Esc/B
-    |
-    v
-Returns (status_message, status_level) to run_menu
+kflash.py -> flash.main() -> argparse
+  if --add-device    -> cmd_add_device()
+  if --device KEY    -> cmd_flash()
+  if --list-devices  -> cmd_list_devices()
+  if --remove-device -> cmd_remove_device()
+  if --exclude/include -> cmd_exclude/include_device()
+  if no args + TTY   -> tui.run_menu()
+  if no args + !TTY  -> print help
 ```
 
-## Component Boundaries
+**Key observation:** The TUI (`run_menu`) already handles every operation through action handlers (`_action_flash_device`, `_action_add_device`, `_action_remove_device`). These handlers call back into `flash.py`'s `cmd_*` functions. The CLI flags are a parallel entry path that duplicates the TUI's capabilities.
 
-### tui.py: `_device_config_screen`
+## What Changes
 
-Owns the interaction loop. Reads keypresses, dispatches edits, calls registry. Mirrors `_config_screen` exactly in structure.
+### 1. Entry Point (`flash.py` -> simplified)
 
-**Receives:** registry, out, device_key (string, may change during session if key renamed)
-**Returns:** None (modifies registry as side effect, like `_config_screen`)
+**Remove:** `build_parser()`, `argparse` import, all CLI flag handling in `main()`.
 
-### screen.py: `DEVICE_SETTINGS` + `render_device_config_screen`
-
-Defines the editable fields and renders the panel. Pure rendering, no state mutation.
-
+**New `main()`:**
 ```python
-DEVICE_SETTINGS: list[dict] = [
-    {"key": "name", "label": "Display name", "type": "text"},
-    {"key": "key", "label": "Device key", "type": "key"},
-    {"key": "mcu", "label": "MCU type", "type": "text"},
-    {"key": "serial_pattern", "label": "Serial pattern", "type": "readonly"},
-    {"key": "flash_method", "label": "Flash method", "type": "choice", "choices": ["katapult", "make_flash", "global default"]},
-    {"key": "flashable", "label": "Flashable", "type": "toggle"},
-]
-```
-
-**Receives:** DeviceEntry
-**Returns:** Multi-line panel string
-
-### registry.py: `update_device`
-
-Atomic update of a device entry. Handles key rename (remove old + add new in single `save()` call).
-
-```python
-def update_device(self, old_key: str, entry: DeviceEntry) -> None:
-    """Update device, handling key rename if entry.key != old_key."""
-    data = self.load()
-    if old_key not in data.devices:
-        raise RegistryError(f"Device '{old_key}' not found")
-    if entry.key != old_key and entry.key in data.devices:
-        raise RegistryError(f"Device '{entry.key}' already exists")
-    del data.devices[old_key]
-    data.devices[entry.key] = entry
-    self.save(data)
-```
-
-### config.py: `rename_config_cache`
-
-Moves cached `.config` directory when device key changes.
-
-```python
-def rename_config_cache(old_key: str, new_key: str) -> bool:
-    """Rename config cache directory. Returns True if moved."""
-    old_dir = get_config_dir(old_key)
-    new_dir = get_config_dir(new_key)
-    if old_dir.exists() and not new_dir.exists():
-        new_dir.parent.mkdir(parents=True, exist_ok=True)
-        old_dir.rename(new_dir)
-        return True
-    return False
-```
-
-### validation.py: `validate_device_key`
-
-```python
-def validate_device_key(raw: str, existing_keys: list[str], current_key: str = "") -> tuple[bool, str]:
-    """Validate device key. Returns (is_valid, error_message)."""
-    if not raw:
-        return False, "Key cannot be empty"
-    if " " in raw:
-        return False, "Key cannot contain spaces"
-    if raw != current_key and raw in existing_keys:
-        return False, f"Key '{raw}' already exists"
-    return True, ""
-```
-
-## Patterns to Follow
-
-### Pattern 1: Config Screen Loop (from existing `_config_screen`)
-
-The existing global config screen establishes the exact pattern:
-
-1. `while True:` loop
-2. Load current state from registry
-3. `clear_screen()` + render action divider + render panel
-4. `_getch()` for setting number
-5. Dispatch by setting type (toggle/text/numeric/path)
-6. Validate with reject-and-reprompt, save, loop
-
-Device config replicates this 1:1 with `DeviceEntry` instead of `GlobalConfig`.
-
-### Pattern 2: Action Handler Signature
-
-All TUI actions follow the same signature and return pattern:
-
-```python
-def _action_config_device(registry, out, device_key: str) -> tuple[str, str]:
-    """Returns (status_message, status_level)."""
+def main() -> int:
+    if not sys.stdin.isatty():
+        sys.exit("kalico-flash requires an interactive terminal.")
+    from .output import CliOutput
+    from .registry import Registry
+    from .tui import run_menu
+    out = CliOutput()
+    registry_path = Path(__file__).parent / "devices.json"
+    registry = Registry(str(registry_path))
     try:
-        _device_config_screen(registry, out, device_key)
-        return ("Device config saved", "success")
+        return run_menu(registry, out)
     except KeyboardInterrupt:
-        return ("Config: cancelled", "warning")
-    except Exception as exc:
-        return (f"Config: {exc}", "error")
+        return 130
+    except KlipperFlashError as e:
+        out.error(str(e))
+        return 1
 ```
 
-### Pattern 3: Registry Load-Modify-Save
+**Rationale:** `flash.py` becomes a thin launcher. All routing lives in `tui.run_menu()` where it already exists. The `cmd_*` functions remain in flash.py as the orchestration layer -- the TUI calls them, no change needed there.
 
-All registry mutations follow load -> modify -> save through `Registry.save()` which calls `_atomic_write_json`. The new `update_device` method follows this same pattern with a single `save()` call for atomicity.
+**Impact:** ~60 lines removed (parser + flag routing). Zero changes to any `cmd_*` function signatures.
+
+### 2. Device Key Internalization (`cmd_add_device` in `flash.py`)
+
+**Current:** User manually types a device key at "Device key" prompt (step 4, line 1815-1827).
+
+**New:** Auto-generate key from device name using a `slugify` function.
+
+**Where to add `generate_device_key()`:** `validation.py` (already has `validate_device_key`).
+
+```python
+def generate_device_key(display_name: str, registry) -> str:
+    """Generate a unique device key from display name.
+
+    'Octopus Pro v1.1' -> 'octopus-pro-v1-1'
+    If collision, appends -2, -3, etc.
+    """
+    slug = re.sub(r'[^a-z0-9]+', '-', display_name.lower()).strip('-')
+    if not slug:
+        slug = 'device'
+    candidate = slug
+    counter = 2
+    while registry.get(candidate) is not None:
+        candidate = f"{slug}-{counter}"
+        counter += 1
+    return candidate
+```
+
+**Impact on `cmd_add_device`:** Remove step 4 (key prompt loop, lines 1814-1827). Replace with:
+```python
+device_key = generate_device_key(display_name, registry)
+out.info("Registry", f"Device key: {device_key}")
+```
+
+**Impact on `DeviceEntry.key`:** Field remains. Still used as dict key in registry, config cache dir name, and internal references. Users just no longer see or type it.
+
+### 3. Device Key in Device Config Screen (`tui.py` `_device_config_screen`)
+
+**Current:** DEVICE_SETTINGS index 1 is `{"key": "key", ...}` allowing key editing.
+
+**New:** Remove key from DEVICE_SETTINGS. Key becomes read-only, derived from name. When user edits name, key auto-regenerates.
+
+**Changes in `screen.py`:**
+- Remove `{"key": "key", ...}` from `DEVICE_SETTINGS` (line 481)
+- Adjust numbering (settings become 1-4 instead of 1-5)
+
+**Changes in `tui.py` `_device_config_screen`:**
+- Remove key editing branch (lines 833-846)
+- When name changes, auto-derive new key: `pending["key"] = generate_device_key(new_name, registry)`
+- Adjust keypress range from `("1","2","3","4","5")` to `("1","2","3","4")`
+
+### 4. References to `--device KEY` in User-Facing Strings
+
+Grep for `--device` in output strings that will need updating:
+
+| File | Line | Current Text | Action |
+|------|------|-------------|--------|
+| `flash.py` | 1816 | `"Device key (used with --device flag..."` | Remove (step eliminated) |
+| `flash.py` | 681 | `"run \`kflash --include-device {device_key}\`"` | Change to TUI instructions |
+| `flash.py` | 543 | `"Register new device: kflash --add-device"` | Change to "Press A to add" |
+| `flash.py` | 541 | `"List registered devices: kflash --list-devices"` | Change to "Press D to refresh" |
+| `errors.py` | Various | recovery templates referencing CLI flags | Update all to TUI instructions |
+
+**Note:** `from_tui` parameter on several `cmd_*` functions already switches between CLI and TUI recovery text. After CLI removal, the `from_tui` parameter can be removed and all paths default to TUI text.
+
+## Component Boundaries (Post-Change)
+
+| Component | Responsibility | Changes |
+|-----------|---------------|---------|
+| `flash.py` | Thin launcher + `cmd_*` orchestration | Remove argparse, simplify `main()` |
+| `tui.py` | Menu loop, action dispatch, input handling | No structural change |
+| `screen.py` | Panel rendering, settings definitions | Remove key from DEVICE_SETTINGS |
+| `registry.py` | JSON CRUD, atomic writes | No change |
+| `config.py` | Config caching keyed by device key | No change (still uses key internally) |
+| `validation.py` | Input validation | Add `generate_device_key()` |
+| `models.py` | Dataclass contracts | No change (`DeviceEntry.key` stays) |
+| `discovery.py` | USB scanning | No change |
+| All other modules | build, flash, service, moonraker, etc. | No change |
+
+## Data Flow Changes
+
+### Before (CLI path):
+```
+User types: kflash --device octopus-pro
+  -> argparse extracts key
+  -> cmd_flash(registry, "octopus-pro", out)
+  -> registry.get("octopus-pro")
+```
+
+### After (TUI-only path, unchanged):
+```
+User presses F, selects device #1
+  -> _prompt_device_number returns key from DeviceRow.key
+  -> _action_flash_device calls cmd_flash(registry, key, out)
+  -> registry.get(key)
+```
+
+### Key generation (new):
+```
+User enters display name "Octopus Pro v1.1"
+  -> generate_device_key("Octopus Pro v1.1", registry)
+  -> returns "octopus-pro-v1-1"
+  -> DeviceEntry(key="octopus-pro-v1-1", name="Octopus Pro v1.1", ...)
+  -> registry.add(entry)
+  -> config cache at ~/.config/kalico-flash/configs/octopus-pro-v1-1/
+```
+
+### Key rename on name edit:
+```
+User edits name from "Octopus Pro v1.1" to "Octopus Pro 446"
+  -> generate_device_key("Octopus Pro 446", registry)
+  -> returns "octopus-pro-446"
+  -> pending["key"] = "octopus-pro-446", pending["name"] = "Octopus Pro 446"
+  -> _save_device_edits renames config cache + registry entry
+```
+
+## Migration Strategy for Existing devices.json
+
+**No migration needed.** The `DeviceEntry.key` field persists in JSON. Existing keys like `"octopus-pro"` continue to work. The only change is that new devices get auto-generated keys instead of user-typed ones. The device config screen still allows name editing which triggers key regeneration, but existing devices keep their keys unless the user edits the name.
+
+**Edge case:** If a user edits an existing device name, the key will be regenerated from the new name. The `_save_device_edits` function already handles key rename with config cache migration (lines 730-761 of tui.py). No new migration code required.
 
 ## Anti-Patterns to Avoid
 
-### Anti-Pattern 1: Cross-Module Imports
+### Do Not Remove DeviceEntry.key
+The key is the primary identifier throughout the codebase: registry dict keys, config cache directory names, `cmd_*` function parameters, `_prompt_device_number` return values. Removing it would cascade changes through every module. Keep it as an internal implementation detail -- just stop exposing it to users.
 
-**What:** Having screen.py import from registry.py or config.py directly.
-**Why bad:** Violates hub-and-spoke. Creates coupling.
-**Instead:** tui.py orchestrates. screen.py receives data, returns strings. registry.py persists.
+### Do Not Move cmd_* Functions to tui.py
+The `cmd_*` functions in flash.py are the orchestration layer. They contain preflight checks, phase sequencing, error handling with recovery text. Moving them to tui.py would violate the hub-and-spoke pattern and make tui.py a 2000+ line file. Keep the current separation: tui.py dispatches, flash.py orchestrates.
 
-### Anti-Pattern 2: Key Rename as Two Separate Save Operations
-
-**What:** Calling `registry.remove(old)` then `registry.add(new)` as separate method calls.
-**Why bad:** Each calls `save()` internally. If process dies between remove and add, device is lost.
-**Instead:** Single `update_device` method that does both in one `load()` + modify + `save()` cycle.
-
-### Anti-Pattern 3: Editing Serial Pattern Freely
-
-**What:** Letting users type arbitrary serial patterns via free-text input.
-**Why bad:** Invalid patterns break device matching silently. The pattern is auto-generated from USB discovery during `cmd_add_device` and follows a specific glob format.
-**Instead:** Display serial pattern as **read-only** info in the config screen. If the user needs to change it, they remove and re-add the device.
-
-### Anti-Pattern 4: Tracking Key Rename State Across Loop Iterations
-
-**What:** Passing the "current key" through the loop by mutation and losing track.
-**Why bad:** After a key rename, `device_key` variable is stale. Next iteration would fail to load.
-**Instead:** When key is renamed, update the local `device_key` variable immediately. The `while True` loop re-loads from registry at the top of each iteration using the current key.
-
-## Key Design Decision: Serial Pattern Editability
-
-The serial pattern is auto-generated from USB discovery during `cmd_add_device`. Allowing free-text editing creates risk of broken patterns. **Recommendation:** Display serial pattern as read-only info in the config screen (type `"readonly"`). This means 5 editable fields + 1 display-only field.
-
-## Main Menu Integration
-
-Current actions use keys: F, A, R, D, C, B, Q.
-
-| Key | Rationale |
-|-----|-----------|
-| **E** | "Edit device" - distinct from C (Config/global settings), intuitive |
-
-**Recommendation:** Use **E** for "Edit Device". Update `ACTIONS` list in `screen.py` and dispatch in `run_menu`.
-
-```python
-# screen.py ACTIONS becomes:
-ACTIONS: list[tuple[str, str]] = [
-    ("F", "Flash Device"),
-    ("A", "Add Device"),
-    ("E", "Edit Device"),      # NEW
-    ("R", "Remove Device"),
-    ("D", "Refresh Devices"),
-    ("C", "Config"),
-    ("B", "Flash All"),
-    ("Q", "Quit"),
-]
-```
-
-The `run_menu` unknown-key message updates from `F/A/R/D/C/B/Q` to `F/A/E/R/D/C/B/Q`.
+### Do Not Remove from_tui Parameter in Phase 1
+While `from_tui` becomes always-true after CLI removal, removing it in the same change adds risk. Remove it in a follow-up cleanup phase to keep each change small and reviewable.
 
 ## Suggested Build Order
 
-Build in dependency order. Each step is independently testable on the Pi via SSH.
+### Phase 1: Add key generation (safe, additive)
+- Add `generate_device_key()` to `validation.py`
+- No existing behavior changes
+- Testable in isolation on Pi
 
-1. **registry.py: `update_device`** - Foundation. Everything else calls this.
-2. **config.py: `rename_config_cache`** - Needed before key editing works.
-3. **validation.py: `validate_device_key`** - Needed before TUI can accept key input.
-4. **screen.py: `DEVICE_SETTINGS` + `render_device_config_screen`** - Rendering layer. Can be tested by calling directly.
-5. **tui.py: `_device_config_screen`** - Interaction loop, wires everything together.
-6. **tui.py: `run_menu` dispatch + screen.py `ACTIONS`** - Menu integration (new "E" key).
+### Phase 2: Internalize key in add-device flow
+- Replace key prompt in `cmd_add_device` with auto-generation
+- Show generated key as info message
+- Existing devices unaffected
 
-### Dependency Graph
+### Phase 3: Remove key editing from device config screen
+- Remove key from `DEVICE_SETTINGS` in `screen.py`
+- Add auto-key-regeneration on name edit in `tui.py`
+- Adjust keypress range in `_device_config_screen`
 
-```
-registry.update_device (step 1)
-    ^
-    |
-config.rename_config_cache (step 2) --+
-    ^                                  |
-    |                                  |
-validation.validate_device_key (step 3)|
-    ^                                  |
-    |                                  |
-screen.render_device_config_screen (step 4)
-    ^                                  |
-    |                                  |
-tui._device_config_screen (step 5) ---+
-    ^
-    |
-tui.run_menu "E" key (step 6)
-```
+### Phase 4: Remove CLI/argparse
+- Simplify `main()` in `flash.py` to TUI-only launcher
+- Remove `build_parser()` and argparse import
+- Update all `--flag` references in user-facing strings
+- Remove `from_tui` parameter (optional, can defer)
+
+### Phase 5: Cleanup
+- Remove dead CLI-only code paths (non-TTY help printing)
+- Update CLAUDE.md CLI usage section
+- Remove `--device`, `--add-device`, etc. from docstrings
+
+**Why this order:** Phase 1-2 are purely additive (no breaking changes). Phase 3 changes TUI behavior but is self-contained. Phase 4 is the breaking change (CLI removal) but by this point all functionality is already TUI-native. Phase 5 is cosmetic cleanup.
 
 ## Sources
 
-- Direct codebase analysis of all modules in `C:/dev_projects/kalico_flash/kflash/`
-- Existing patterns from `_config_screen`, `_action_flash_device`, `_action_remove_device` in tui.py
-- Registry CRUD patterns from registry.py
-- Config cache path logic from config.py `get_config_dir`
+- Direct codebase analysis of all files in `C:\dev_projects\kalico_flash\kflash\`
+- `flash.py` lines 92-157 (argparse parser), 1986-2041 (main entry point)
+- `flash.py` lines 1813-1827 (device key prompt in add-device wizard)
+- `tui.py` lines 455-621 (run_menu dispatch), 730-889 (device config screen)
+- `screen.py` lines 479-490 (DEVICE_SETTINGS definition)
+- `validation.py` (existing validate_device_key function)
+- `config.py` lines 16-27 (get_config_dir uses device_key), 30-48 (rename_device_config_cache)
+- `registry.py` lines 43-51 (device key as dict key in JSON)
