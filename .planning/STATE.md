@@ -10,13 +10,14 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 ## Current Position
 
 Milestone: v3.4 Check Katapult (in progress)
-Phase: 22 of 27 (Core Detection Engine) — next to plan
-Plan: Not started
-Status: Phase 21 complete, ready to plan Phase 22
+Phase: 22 of 27 (Core Detection Engine)
+Plan: 1 of 1 in phase (complete)
+Status: Phase 22 complete
+Last activity: 2026-01-31 - Completed 22-01-PLAN.md
 
 Planned milestone: v4.0 Remove CLI & Internalize Device Keys (phases 24-27, after v3.4)
 
-Progress: [██████████████████████] 42/42 plans (through phase 21)
+Progress: [███████████████████████] 43/43 plans (through phase 22)
 
 ## Shipped Milestones
 
@@ -50,9 +51,9 @@ Progress: [██████████████████████] 4
 ## Session Continuity
 
 Last session: 2026-01-31
-Stopped at: Completed 21-01-PLAN.md (Pi Hardware Research)
+Stopped at: Completed 22-01-PLAN.md (Core Detection Engine)
 Resume file: None
-Next step: Plan and execute Phase 22 (Core Detection Engine)
+Next step: Plan and execute Phase 23 (TUI Integration)
 
 ---
-*Last updated: 2026-01-31 after Phase 21 completion*
+*Last updated: 2026-01-31 after Phase 22 completion*
