@@ -342,7 +342,9 @@ def _action_flash_device(registry, out, device_key: str) -> tuple[str, str]:
             name = entry.name if entry else device_key
             return (f"Flash: {name} flashed successfully", "success")
         else:
-            return (f"Flash: failed for {device_key}", "error")
+            entry = registry.get(device_key)
+            name = entry.name if entry else device_key
+            return (f"Flash: failed for {name}", "error")
     except KeyboardInterrupt:
         return ("Flash: cancelled", "warning")
     except Exception as exc:
@@ -436,11 +438,13 @@ def _action_remove_device(registry, out, device_key: str) -> tuple[str, str]:
     from .flash import cmd_remove_device
 
     try:
+        entry = registry.get(device_key)
+        name = entry.name if entry else device_key
         result = cmd_remove_device(registry, device_key, out)
         if result == 0:
-            return (f"Removed device '{device_key}'", "success")
+            return (f"Removed device '{name}'", "success")
         else:
-            return (f"Remove: cancelled or failed for {device_key}", "warning")
+            return (f"Remove: cancelled or failed for {name}", "warning")
     except KeyboardInterrupt:
         return ("Remove: cancelled", "warning")
     except Exception as exc:

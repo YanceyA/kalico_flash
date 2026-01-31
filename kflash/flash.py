@@ -1966,7 +1966,7 @@ def cmd_add_device(registry, out, selected_device=None) -> int:
                 try:
                     is_match, actual_mcu = config_mgr.validate_mcu(entry.mcu)
                     while not is_match:
-                        choice = out.mcu_mismatch_choice(actual_mcu, entry.mcu, device_key)
+                        choice = out.mcu_mismatch_choice(actual_mcu, entry.mcu, entry.name)
                         if choice == "r":
                             out.info("Config", "Re-launching menuconfig...")
                             ret_code2, was_saved2 = run_menuconfig(

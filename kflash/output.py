@@ -26,7 +26,7 @@ class Output(Protocol):
     def device_line(self, marker: str, name: str, detail: str) -> None: ...
     def prompt(self, message: str, default: str = "") -> str: ...
     def confirm(self, message: str, default: bool = False) -> bool: ...
-    def mcu_mismatch_choice(self, actual_mcu: str, expected_mcu: str, device_key: str) -> str: ...
+    def mcu_mismatch_choice(self, actual_mcu: str, expected_mcu: str, device_name: str) -> str: ...
     def phase(self, phase_name: str, message: str) -> None: ...
     def step_divider(self) -> None: ...
     def device_divider(self, index: int, total: int, name: str) -> None: ...
@@ -96,11 +96,11 @@ class CliOutput:
             return default
         return response in ("y", "yes")
 
-    def mcu_mismatch_choice(self, actual_mcu: str, expected_mcu: str, device_key: str) -> str:
+    def mcu_mismatch_choice(self, actual_mcu: str, expected_mcu: str, device_name: str) -> str:
         """Prompt user after MCU mismatch. Returns 'r', 'd', or 'k'."""
         self.warn(
             f"MCU mismatch: config has '{actual_mcu}' "
-            f"but device '{device_key}' expects '{expected_mcu}'"
+            f"but device '{device_name}' expects '{expected_mcu}'"
         )
         while True:
             choice = (
@@ -162,7 +162,7 @@ class NullOutput:
     def confirm(self, message: str, default: bool = False) -> bool:
         return default
 
-    def mcu_mismatch_choice(self, actual_mcu: str, expected_mcu: str, device_key: str) -> str:
+    def mcu_mismatch_choice(self, actual_mcu: str, expected_mcu: str, device_name: str) -> str:
         return "k"
 
     def phase(self, phase_name: str, message: str) -> None:
