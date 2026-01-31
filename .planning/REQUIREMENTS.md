@@ -61,29 +61,29 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| MENU-01 | TBD | Pending |
-| MENU-02 | TBD | Pending |
-| CDEV-01 | TBD | Pending |
-| CDEV-02 | TBD | Pending |
-| CDEV-03 | TBD | Pending |
-| EDIT-01 | TBD | Pending |
-| EDIT-02 | TBD | Pending |
-| EDIT-03 | TBD | Pending |
-| EDIT-04 | TBD | Pending |
-| EDIT-05 | TBD | Pending |
-| KEY-01 | TBD | Pending |
-| KEY-02 | TBD | Pending |
-| KEY-03 | TBD | Pending |
-| SAVE-01 | TBD | Pending |
-| SAVE-02 | TBD | Pending |
-| VIS-01 | TBD | Pending |
-| VIS-02 | TBD | Pending |
+| MENU-01 | Phase 20 | Pending |
+| MENU-02 | Phase 20 | Pending |
+| CDEV-01 | Phase 18 | Pending |
+| CDEV-02 | Phase 18 | Pending |
+| CDEV-03 | Phase 18 | Pending |
+| EDIT-01 | Phase 19 | Pending |
+| EDIT-02 | Phase 19 | Pending |
+| EDIT-03 | Phase 19 | Pending |
+| EDIT-04 | Phase 19 | Pending |
+| EDIT-05 | Phase 19 | Pending |
+| KEY-01 | Phase 18 | Pending |
+| KEY-02 | Phase 19 | Pending |
+| KEY-03 | Phase 19 | Pending |
+| SAVE-01 | Phase 19 | Pending |
+| SAVE-02 | Phase 18 | Pending |
+| VIS-01 | Phase 20 | Pending |
+| VIS-02 | Phase 18 | Pending |
 
 **Coverage:**
 - v3.3 requirements: 17 total
-- Mapped to phases: 0
-- Unmapped: 17 ⚠️
+- Mapped to phases: 17
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-01-31*
-*Last updated: 2026-01-31 after initial definition*
+*Last updated: 2026-01-31 after roadmap creation*

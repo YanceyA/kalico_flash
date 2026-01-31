@@ -8,6 +8,7 @@
 - ✅ **v3.0 TUI Redesign & Flash All** - Phases 10-14 (shipped 2026-01-30)
 - ✅ **v3.1 Config Validation** - Phase 15 (shipped 2026-01-30)
 - ✅ **v3.2 Action Dividers** - Phases 16-17 (shipped 2026-01-31)
+- 🚧 **v3.3 Config Device** - Phases 18-20 (in progress)
 
 ## Phases
 
@@ -158,9 +159,8 @@ Plans:
 
 </details>
 
-### ✅ v3.2 Action Dividers (Shipped 2026-01-31)
-
-**Milestone Goal:** Add lightweight step dividers to all action workflows for visual separation between steps
+<details>
+<summary>✅ v3.2 Action Dividers (Phases 16-17) - SHIPPED 2026-01-31</summary>
 
 #### Phase 16: Divider Implementation
 **Goal**: Extend Output Protocol with divider rendering methods
@@ -168,8 +168,8 @@ Plans:
 **Requirements**: OUT-01, OUT-02, OUT-03, OUT-04, OUT-05, OUT-06, TERM-01, TERM-02
 **Success Criteria** (what must be TRUE):
   1. Output Protocol defines step_divider() and device_divider() methods
-  2. CliOutput renders light dashed divider (┄) in muted teal border color
-  3. CliOutput renders labeled device divider (─── 1/N DeviceName ───) in border color
+  2. CliOutput renders light dashed divider in muted teal border color
+  3. CliOutput renders labeled device divider in border color
   4. NullOutput implements both divider methods as no-ops
   5. Dividers adapt to terminal width (not hardcoded 80 chars)
   6. Dividers degrade to ASCII (---) on non-Unicode terminals
@@ -195,10 +195,61 @@ Plans:
 - [x] 17-01: Add step dividers to cmd_flash, cmd_add_device, cmd_remove_device
 - [x] 17-02: Add step and device dividers to cmd_flash_all
 
+</details>
+
+### 🚧 v3.3 Config Device (In Progress)
+
+**Milestone Goal:** Add "Config device" action to edit registered device properties from the TUI
+
+#### Phase 18: Foundation & Screen
+**Goal**: Backend persistence layer and config screen rendering for device editing
+**Depends on**: Phase 17
+**Requirements**: CDEV-01, CDEV-02, CDEV-03, KEY-01, SAVE-02, VIS-02
+**Success Criteria** (what must be TRUE):
+  1. Registry exposes update_device method that atomically replaces a device entry (single load-modify-save cycle)
+  2. Validation function rejects duplicate keys, empty keys, keys with invalid characters (spaces, slashes, special chars)
+  3. Config screen renders read-only identity panel showing MCU type and serial pattern at top
+  4. Config screen renders editable fields panel with numbered options showing current values
+  5. Screen follows two-panel visual pattern consistent with existing global config screen
+**Plans**: TBD
+
+Plans:
+- [ ] 18-01: Registry update method, key validation, config cache rename helper
+- [ ] 18-02: Device config screen rendering (DEVICE_SETTINGS, render function, two-panel layout)
+
+#### Phase 19: Edit Interaction
+**Goal**: Users can edit all device properties through the config screen with safe key rename
+**Depends on**: Phase 18
+**Requirements**: EDIT-01, EDIT-02, EDIT-03, EDIT-04, EDIT-05, KEY-02, KEY-03, SAVE-01
+**Success Criteria** (what must be TRUE):
+  1. User can edit display name via text input (empty input rejected with reprompt)
+  2. User can rename device key with automatic config cache directory migration to new key
+  3. User can cycle flash method between default, katapult, and make_flash via single keypress
+  4. User can toggle include/exclude status via single keypress
+  5. User can launch make menuconfig for the selected device's cached config
+  6. All edits are collected in memory and saved to registry on screen exit (not per-field)
+**Plans**: TBD
+
+Plans:
+- [ ] 19-01: Device config screen interaction loop with all field edit types and collect-then-save
+
+#### Phase 20: Menu Integration
+**Goal**: Users can access device config from the main menu
+**Depends on**: Phase 19
+**Requirements**: MENU-01, MENU-02, VIS-01
+**Success Criteria** (what must be TRUE):
+  1. Pressing "E" in main menu launches device config flow
+  2. User sees numbered device selection prompt (same style as Flash/Remove) before config screen
+  3. Step dividers separate sections within the config device flow
+**Plans**: TBD
+
+Plans:
+- [ ] 20-01: Wire "E" key handler, device selection prompt, and step dividers into main menu
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 16 → 17
+Phases execute in numeric order: 18 → 19 → 20
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -219,3 +270,6 @@ Phases execute in numeric order: 16 → 17
 | 15. Config Validation | v3.1 | 1/1 | Complete | 2026-01-30 |
 | 16. Divider Implementation | v3.2 | 1/1 | Complete | 2026-01-30 |
 | 17. Workflow Integration | v3.2 | 2/2 | Complete | 2026-01-31 |
+| 18. Foundation & Screen | v3.3 | 0/2 | Not started | - |
+| 19. Edit Interaction | v3.3 | 0/1 | Not started | - |
+| 20. Menu Integration | v3.3 | 0/1 | Not started | - |

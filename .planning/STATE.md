@@ -2,18 +2,20 @@
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-01-30)
+See: .planning/PROJECT.md (updated 2026-01-31)
 
 **Core value:** One command to build and flash any registered board — no remembering serial paths, flash commands, or config locations.
-**Current focus:** Milestone v3.3 Config Device — defining requirements
+**Current focus:** Milestone v3.3 Config Device — Phase 18 Foundation & Screen
 
 ## Current Position
 
 Milestone: v3.3 Config Device
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-01-31 — Milestone v3.3 started
+Phase: 18 of 20 (Foundation & Screen)
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-01-31 — Roadmap created for v3.3
+
+Progress: [██████████████████░░] 37/41 plans (prior milestones complete)
 
 ## Performance Metrics
 
@@ -42,10 +44,10 @@ Last activity: 2026-01-31 — Milestone v3.3 started
 
 (Full log in PROJECT.md Key Decisions table)
 
-Recent decisions affecting v3.2:
-- Stdlib only for TUI redesign — No Rich/Textual, pure ANSI codes (applies to dividers)
-- Flash All: stop once, flash all, restart — Dividers fit between batch stages
-- Reject-and-reprompt for invalid paths — Pattern for settings validation
+Recent decisions affecting v3.3:
+- Collect-then-save pattern for edits (not save-per-field) — matches research recommendation
+- Key rename: validate -> move dir -> atomic save ordering — prevents partial state corruption
+- No new modules — composition into existing tui.py, screen.py, registry.py, config.py, validation.py
 
 ## Shipped Milestones
 
@@ -73,9 +75,9 @@ Recent decisions affecting v3.2:
 ## Session Continuity
 
 Last session: 2026-01-31
-Stopped at: Milestone v3.3 initialization — research phase
+Stopped at: Roadmap created for v3.3 Config Device
 Resume file: None
-Next step: Complete research → define requirements → create roadmap
+Next step: Plan Phase 18
 
 ---
-*Last updated: 2026-01-31 after v3.3 milestone start*
+*Last updated: 2026-01-31 after v3.3 roadmap creation*
