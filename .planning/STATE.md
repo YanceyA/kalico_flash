@@ -5,15 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-01-31)
 
 **Core value:** One command to build and flash any registered board — no remembering serial paths, flash commands, or config locations.
-**Current focus:** Planning next milestone (v3.4 Check Katapult)
+**Current focus:** v3.4 Check Katapult (pending), v4.0 Remove CLI & Internalize Keys (planned)
 
 ## Current Position
 
-Milestone: v3.4 Check Katapult
+Milestone: v3.4 Check Katapult (next to execute)
 Phase: 21 of 23 (Pi Hardware Research)
 Plan: Not started
 Status: Ready to plan
-Last activity: 2026-01-31 — Completed quick task 013: MCU mismatch check after menuconfig
+
+Planned milestone: v4.0 Remove CLI & Internalize Device Keys (phases 24+, after v3.4)
 
 Progress: [█████████████████████] 41/41 plans (through v3.3)
 
@@ -44,13 +45,14 @@ Progress: [█████████████████████] 41/4
 | 011 | Restore Refresh Devices to actions panel | 2026-01-31 | f2ce437 | [011-restore-refresh-devices-action](./quick/011-restore-refresh-devices-action/) |
 | 012 | Menuconfig prompt after add-device | 2026-01-31 | 9cd8ded | [012-menuconfig-prompt-after-add-device](./quick/012-menuconfig-prompt-after-add-device/) |
 | 013 | MCU mismatch check after menuconfig | 2026-01-31 | 18d9ad8 | [013-mcu-mismatch-check-after-menuconfig](./quick/013-mcu-mismatch-check-after-menuconfig/) |
+| 014 | MCU mismatch R/D/K prompt | 2026-01-31 | 538417b | [014-mcu-mismatch-reopen-discard-keep](./quick/014-mcu-mismatch-reopen-discard-keep/) |
 
 ## Session Continuity
 
 Last session: 2026-01-31
-Stopped at: Completed quick task 013
+Stopped at: Completed quick-014 MCU mismatch R/D/K prompt
 Resume file: None
-Next step: /gsd:new-milestone for v3.4
+Next step: Complete v3.4 first, then /gsd:plan-phase 24 for v4.0
 
 ---
-*Last updated: 2026-01-31 after quick task 013*
+*Last updated: 2026-01-31 after quick-014 completion*
