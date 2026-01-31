@@ -94,8 +94,8 @@ ERROR_TEMPLATES: dict[str, dict[str, str]] = {
         "error_type": "Device not found",
         "message_template": "No device registered with key '{device}'",
         "recovery_template": (
-            "1. Press D to view registered devices\n"
-            "2. Press A to register a new device\n"
+            "1. Use Add Device from the main menu to register it\n"
+            "2. Or check registered devices with the main menu device list\n"
             "3. Check device key spelling (case-sensitive)"
         ),
     },
@@ -105,7 +105,7 @@ ERROR_TEMPLATES: dict[str, dict[str, str]] = {
         "recovery_template": (
             "1. Check USB connection and board power\n"
             "2. List connected devices: `ls /dev/serial/by-id/`\n"
-            "3. If device shows with different name, press A to re-register"
+            "3. If device shows with different name, use Add Device from the main menu to re-register"
         ),
     },
     # MCU mismatch errors
@@ -113,8 +113,8 @@ ERROR_TEMPLATES: dict[str, dict[str, str]] = {
         "error_type": "MCU mismatch",
         "message_template": "Config MCU '{actual}' does not match registered MCU '{expected}'",
         "recovery_template": (
-            "1. Re-run menuconfig to reconfigure\n"
-            "2. Or update device registration if MCU changed\n"
+            "1. Use Config Device from the main menu to reconfigure\n"
+            "2. Or use Config Device from the main menu to update MCU if it changed\n"
             "3. Verify config: `grep CONFIG_MCU ~/klipper/.config`"
         ),
     },
@@ -195,7 +195,7 @@ ERROR_TEMPLATES: dict[str, dict[str, str]] = {
         "recovery_template": (
             "1. Wait for current print to complete\n"
             "2. Or cancel print in Fluidd/Mainsail dashboard\n"
-            "3. Then re-run flash command"
+            "3. Then use Flash Device from the main menu"
         ),
     },
     # Excluded device error
@@ -204,7 +204,7 @@ ERROR_TEMPLATES: dict[str, dict[str, str]] = {
         "message_template": "Device '{device}' is marked as non-flashable",
         "recovery_template": (
             "1. This device is excluded from flashing\n"
-            "2. Press D to view all devices\n"
+            "2. Use Config Device from the main menu to manage device exclusion settings\n"
             "3. Device was excluded to prevent accidental flash"
         ),
     },
