@@ -799,7 +799,7 @@ def _device_config_screen(device_key: str, registry, out) -> None:
         print(render_device_config_screen(working))
         print()
         print(
-            f"  {theme.prompt}Setting # (or Esc/B to save & return):{theme.reset} ",
+            f"  {theme.prompt}Setting # / K=Katapult check (Esc/B to save & return):{theme.reset} ",
             end="",
             flush=True,
         )
@@ -935,6 +935,84 @@ def _device_config_screen(device_key: str, registry, out) -> None:
                             pass
                 except Exception as exc:
                     print(f"  {theme.error}{exc}{theme.reset}")
+
+        elif key == "k":
+            print(key)
+            print()
+
+            # Check device is connected
+            from .discovery import match_devices, scan_serial_devices
+
+            entry = registry.get(original_key)
+            if entry is None:
+                continue
+            usb_devices = scan_serial_devices()
+            matches = match_devices(entry.serial_pattern, usb_devices)
+            if not matches:
+                print(f"  {theme.error}Device not connected. Cannot check Katapult.{theme.reset}")
+                try:
+                    input("  Press Enter to continue...")
+                except (EOFError, KeyboardInterrupt):
+                    pass
+                continue
+
+            device_path = matches[0].path
+
+            # Warning
+            print(f"  {theme.warning}Warning: This will briefly put the device into bootloader mode.{theme.reset}")
+            print(f"  {theme.warning}The device will be recovered automatically afterward.{theme.reset}")
+            print()
+
+            # Confirmation (default No)
+            try:
+                answer = input(f"  {theme.prompt}Proceed with Katapult check? (y/N):{theme.reset} ").strip().lower()
+            except (EOFError, KeyboardInterrupt):
+                answer = "n"
+            if answer not in ("y", "yes"):
+                continue
+
+            # Load global config for katapult_dir
+            gc = registry.load_global()
+
+            # Log callback
+            def log_fn(msg: str) -> None:
+                print(f"  {theme.info}{msg}{theme.reset}")
+
+            # Execute check inside service lifecycle
+            try:
+                from .flasher import check_katapult
+                from .service import klipper_service_stopped
+
+                with klipper_service_stopped(out=out):
+                    result = check_katapult(
+                        device_path=device_path,
+                        serial_pattern=entry.serial_pattern,
+                        katapult_dir=gc.katapult_dir,
+                        log=log_fn,
+                    )
+
+                print()
+                if result.has_katapult is True:
+                    print(
+                        f"  {theme.success}Katapult bootloader detected"
+                        f" ({result.elapsed_seconds:.1f}s){theme.reset}"
+                    )
+                elif result.has_katapult is False:
+                    print(
+                        f"  {theme.info}No Katapult bootloader detected"
+                        f" ({result.elapsed_seconds:.1f}s){theme.reset}"
+                    )
+                else:
+                    print(
+                        f"  {theme.warning}Inconclusive: {result.error_message}{theme.reset}"
+                    )
+            except Exception as exc:
+                print(f"  {theme.error}Katapult check failed: {exc}{theme.reset}")
+
+            try:
+                input("  Press Enter to continue...")
+            except (EOFError, KeyboardInterrupt):
+                pass
 
 
 # ---------------------------------------------------------------------------
