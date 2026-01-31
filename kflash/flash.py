@@ -1972,6 +1972,7 @@ def cmd_add_device(registry, out, selected_device=None) -> int:
                             f"'{device_key}' expects '{entry.mcu}'"
                         )
                         out.info("Config", "You can re-run menuconfig from the config-device menu to fix this")
+                        input("  Press Enter to continue...")
                 except Exception:
                     pass  # Non-blocking — validation errors handled at flash time
             else:

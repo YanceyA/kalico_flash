@@ -881,6 +881,7 @@ def _device_config_screen(device_key: str, registry, out) -> None:
                                 if not is_match:
                                     print(f"  {theme.warning}Warning: Config MCU '{actual_mcu}' "
                                           f"does not match device MCU '{entry.mcu}'{theme.reset}")
+                                    input("  Press Enter to continue...")
                         except Exception:
                             pass
                 except Exception as exc:
