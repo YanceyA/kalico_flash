@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-01-31)
 
 **Core value:** One command to build and flash any registered board — no remembering serial paths, flash commands, or config locations.
-**Current focus:** v3.4 Check Katapult (pending), v4.0 Remove CLI & Internalize Keys (planned)
+**Current focus:** v3.4 Check Katapult (pending), v4.0 Remove CLI & Internalize Keys (roadmapped)
 
 ## Current Position
 
 Milestone: v3.4 Check Katapult (next to execute)
-Phase: 21 of 23 (Pi Hardware Research)
+Phase: 21 of 27 (Pi Hardware Research)
 Plan: Not started
 Status: Ready to plan
 
-Planned milestone: v4.0 Remove CLI & Internalize Device Keys (phases 24+, after v3.4)
+Planned milestone: v4.0 Remove CLI & Internalize Device Keys (phases 24-27, after v3.4)
 
 Progress: [█████████████████████] 41/41 plans (through v3.3)
 
@@ -50,9 +50,9 @@ Progress: [█████████████████████] 41/4
 ## Session Continuity
 
 Last session: 2026-01-31
-Stopped at: Completed quick-014 MCU mismatch R/D/K prompt
+Stopped at: v4.0 roadmap created (phases 24-27)
 Resume file: None
 Next step: Complete v3.4 first, then /gsd:plan-phase 24 for v4.0
 
 ---
-*Last updated: 2026-01-31 after quick-014 completion*
+*Last updated: 2026-01-31 after v4.0 roadmap creation*

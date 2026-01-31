@@ -51,26 +51,26 @@ Requirements for CLI removal and device key internalization.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| CLI-01 | TBD | Pending |
-| CLI-02 | TBD | Pending |
-| CLI-03 | TBD | Pending |
-| CLI-04 | TBD | Pending |
-| KEY-01 | TBD | Pending |
-| KEY-02 | TBD | Pending |
-| KEY-03 | TBD | Pending |
-| KEY-04 | TBD | Pending |
-| KEY-05 | TBD | Pending |
-| KEY-06 | TBD | Pending |
-| DOC-01 | TBD | Pending |
-| DOC-02 | TBD | Pending |
-| DOC-03 | TBD | Pending |
-| DOC-04 | TBD | Pending |
+| CLI-01 | Phase 26 | Pending |
+| CLI-02 | Phase 26 | Pending |
+| CLI-03 | Phase 26 | Pending |
+| CLI-04 | Phase 26 | Pending |
+| KEY-01 | Phase 24 | Pending |
+| KEY-02 | Phase 24 | Pending |
+| KEY-03 | Phase 25 | Pending |
+| KEY-04 | Phase 25 | Pending |
+| KEY-05 | Phase 25 | Pending |
+| KEY-06 | Phase 25 | Pending |
+| DOC-01 | Phase 27 | Pending |
+| DOC-02 | Phase 27 | Pending |
+| DOC-03 | Phase 27 | Pending |
+| DOC-04 | Phase 27 | Pending |
 
 **Coverage:**
 - v4.0 requirements: 14 total
-- Mapped to phases: 0
-- Unmapped: 14
+- Mapped to phases: 14
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-01-31*
-*Last updated: 2026-01-31 after initial definition*
+*Last updated: 2026-01-31 after roadmap creation*
