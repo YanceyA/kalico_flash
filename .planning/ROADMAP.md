@@ -239,7 +239,7 @@ Plans:
 **Plans**: 1 plan
 
 Plans:
-- [ ] 22-01: KatapultCheckResult dataclass, helper functions, check_katapult() core logic
+- [x] 22-01: KatapultCheckResult dataclass, helper functions, check_katapult() core logic
 
 #### Phase 23: TUI Integration
 **Goal**: Users can check Katapult from the device config screen via "K" key with safety gates
@@ -345,7 +345,7 @@ Phases execute in numeric order: 21 → 22 → 23 → 24 → 25 → 26 → 27
 | 19. Edit Interaction | v3.3 | 1/1 | Complete | 2026-01-31 |
 | 20. Menu Integration | v3.3 | 1/1 | Complete | 2026-01-31 |
 | 21. Pi Hardware Research | v3.4 | 1/1 | Complete | 2026-01-31 |
-| 22. Core Detection Engine | v3.4 | 0/1 | Not started | - |
+| 22. Core Detection Engine | v3.4 | 1/1 | Complete | 2026-01-31 |
 | 23. TUI Integration | v3.4 | 0/1 | Not started | - |
 | 24. Slug Generation | v4.0 | 0/1 | Not started | - |
 | 25. Key Internalization in TUI | v4.0 | 0/2 | Not started | - |
