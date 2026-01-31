@@ -337,7 +337,7 @@ def _action_flash_device(registry, out, device_key: str) -> tuple[str, str]:
 
     try:
         skip = registry.load().global_config.skip_menuconfig
-        result = cmd_flash(registry, device_key, out, skip_menuconfig=skip)
+        result = cmd_flash(registry, device_key, out, skip_menuconfig=skip, from_tui=True)
         if result == 0:
             entry = registry.get(device_key)
             name = entry.name if entry else device_key
@@ -464,7 +464,7 @@ def run_menu(registry, out) -> int:
     # Non-TTY guard
     if not sys.stdin.isatty():
         print("kalico-flash: interactive menu requires a terminal.")
-        print("Run with --help for usage information.")
+        print("Run 'kflash' to launch the interactive menu.")
         return 0
 
     from .screen import render_main_screen

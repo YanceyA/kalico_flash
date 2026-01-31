@@ -267,7 +267,7 @@ def _remove_cached_config(device_key: str, out, prompt: bool = True) -> None:
         out.warn(f"Failed to remove cached config: {exc}")
 
 
-def cmd_build(registry, device_key: str, out) -> int:
+def cmd_build(registry, device_key: str, out, from_tui: bool = False) -> int:
     """Build firmware for a registered device.
 
     Orchestrates: load cached config -> menuconfig -> save config -> MCU validation -> build
@@ -280,19 +280,21 @@ def cmd_build(registry, device_key: str, out) -> int:
     # Load device entry
     entry = registry.get(device_key)
     if entry is None:
+        from .errors import get_recovery_text
         template = ERROR_TEMPLATES["device_not_registered"]
         out.error_with_recovery(
             template["error_type"],
             template["message_template"].format(device=device_key),
             context={"device": device_key},
-            recovery=template["recovery_template"],
+            recovery=get_recovery_text("device_not_registered", from_tui),
         )
         return 1
 
     # Load global config for klipper_dir
     data = registry.load()
     if data.global_config is None:
-        out.error("Global config not set. Run --add-device first.")
+        hint = "Press A to add a device first." if from_tui else "Run --add-device first."
+        out.error(f"Global config not set. {hint}")
         return 1
 
     klipper_dir = data.global_config.klipper_dir
@@ -397,7 +399,7 @@ def cmd_build(registry, device_key: str, out) -> int:
     return 0
 
 
-def cmd_flash(registry, device_key, out, skip_menuconfig: bool = False) -> int:
+def cmd_flash(registry, device_key, out, skip_menuconfig: bool = False, from_tui: bool = False) -> int:
     """Build and flash firmware for a registered device.
 
     Orchestrates the full workflow:
@@ -442,7 +444,8 @@ def cmd_flash(registry, device_key, out, skip_menuconfig: bool = False) -> int:
     # Load registry data
     data = registry.load()
     if data.global_config is None:
-        out.error("Global config not set. Run --add-device first.")
+        hint = "Press A to add a device first." if from_tui else "Run --add-device first."
+        out.error(f"Global config not set. {hint}")
         return 1
     blocked_list = _build_blocked_list(data)
 
@@ -530,10 +533,14 @@ def cmd_flash(registry, device_key, out, skip_menuconfig: bool = False) -> int:
                         )
                     return 1
 
+            if from_tui:
+                recovery = "1. Press D to refresh devices\n2. Check USB connections\n3. Press A to add a device"
+            else:
+                recovery = "1. List registered devices: kflash --list-devices\n2. Check USB connections\n3. Register new device: kflash --add-device"
             out.error_with_recovery(
                 "Device not found",
                 "No registered devices connected",
-                recovery="1. List registered devices: kflash --list-devices\n2. Check USB connections\n3. Register new device: kflash --add-device",
+                recovery=recovery,
             )
             out.phase("Discovery", "Found USB devices but none are registered:")
             for device in usb_devices:
@@ -590,11 +597,12 @@ def cmd_flash(registry, device_key, out, skip_menuconfig: bool = False) -> int:
                     )
 
         if not flashable_matched:
+            from .errors import get_recovery_text
             template = ERROR_TEMPLATES["device_excluded"]
             out.error_with_recovery(
                 template["error_type"],
                 "All connected devices are excluded from flashing",
-                recovery=template["recovery_template"],
+                recovery=get_recovery_text("device_excluded", from_tui),
             )
             return 1
 
@@ -642,12 +650,13 @@ def cmd_flash(registry, device_key, out, skip_menuconfig: bool = False) -> int:
         # Explicit --device KEY mode: verify device exists and is connected
         entry = registry.get(device_key)
         if entry is None:
+            from .errors import get_recovery_text
             template = ERROR_TEMPLATES["device_not_registered"]
             out.error_with_recovery(
                 template["error_type"],
                 template["message_template"].format(device=device_key),
                 context={"device": device_key},
-                recovery=template["recovery_template"],
+                recovery=get_recovery_text("device_not_registered", from_tui),
             )
             return 1
 
@@ -666,12 +675,18 @@ def cmd_flash(registry, device_key, out, skip_menuconfig: bool = False) -> int:
 
         # Check if device is excluded from flashing
         if not entry.flashable:
+            if from_tui:
+                recovery_msg = f"The device '{device_key}' is excluded from flashing."
+            else:
+                recovery_msg = (
+                    f"The device '{device_key}' is marked as non-flashable. "
+                    f"To make it flashable, run `kflash --include-device {device_key}`."
+                )
             out.error_with_recovery(
                 "Device excluded",
                 device_key,
                 {"device": device_key, "name": entry.name},
-                f"The device '{device_key}' is marked as non-flashable. "
-                f"To make it flashable, run `kflash --include-device {device_key}`.",
+                recovery_msg,
             )
             return 1
 
@@ -694,12 +709,13 @@ def cmd_flash(registry, device_key, out, skip_menuconfig: bool = False) -> int:
         # Find matching USB device
         usb_device = match_device(entry.serial_pattern, usb_devices)
         if usb_device is None:
+            from .errors import get_recovery_text
             template = ERROR_TEMPLATES["device_not_connected"]
             out.error_with_recovery(
                 template["error_type"],
                 template["message_template"].format(device=device_key),
                 context={"device": device_key},
-                recovery=template["recovery_template"],
+                recovery=get_recovery_text("device_not_connected", from_tui),
             )
             return 1
 
@@ -1075,7 +1091,7 @@ def cmd_flash_all(registry, out) -> int:
     # Load registry
     data = registry.load()
     if data.global_config is None:
-        out.error("Global config not set. Run --add-device first.")
+        out.error("Global config not set. Press A to add a device first.")
         return 1
 
     global_config = data.global_config
@@ -1091,7 +1107,7 @@ def cmd_flash_all(registry, out) -> int:
     )
 
     if not flashable_devices:
-        out.error("No flashable devices registered. Use --add-device to register boards.")
+        out.error("No flashable devices registered. Press A to register a board.")
         return 1
 
     # Filter blocked devices
@@ -1126,7 +1142,7 @@ def cmd_flash_all(registry, out) -> int:
         out.error("The following devices lack cached configs:")
         for key in missing_configs:
             out.error(f"  - {key}")
-        out.error("Run 'kflash -d <device>' for each to configure before using Flash All.")
+        out.error("Flash each device individually and save config before using Flash All.")
         return 1
 
     # Validate MCU match for each cached config
@@ -1146,7 +1162,7 @@ def cmd_flash_all(registry, out) -> int:
         out.error("MCU type mismatch in cached configs:")
         for key, expected, actual in mcu_mismatches:
             out.error(f"  - {key}: expected {expected}, config has {actual}")
-        out.error("Run 'kflash -d <device>' for each mismatched device to reconfigure.")
+        out.error("Flash each mismatched device individually to reconfigure.")
         return 1
 
     # Display config ages and warn on stale configs
@@ -1157,7 +1173,7 @@ def cmd_flash_all(registry, out) -> int:
         age_str = age_display or "unknown"
         out.info("", f"  {entry.name} ({entry.key}): config cached {age_str}")
         if age_display and "Recommend Review" in age_display:
-            out.warn(f"  {entry.key} config is very old — consider running 'kflash -d {entry.key}' to review")
+            out.warn(f"  {entry.key} config is very old — consider flashing individually to review config")
             stale_warned = True
 
     out.phase("Flash All", f"{len(flashable_devices)} device(s) validated")
@@ -1530,7 +1546,8 @@ def cmd_list_devices(registry, out, from_menu: bool = False) -> int:
                 marker = "NEW"
                 detail = "Unregistered device"
             out.device_line(marker, device.filename, detail)
-        out.info("Devices", "Run --add-device to register a board.")
+        hint = "Press A to register a board." if from_menu else "Run --add-device to register a board."
+        out.info("Devices", hint)
         return 0
 
     # Normal display: show registered devices with connection status
