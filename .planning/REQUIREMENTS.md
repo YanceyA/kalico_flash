@@ -63,21 +63,21 @@
 |-------------|-------|--------|
 | MENU-01 | Phase 20 | Pending |
 | MENU-02 | Phase 20 | Pending |
-| CDEV-01 | Phase 18 | Pending |
-| CDEV-02 | Phase 18 | Pending |
-| CDEV-03 | Phase 18 | Pending |
+| CDEV-01 | Phase 18 | Complete |
+| CDEV-02 | Phase 18 | Complete |
+| CDEV-03 | Phase 18 | Complete |
 | EDIT-01 | Phase 19 | Pending |
 | EDIT-02 | Phase 19 | Pending |
 | EDIT-03 | Phase 19 | Pending |
 | EDIT-04 | Phase 19 | Pending |
 | EDIT-05 | Phase 19 | Pending |
-| KEY-01 | Phase 18 | Pending |
+| KEY-01 | Phase 18 | Complete |
 | KEY-02 | Phase 19 | Pending |
 | KEY-03 | Phase 19 | Pending |
 | SAVE-01 | Phase 19 | Pending |
-| SAVE-02 | Phase 18 | Pending |
+| SAVE-02 | Phase 18 | Complete |
 | VIS-01 | Phase 20 | Pending |
-| VIS-02 | Phase 18 | Pending |
+| VIS-02 | Phase 18 | Complete |
 
 **Coverage:**
 - v3.3 requirements: 17 total

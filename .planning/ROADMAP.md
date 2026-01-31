@@ -214,8 +214,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 18-01-PLAN.md — Registry update method, key validation, config cache rename helper
-- [ ] 18-02-PLAN.md — Device config screen rendering (DEVICE_SETTINGS, render function, two-panel layout)
+- [x] 18-01-PLAN.md — Registry update method, key validation, config cache rename helper
+- [x] 18-02-PLAN.md — Device config screen rendering (DEVICE_SETTINGS, render function, two-panel layout)
 
 #### Phase 19: Edit Interaction
 **Goal**: Users can edit all device properties through the config screen with safe key rename
@@ -320,7 +320,7 @@ Phases execute in numeric order: 18 → 19 → 20 → 21 → 22 → 23
 | 15. Config Validation | v3.1 | 1/1 | Complete | 2026-01-30 |
 | 16. Divider Implementation | v3.2 | 1/1 | Complete | 2026-01-30 |
 | 17. Workflow Integration | v3.2 | 2/2 | Complete | 2026-01-31 |
-| 18. Foundation & Screen | v3.3 | 0/2 | Not started | - |
+| 18. Foundation & Screen | v3.3 | 2/2 | Complete | 2026-01-31 |
 | 19. Edit Interaction | v3.3 | 0/1 | Not started | - |
 | 20. Menu Integration | v3.3 | 0/1 | Not started | - |
 | 21. Pi Hardware Research | v3.4 | 0/1 | Not started | - |

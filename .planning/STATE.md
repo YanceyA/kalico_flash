@@ -5,7 +5,7 @@
 See: .planning/PROJECT.md (updated 2026-01-31)
 
 **Core value:** One command to build and flash any registered board — no remembering serial paths, flash commands, or config locations.
-**Current focus:** Milestone v3.3 Config Device — Phase 18 Foundation & Screen
+**Current focus:** Milestone v3.3 Config Device — Phase 19 Edit Interaction
 
 ## Current Position
 
@@ -80,4 +80,4 @@ Resume file: None
 Next step: Plan Phase 19
 
 ---
-*Last updated: 2026-01-31 after v3.3 roadmap creation*
+*Last updated: 2026-01-31 after Phase 18 completion*
