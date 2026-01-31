@@ -542,6 +542,25 @@ def run_menu(registry, out) -> int:
                     status_message = "Remove: no device selected"
                     status_level = "warning"
 
+            elif key == "e":
+                print(key)
+                print()
+                if not device_map:
+                    status_message = "No devices registered. Use Add Device first."
+                    status_level = "warning"
+                else:
+                    device_key = _prompt_device_number(device_map, out)
+                    if device_key:
+                        print(render_action_divider())
+                        _device_config_screen(device_key, registry, out)
+                        print(render_action_divider())
+                        status_message = "Returned from device config"
+                        status_level = "info"
+                        _countdown_return(registry.load().global_config.return_delay)
+                    else:
+                        status_message = "Config: no device selected"
+                        status_level = "warning"
+
             elif key == "d":
                 print(key)
                 status_message = "Devices refreshed"
@@ -572,10 +591,10 @@ def run_menu(registry, out) -> int:
                 # Echo the key and show warning
                 if key.isprintable():
                     print(key)
-                    status_message = f"Unknown key '{key}'. Use F/A/R/D/C/B/Q."
+                    status_message = f"Unknown key '{key}'. Use F/B/A/E/R/C/Q."
                 else:
                     print()
-                    status_message = "Unknown key. Use F/A/R/D/C/B/Q."
+                    status_message = "Unknown key. Use F/B/A/E/R/C/Q."
                 status_level = "warning"
 
         except KeyboardInterrupt:
