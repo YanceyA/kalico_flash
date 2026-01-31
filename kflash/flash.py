@@ -1956,9 +1956,7 @@ def cmd_add_device(registry, out, selected_device=None) -> int:
                 out.info("Config", "No cached config found, starting fresh")
 
             out.info("Config", "Launching menuconfig...")
-            ret_code, was_saved = run_menuconfig(
-                klipper_dir, str(config_mgr.klipper_config_path)
-            )
+            ret_code, was_saved = run_menuconfig(klipper_dir, str(config_mgr.klipper_config_path))
 
             if ret_code != 0:
                 out.warn("menuconfig exited with errors, config not saved")
@@ -1968,7 +1966,7 @@ def cmd_add_device(registry, out, selected_device=None) -> int:
                     is_match, actual_mcu = config_mgr.validate_mcu(entry.mcu)
                     while not is_match:
                         choice = out.mcu_mismatch_choice(actual_mcu, entry.mcu, device_key)
-                        if choice == 'r':
+                        if choice == "r":
                             out.info("Config", "Re-launching menuconfig...")
                             ret_code2, was_saved2 = run_menuconfig(
                                 klipper_dir, str(config_mgr.klipper_config_path)
@@ -1978,8 +1976,8 @@ def cmd_add_device(registry, out, selected_device=None) -> int:
                             else:
                                 out.info("Config", "menuconfig exited without saving")
                                 break
-                        elif choice == 'd':
-                            # Restore old cache to klipper dir, or delete klipper .config if no prior cache
+                        elif choice == "d":
+                            # Restore old cache or delete klipper .config
                             if had_cache:
                                 config_mgr.load_cached_config()
                                 out.info("Config", "Restored previous cached config")

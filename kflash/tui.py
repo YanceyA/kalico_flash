@@ -557,9 +557,13 @@ def run_menu(registry, out) -> int:
                         )
                         if selected_row and selected_row.group == "new":
                             try:
-                                answer = input(
-                                    f"  {theme.prompt}Device not registered. Add it now? (y/n):{theme.reset} "
-                                ).strip().lower()
+                                answer = (
+                                    input(
+                                        f"  {theme.prompt}Device not registered. Add it now? (y/n):{theme.reset} "
+                                    )
+                                    .strip()
+                                    .lower()
+                                )
                             except (EOFError, KeyboardInterrupt):
                                 answer = "n"
                             if answer in ("y", "yes"):
@@ -880,29 +884,49 @@ def _device_config_screen(device_key: str, registry, out) -> None:
                             if entry:
                                 is_match, actual_mcu = cm.validate_mcu(entry.mcu)
                                 while not is_match:
-                                    print(f"  {theme.warning}MCU mismatch: config has '{actual_mcu}' "
-                                          f"but device '{original_key}' expects '{entry.mcu}'{theme.reset}")
-                                    choice = input("  [R]e-open menuconfig / [D]iscard config / [K]eep anyway: ").strip().lower()
-                                    if choice not in ('r', 'd', 'k'):
+                                    print(
+                                        f"  {theme.warning}MCU mismatch: "
+                                        f"config has '{actual_mcu}' but "
+                                        f"device '{original_key}' expects "
+                                        f"'{entry.mcu}'{theme.reset}"
+                                    )
+                                    choice = (
+                                        input(
+                                            "  [R]e-open menuconfig / "
+                                            "[D]iscard config / "
+                                            "[K]eep anyway: "
+                                        )
+                                        .strip()
+                                        .lower()
+                                    )
+                                    if choice not in ("r", "d", "k"):
                                         continue
-                                    if choice == 'r':
+                                    if choice == "r":
                                         ret2, saved2 = run_menuconfig(gc.klipper_dir, config_path)
                                         if saved2:
                                             is_match, actual_mcu = cm.validate_mcu(entry.mcu)
                                         else:
-                                            print(f"  {theme.info}menuconfig exited without saving{theme.reset}")
+                                            print(
+                                                f"  {theme.info}menuconfig exited "
+                                                f"without saving{theme.reset}"
+                                            )
                                             break
-                                    elif choice == 'd':
+                                    elif choice == "d":
                                         if had_cache:
                                             cm.load_cached_config()
-                                            print(f"  {theme.info}Restored previous config{theme.reset}")
+                                            print(
+                                                f"  {theme.info}Restored previous "
+                                                f"config{theme.reset}"
+                                            )
                                         else:
                                             cm.clear_klipper_config()
                                             print(f"  {theme.info}Discarded config{theme.reset}")
                                         break
                                     else:  # 'k'
                                         cm.save_cached_config()
-                                        print(f"  {theme.info}Keeping mismatched config{theme.reset}")
+                                        print(
+                                            f"  {theme.info}Keeping mismatched config{theme.reset}"
+                                        )
                                         break
                                 else:
                                     # MCU matched -- save now

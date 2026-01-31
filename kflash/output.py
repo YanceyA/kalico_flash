@@ -98,10 +98,15 @@ class CliOutput:
 
     def mcu_mismatch_choice(self, actual_mcu: str, expected_mcu: str, device_key: str) -> str:
         """Prompt user after MCU mismatch. Returns 'r', 'd', or 'k'."""
-        self.warn(f"MCU mismatch: config has '{actual_mcu}' but device '{device_key}' expects '{expected_mcu}'")
+        self.warn(
+            f"MCU mismatch: config has '{actual_mcu}' "
+            f"but device '{device_key}' expects '{expected_mcu}'"
+        )
         while True:
-            choice = input("  [R]e-open menuconfig / [D]iscard config / [K]eep anyway: ").strip().lower()
-            if choice in ('r', 'd', 'k'):
+            choice = (
+                input("  [R]e-open menuconfig / [D]iscard config / [K]eep anyway: ").strip().lower()
+            )
+            if choice in ("r", "d", "k"):
                 return choice
 
     def phase(self, phase_name: str, message: str) -> None:
@@ -158,7 +163,7 @@ class NullOutput:
         return default
 
     def mcu_mismatch_choice(self, actual_mcu: str, expected_mcu: str, device_key: str) -> str:
-        return 'k'
+        return "k"
 
     def phase(self, phase_name: str, message: str) -> None:
         pass
