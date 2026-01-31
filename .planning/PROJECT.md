@@ -8,10 +8,15 @@ A Python CLI tool that automates Klipper/Kalico firmware building and flashing f
 
 One command to build and flash any registered board — no remembering serial paths, flash commands, or config locations.
 
-## Current Milestone: v3.4 Check Katapult (pending)
+## Current Milestone: v4.0 Remove CLI & Internalize Device Keys (pending)
 
-**Goal:** Add Katapult bootloader detection to the device config screen
-**Status:** Phases 21-23 planned, not started
+**Goal:** Remove all CLI/argparse elements and make device keys auto-generated internal identifiers — the tool operates exclusively through TUI
+**Status:** Phases 24-27 planned, not started
+
+## Previous Milestone: v3.4 Check Katapult (shipped 2026-01-31, feature parked)
+
+**Goal:** Katapult bootloader detection from device config screen
+**Outcome:** Implemented and tested on live hardware. Parked after discovering recovery limitations — Katapult devices can't be auto-recovered, DFU devices need manual USB reset. Code retained in flasher.py for future revisit.
 
 ## Planned Milestone: v4.0 Remove CLI & Internalize Device Keys
 
@@ -29,12 +34,12 @@ One command to build and flash any registered board — no remembering serial pa
 - Clean up all CLI-only code paths, help text, argument validation
 - Update install.sh, README, CLAUDE.md for TUI-only operation
 
-## Previous State (v3.3 shipped)
+## Previous State (v3.4 shipped)
 
 **Shipped:** 2026-01-31
 **Modules:** 13 Python modules + validation.py
-**LOC:** ~6,179 lines of Python
-**Status:** Device config editing from TUI — edit key, name, flash method, include/exclude, menuconfig
+**LOC:** ~6,694 lines of Python
+**Status:** Katapult detection engine implemented (parked from UI). Device config editing from TUI. check_katapult() and helpers in flasher.py retained for future use.
 
 ## Requirements
 
@@ -193,4 +198,4 @@ python3 ~/katapult/scripts/flashtool.py -f ~/klipper/out/klipper.bin -d /dev/ser
 | Stdlib only for TUI redesign | No Rich/Textual — pure ANSI codes, maintain constraint | ✓ Good |
 
 ---
-*Last updated: 2026-01-31 after v3.3 milestone*
+*Last updated: 2026-01-31 after v3.4 milestone*

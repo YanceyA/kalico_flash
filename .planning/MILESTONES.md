@@ -1,5 +1,34 @@
 # Project Milestones: kalico-flash
 
+## v3.4 Check Katapult (Shipped: 2026-01-31)
+
+**Delivered:** Katapult bootloader detection engine with live hardware research, tri-state check function, and TUI integration. Feature parked after testing revealed device recovery limitations — code retained in codebase for future revisit.
+
+**Phases completed:** 21-23 (3 plans total)
+
+**Key accomplishments:**
+
+- Resolved all hardware questions via live SSH testing on Pi (sysfs paths, serial substrings, timing measurements)
+- Built check_katapult() detection engine with tri-state result, USB helpers, and research-derived timing constants
+- Wired Katapult check into device config screen with safety gates (warning, confirmation, service lifecycle)
+- Discovered recovery limitations through live testing — Katapult devices can't be auto-recovered, DFU devices need manual reset
+- Parked feature from UI after testing — code retained in flasher.py for future use
+
+**Stats:**
+
+- 19 files modified
+- 6,694 lines of Python (total project)
+- 3 phases, 3 plans
+- 1 day (2026-01-31)
+
+**Git range:** `docs(21)` → `fix(23)`
+
+**Feature status:** PARKED — implemented and tested but removed from UI. Code in flasher.py (check_katapult, helpers, KatapultCheckResult) retained for future revisit when more boards available and recovery strategy improved.
+
+**What's next:** v4.0 Remove CLI & Internalize Device Keys
+
+---
+
 ## v3.3 Config Device (Shipped: 2026-01-31)
 
 **Delivered:** Device config editing from the TUI — edit device key, name, flash method, include/exclude, and launch menuconfig from the main menu.

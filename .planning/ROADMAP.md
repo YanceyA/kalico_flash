@@ -9,6 +9,7 @@
 - ✅ **v3.1 Config Validation** - Phase 15 (shipped 2026-01-30)
 - ✅ **v3.2 Action Dividers** - Phases 16-17 (shipped 2026-01-31)
 - ✅ **v3.3 Config Device** - Phases 18-20 (shipped 2026-01-31)
+- ✅ **v3.4 Check Katapult** - Phases 21-23 (shipped 2026-01-31, feature parked)
 
 ## Phases
 
@@ -206,55 +207,13 @@ Plans:
 
 </details>
 
-### v3.4 Check Katapult (Completed 2026-01-31)
+### v3.4 Check Katapult (Shipped 2026-01-31 — Feature Parked)
 
-**Milestone Goal:** Add Katapult bootloader detection to the device config screen — probe a device to determine if Katapult is installed
+- [x] Phase 21: Pi Hardware Research (1/1 plans) — completed 2026-01-31
+- [x] Phase 22: Core Detection Engine (1/1 plans) — completed 2026-01-31
+- [x] Phase 23: TUI Integration (1/1 plans) — completed 2026-01-31
 
-#### Phase 21: Pi Hardware Research
-**Goal**: Resolve all open hardware questions via SSH testing on live Pi with connected boards
-**Depends on**: Phase 20
-**Requirements**: RES-01, RES-02, RES-03, RES-04, RES-05
-**Success Criteria** (what must be TRUE):
-  1. sysfs path resolution from /dev/serial/by-id/ to USB authorized file is documented with working code
-  2. MCU serial substring extraction verified — same substring appears in both Klipper_ and katapult_ device names
-  3. Timing measurements recorded for bootloader entry, sysfs reset, and re-enumeration
-  4. flashtool.py -r behavior on Katapult-active device tested and documented
-  5. Beacon probe confirmed excluded (flashable=False or not matching Klipper_ prefix)
-**Plans**: 1 plan
-
-Plans:
-- [x] 21-01: Validate research completeness and write summary
-
-#### Phase 22: Core Detection Engine
-**Goal**: Reusable check_katapult() function with helpers for bootloader detection and USB recovery
-**Depends on**: Phase 21
-**Requirements**: DET-01, DET-02, DET-03, DET-04, DET-05, HELP-01, HELP-02, HELP-03
-**Success Criteria** (what must be TRUE):
-  1. check_katapult() accepts device path, serial pattern, katapult_dir and returns (has_katapult, error_message)
-  2. Function triggers bootloader entry via flashtool.py -r and polls for katapult_ device appearance
-  3. If Katapult not found, sysfs USB reset recovers device from DFU/BOOTSEL mode
-  4. KatapultCheckResult dataclass captures tri-state result with error context
-  5. Helper functions (_resolve_usb_sysfs_path, _usb_sysfs_reset, _poll_for_serial_device) are independently callable
-  6. Timing values use constants derived from Phase 21 research
-**Plans**: 1 plan
-
-Plans:
-- [x] 22-01: KatapultCheckResult dataclass, helper functions, check_katapult() core logic
-
-#### Phase 23: TUI Integration
-**Goal**: Users can check Katapult from the device config screen via "K" key with safety gates
-**Depends on**: Phase 22
-**Requirements**: TUI-01, TUI-02, TUI-03, TUI-04, TUI-05
-**Success Criteria** (what must be TRUE):
-  1. Pressing "K" in device config screen initiates Katapult check for the selected device
-  2. Warning message explains device will briefly enter bootloader mode before user confirms
-  3. Confirmation prompt defaults to No — user must actively opt in
-  4. Result displayed clearly: Katapult detected / not detected / inconclusive with explanation
-  5. Klipper service stopped before check, guaranteed restart after (via existing context manager)
-**Plans**: 1 plan
-
-Plans:
-- [x] 23-01: Wire "K" key handler in device config screen with warning, confirmation, service lifecycle, result display
+*Feature implemented and tested but parked — code retained in flasher.py, UI trigger removed. See milestones/v3.4-ROADMAP.md for details.*
 
 ### v4.0 Remove CLI & Internalize Device Keys (Planned)
 
@@ -344,9 +303,9 @@ Phases execute in numeric order: 21 → 22 → 23 → 24 → 25 → 26 → 27
 | 18. Foundation & Screen | v3.3 | 2/2 | Complete | 2026-01-31 |
 | 19. Edit Interaction | v3.3 | 1/1 | Complete | 2026-01-31 |
 | 20. Menu Integration | v3.3 | 1/1 | Complete | 2026-01-31 |
-| 21. Pi Hardware Research | v3.4 | 1/1 | Complete | 2026-01-31 |
-| 22. Core Detection Engine | v3.4 | 1/1 | Complete | 2026-01-31 |
-| 23. TUI Integration | v3.4 | 1/1 | Complete | 2026-01-31 |
+| 21. Pi Hardware Research | v3.4 | 1/1 | Complete (parked) | 2026-01-31 |
+| 22. Core Detection Engine | v3.4 | 1/1 | Complete (parked) | 2026-01-31 |
+| 23. TUI Integration | v3.4 | 1/1 | Complete (parked) | 2026-01-31 |
 | 24. Slug Generation | v4.0 | 0/1 | Not started | - |
 | 25. Key Internalization in TUI | v4.0 | 0/2 | Not started | - |
 | 26. Remove CLI | v4.0 | 0/1 | Not started | - |

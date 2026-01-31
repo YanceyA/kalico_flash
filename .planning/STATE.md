@@ -5,16 +5,14 @@
 See: .planning/PROJECT.md (updated 2026-01-31)
 
 **Core value:** One command to build and flash any registered board — no remembering serial paths, flash commands, or config locations.
-**Current focus:** v3.4 Check Katapult (in progress), v4.0 Remove CLI & Internalize Keys (roadmapped)
+**Current focus:** v4.0 Remove CLI & Internalize Device Keys (planned)
 
 ## Current Position
 
-Milestone: v3.4 Check Katapult (in progress)
-Phase: 23 of 27 (TUI Integration) — complete
-Plan: 1/1 complete
-Status: Phase 23 complete
-
-Planned milestone: v4.0 Remove CLI & Internalize Device Keys (phases 24-27, after v3.4)
+Milestone: v4.0 Remove CLI & Internalize Device Keys (not started)
+Phase: 24 of 27 (Slug Generation) — not started
+Plan: Not started
+Status: Ready to plan
 
 Progress: [████████████████████████] 44/44 plans (through phase 23)
 
@@ -29,6 +27,7 @@ Progress: [███████████████████████
 | v3.1 | Config Validation | 15 | 2026-01-30 |
 | v3.2 | Action Dividers | 16-17 | 2026-01-31 |
 | v3.3 | Config Device | 18-20 | 2026-01-31 |
+| v3.4 | Check Katapult (parked) | 21-23 | 2026-01-31 |
 
 ## Quick Tasks Completed
 
@@ -50,9 +49,9 @@ Progress: [███████████████████████
 ## Session Continuity
 
 Last session: 2026-01-31
-Stopped at: Completed 23-01-PLAN.md (TUI Integration)
+Stopped at: Completed v3.4 milestone (feature parked)
 Resume file: None
-Next step: v3.4 milestone may be complete (phases 21-23 done); plan Phase 24 or ship v3.4
+Next step: /gsd:new-milestone for v4.0 or start Phase 24
 
 ---
-*Last updated: 2026-01-31 after Phase 23 completion*
+*Last updated: 2026-01-31 after v3.4 milestone completion*
