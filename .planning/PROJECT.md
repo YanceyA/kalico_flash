@@ -8,23 +8,7 @@ A Python CLI tool that automates Klipper/Kalico firmware building and flashing f
 
 One command to build and flash any registered board — no remembering serial paths, flash commands, or config locations.
 
-## Current Milestone: v3.3 Config Device
-
-**Goal:** Add a "Config device" action to edit registered device properties from the TUI
-**Started:** 2026-01-31
-
-**Target features:**
-- New "Config device" main menu action
-- Device selection prompt (like Flash/Remove)
-- Config screen showing device identity at top, numbered editable fields below
-- Editable fields: device key, display name, flash method, include/exclude status
-- Key rename migrates cached .config directory automatically
-- Follows existing config screen pattern (flat numbered list, type-dispatched editing)
-
-See: `.planning/ROADMAP.md` for phase breakdown
-See: `.planning/REQUIREMENTS.md` for full requirements list
-
-## Next Milestone: v3.4 Check Katapult
+## Current Milestone: v3.4 Check Katapult
 
 **Goal:** Add Katapult bootloader detection to the device config screen — probe a device to determine if Katapult is installed
 **Planned after:** v3.3
@@ -39,12 +23,12 @@ See: `.planning/REQUIREMENTS.md` for full requirements list
 
 See: `.working/check_katapult_plan.md` for detailed plan
 
-## Previous State (v3.2 shipped)
+## Previous State (v3.3 shipped)
 
 **Shipped:** 2026-01-31
 **Modules:** 13 Python modules + validation.py
-**LOC:** ~5,600 lines of Python
-**Status:** Action dividers complete — visual separation in all workflows
+**LOC:** ~6,179 lines of Python
+**Status:** Device config editing from TUI — edit key, name, flash method, include/exclude, menuconfig
 
 **CLI commands:**
 - `kflash` — Interactive TUI menu with Add/List/Flash/Remove/Settings
@@ -116,6 +100,23 @@ See: `.working/check_katapult_plan.md` for detailed plan
 - ✓ Numeric bounds for stagger_delay (0-30s) and return_delay (0-60s) — v3.1
 - ✓ Reject-and-reprompt for all invalid input — v3.1
 - ✓ Tilde expansion before validation — v3.1
+
+### Validated (v3.2 Action Dividers)
+
+- ✓ Output Protocol step_divider() and device_divider() methods — v3.2
+- ✓ Terminal-width-adaptive dividers with ASCII fallback — v3.2
+- ✓ Step dividers in Flash, Add Device, Remove Device workflows — v3.2
+- ✓ Device dividers in Flash All batch operations — v3.2
+
+### Validated (v3.3 Config Device)
+
+- ✓ Config device main menu action with E key — v3.3
+- ✓ Device selection prompt (numbered list like Flash/Remove) — v3.3
+- ✓ Device config screen with identity panel and editable settings — v3.3
+- ✓ Edit display name, device key, flash method, include/exclude — v3.3
+- ✓ Launch menuconfig from device config screen — v3.3
+- ✓ Key rename with config cache directory migration — v3.3
+- ✓ Collect-then-save pattern with atomic persistence — v3.3
 
 ### Future Candidates
 
@@ -196,4 +197,4 @@ python3 ~/katapult/scripts/flashtool.py -f ~/klipper/out/klipper.bin -d /dev/ser
 | Stdlib only for TUI redesign | No Rich/Textual — pure ANSI codes, maintain constraint | ✓ Good |
 
 ---
-*Last updated: 2026-01-31 after v3.3 milestone initialization*
+*Last updated: 2026-01-31 after v3.3 milestone*

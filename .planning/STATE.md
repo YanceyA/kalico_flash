@@ -5,49 +5,17 @@
 See: .planning/PROJECT.md (updated 2026-01-31)
 
 **Core value:** One command to build and flash any registered board — no remembering serial paths, flash commands, or config locations.
-**Current focus:** Milestone v3.3 Config Device — Phase 20 Menu Integration
+**Current focus:** Planning next milestone (v3.4 Check Katapult)
 
 ## Current Position
 
-Milestone: v3.3 Config Device
-Phase: 20 of 20 (Menu Integration)
-Plan: 1 of 1 complete
-Status: Milestone complete
-Last activity: 2026-01-31 — Completed 20-01-PLAN.md
+Milestone: v3.4 Check Katapult
+Phase: 21 of 23 (Pi Hardware Research)
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-01-31 — v3.3 milestone complete
 
-Progress: [█████████████████████] 41/41 plans
-
-## Performance Metrics
-
-**Velocity:**
-- Total plans completed: 37
-- Average duration: ~15 min
-- Total execution time: ~8.5 hours
-
-**By Phase:**
-
-| Phase | Plans | Total | Avg/Plan |
-|-------|-------|-------|----------|
-| 15 | 1 | ~15 min | ~15 min |
-| 14 | 1 | ~20 min | ~20 min |
-| 13 | 1 | ~20 min | ~20 min |
-| 12 | 3 | ~45 min | ~15 min |
-| 11 | 1 | ~15 min | ~15 min |
-
-**Recent Trend:**
-- Last 5 plans: ~15-20 min each
-- Trend: Stable
-
-*Updated after each plan completion*
-
-## Accumulated Decisions
-
-(Full log in PROJECT.md Key Decisions table)
-
-Recent decisions affecting v3.3:
-- Collect-then-save pattern for edits (not save-per-field) — matches research recommendation
-- Key rename: validate -> move dir -> atomic save ordering — prevents partial state corruption
-- No new modules — composition into existing tui.py, screen.py, registry.py, config.py, validation.py
+Progress: [█████████████████████] 41/41 plans (through v3.3)
 
 ## Shipped Milestones
 
@@ -76,9 +44,9 @@ Recent decisions affecting v3.3:
 ## Session Continuity
 
 Last session: 2026-01-31
-Stopped at: Completed 20-01-PLAN.md
+Stopped at: v3.3 milestone complete
 Resume file: None
-Next step: v3.3 milestone complete
+Next step: /gsd:new-milestone for v3.4
 
 ---
-*Last updated: 2026-01-31 after Phase 20 completion*
+*Last updated: 2026-01-31 after v3.3 milestone completion*

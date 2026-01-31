@@ -197,54 +197,14 @@ Plans:
 
 </details>
 
-### ✅ v3.3 Config Device (Shipped 2026-01-31)
+<details>
+<summary>✅ v3.3 Config Device (Phases 18-20) - SHIPPED 2026-01-31</summary>
 
-**Milestone Goal:** Add "Config device" action to edit registered device properties from the TUI
+- [x] Phase 18: Foundation & Screen (2/2 plans) — completed 2026-01-31
+- [x] Phase 19: Edit Interaction (1/1 plan) — completed 2026-01-31
+- [x] Phase 20: Menu Integration (1/1 plan) — completed 2026-01-31
 
-#### Phase 18: Foundation & Screen
-**Goal**: Backend persistence layer and config screen rendering for device editing
-**Depends on**: Phase 17
-**Requirements**: CDEV-01, CDEV-02, CDEV-03, KEY-01, SAVE-02, VIS-02
-**Success Criteria** (what must be TRUE):
-  1. Registry exposes update_device method that atomically replaces a device entry (single load-modify-save cycle)
-  2. Validation function rejects duplicate keys, empty keys, keys with invalid characters (spaces, slashes, special chars)
-  3. Config screen renders read-only identity panel showing MCU type and serial pattern at top
-  4. Config screen renders editable fields panel with numbered options showing current values
-  5. Screen follows two-panel visual pattern consistent with existing global config screen
-**Plans**: 2 plans
-
-Plans:
-- [x] 18-01-PLAN.md — Registry update method, key validation, config cache rename helper
-- [x] 18-02-PLAN.md — Device config screen rendering (DEVICE_SETTINGS, render function, two-panel layout)
-
-#### Phase 19: Edit Interaction
-**Goal**: Users can edit all device properties through the config screen with safe key rename
-**Depends on**: Phase 18
-**Requirements**: EDIT-01, EDIT-02, EDIT-03, EDIT-04, EDIT-05, KEY-02, KEY-03, SAVE-01
-**Success Criteria** (what must be TRUE):
-  1. User can edit display name via text input (empty input rejected with reprompt)
-  2. User can rename device key with automatic config cache directory migration to new key
-  3. User can cycle flash method between default, katapult, and make_flash via single keypress
-  4. User can toggle include/exclude status via single keypress
-  5. User can launch make menuconfig for the selected device's cached config
-  6. All edits are collected in memory and saved to registry on screen exit (not per-field)
-**Plans**: 1 plan
-
-Plans:
-- [x] 19-01-PLAN.md — Device config screen interaction loop with collect-then-save editing
-
-#### Phase 20: Menu Integration
-**Goal**: Users can access device config from the main menu
-**Depends on**: Phase 19
-**Requirements**: MENU-01, MENU-02, VIS-01
-**Success Criteria** (what must be TRUE):
-  1. Pressing "E" in main menu launches device config flow
-  2. User sees numbered device selection prompt (same style as Flash/Remove) before config screen
-  3. Step dividers separate sections within the config device flow
-**Plans**: 1 plan
-
-Plans:
-- [x] 20-01-PLAN.md — Wire E key handler, device selection prompt, and step dividers into main menu
+</details>
 
 ### 📋 v3.4 Check Katapult (Planned)
 
@@ -323,6 +283,7 @@ Phases execute in numeric order: 18 → 19 → 20 → 21 → 22 → 23
 | 18. Foundation & Screen | v3.3 | 2/2 | Complete | 2026-01-31 |
 | 19. Edit Interaction | v3.3 | 1/1 | Complete | 2026-01-31 |
 | 20. Menu Integration | v3.3 | 1/1 | Complete | 2026-01-31 |
+
 | 21. Pi Hardware Research | v3.4 | 0/1 | Not started | - |
 | 22. Core Detection Engine | v3.4 | 0/1 | Not started | - |
 | 23. TUI Integration | v3.4 | 0/1 | Not started | - |

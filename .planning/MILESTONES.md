@@ -1,5 +1,56 @@
 # Project Milestones: kalico-flash
 
+## v3.3 Config Device (Shipped: 2026-01-31)
+
+**Delivered:** Device config editing from the TUI — edit device key, name, flash method, include/exclude, and launch menuconfig from the main menu.
+
+**Phases completed:** 18-20 (4 plans total)
+
+**Key accomplishments:**
+
+- Registry update_device() with atomic load-modify-save pattern
+- Device config screen with two-panel layout (identity + editable settings)
+- Collect-then-save editing loop for 5 field types (text, validated text, cycle, toggle, action)
+- Safe key rename with config cache directory migration
+- E key wired into main menu with device selection and step dividers
+
+**Stats:**
+
+- 15 source files modified
+- 6,179 lines of Python (total project)
+- 3 phases, 4 plans
+- Same day (2026-01-31)
+
+**Git range:** `feat(18-01)` → `feat(20-01)`
+
+**What's next:** v3.4 Check Katapult — Katapult bootloader detection from device config screen
+
+---
+
+## v3.2 Action Dividers (Shipped: 2026-01-31)
+
+**Delivered:** Visual step and device dividers in all command workflows — light dashed separators between phases and labeled dividers between devices in batch operations.
+
+**Phases completed:** 16-17 (3 plans total)
+
+**Key accomplishments:**
+
+- Output Protocol extended with step_divider() and device_divider() methods
+- Dividers adapt to terminal width and degrade to ASCII on non-Unicode terminals
+- Flash, Add Device, Remove Device workflows separated by step dividers
+- Flash All shows labeled device dividers between each device in build and flash phases
+
+**Stats:**
+
+- 2 phases, 3 plans
+- Same day (2026-01-31)
+
+**Git range:** `feat(16-01)` → `feat(17-02)`
+
+**What's next:** v3.3 Config Device
+
+---
+
 ## v3.1 Config Validation (Shipped: 2026-01-30)
 
 **Delivered:** Input validation for all TUI settings — path existence/content checks and numeric bounds with reject-and-reprompt behavior.
