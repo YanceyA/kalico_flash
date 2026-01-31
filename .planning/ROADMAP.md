@@ -228,10 +228,10 @@ Plans:
   4. User can toggle include/exclude status via single keypress
   5. User can launch make menuconfig for the selected device's cached config
   6. All edits are collected in memory and saved to registry on screen exit (not per-field)
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
-- [ ] 19-01: Device config screen interaction loop with all field edit types and collect-then-save
+- [ ] 19-01-PLAN.md — Device config screen interaction loop with collect-then-save editing
 
 #### Phase 20: Menu Integration
 **Goal**: Users can access device config from the main menu
