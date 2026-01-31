@@ -487,6 +487,7 @@ DEVICE_SETTINGS: list[dict] = [
     },
     {"key": "flashable", "label": "Include in flash operations", "type": "toggle"},
     {"key": "menuconfig", "label": "Edit firmware config", "type": "action"},
+    {"key": "katapult_check", "label": "Katapult check", "type": "action", "experimental": True},
 ]
 
 
@@ -529,10 +530,15 @@ def render_device_config_screen(device_entry: DeviceEntry) -> str:
                 display = str(value) if value else "default"
             else:
                 display = str(value)
+        if setting.get("experimental"):
+            label = (
+                f"{theme.text}{setting['label']}{theme.reset} "
+                f"{theme.warning}(experimental){theme.reset}"
+            )
+        else:
+            label = f"{theme.text}{setting['label']}:{theme.reset} {theme.value}{display}{theme.reset}"
         settings_lines.append(
-            f"{theme.label}{i}.{theme.reset} "
-            f"{theme.text}{setting['label']}:{theme.reset} "
-            f"{theme.value}{display}{theme.reset}"
+            f"{theme.label}{i}.{theme.reset} {label}"
         )
 
     settings = render_panel("settings", settings_lines)

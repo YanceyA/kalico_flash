@@ -303,9 +303,23 @@ def check_katapult(
     found = _poll_for_serial_device(katapult_pattern)
 
     if found:
+        # Recover device back to Klipper mode
+        if log:
+            log("Katapult detected, recovering device...")
+        try:
+            subprocess.run(
+                ["python3", str(flashtool), "-r", "-d", found],
+                capture_output=True,
+                text=True,
+                timeout=BOOTLOADER_ENTRY_TIMEOUT,
+            )
+        except (subprocess.TimeoutExpired, OSError):
+            pass  # Best-effort recovery
+        recovered = _poll_for_serial_device(serial_pattern)
         return KatapultCheckResult(
             has_katapult=True,
             elapsed_seconds=time.monotonic() - start,
+            error_message=None if recovered else "Device may still be in bootloader mode",
         )
 
     # No Katapult detected -- recover device via USB reset

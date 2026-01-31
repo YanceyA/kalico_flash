@@ -797,9 +797,10 @@ def _device_config_screen(device_key: str, registry, out) -> None:
         print(render_action_divider())
         print()
         print(render_device_config_screen(working))
+        print(f"  {theme.subtle}(Esc to save & return){theme.reset}")
         print()
         print(
-            f"  {theme.prompt}Setting # / K=Katapult check (Esc/B to save & return):{theme.reset} ",
+            f"  {theme.prompt}Setting #:{theme.reset} ",
             end="",
             flush=True,
         )
@@ -814,8 +815,8 @@ def _device_config_screen(device_key: str, registry, out) -> None:
         if key == "\x03":
             return
 
-        # Esc or B — save and return
-        if key == "\x1b" or key == "b":
+        # Esc — save and return
+        if key == "\x1b":
             _save_device_edits(original_key, pending, registry)
             return
 
@@ -936,7 +937,7 @@ def _device_config_screen(device_key: str, registry, out) -> None:
                 except Exception as exc:
                     print(f"  {theme.error}{exc}{theme.reset}")
 
-        elif key == "k":
+        elif key == "6":
             print(key)
             print()
 
@@ -960,7 +961,8 @@ def _device_config_screen(device_key: str, registry, out) -> None:
 
             # Warning
             print(f"  {theme.warning}Warning: This will briefly put the device into bootloader mode.{theme.reset}")
-            print(f"  {theme.warning}The device will be recovered automatically afterward.{theme.reset}")
+            print(f"  {theme.warning}If the device does not have Katapult, it may enter DFU mode{theme.reset}")
+            print(f"  {theme.warning}and require a manual USB unplug/replug to recover.{theme.reset}")
             print()
 
             # Confirmation (default No)
@@ -1005,6 +1007,9 @@ def _device_config_screen(device_key: str, registry, out) -> None:
                 else:
                     print(
                         f"  {theme.warning}Inconclusive: {result.error_message}{theme.reset}"
+                    )
+                    print(
+                        f"  {theme.warning}You may need to unplug and replug the device to recover it.{theme.reset}"
                     )
             except Exception as exc:
                 print(f"  {theme.error}Katapult check failed: {exc}{theme.reset}")
