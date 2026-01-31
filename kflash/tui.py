@@ -740,29 +740,7 @@ def _save_device_edits(original_key: str, pending: dict, registry) -> None:
     if not pending:
         return
 
-    new_key = pending.pop("key", None)
-    if new_key and new_key != original_key:
-        # Move config cache first (safe: registry unchanged if this fails)
-        from .config import rename_device_config_cache
-
-        try:
-            rename_device_config_cache(original_key, new_key)
-        except FileExistsError:
-            pending["key"] = new_key  # restore for retry
-            raise
-
-        # Atomic registry: load, delete old, insert new with all updates
-        data = registry.load()
-        device = data.devices.pop(original_key)
-        for fld, value in pending.items():
-            setattr(device, fld, value)
-        device.key = new_key
-        data.devices[new_key] = device
-        registry.save(data)
-    else:
-        # No key rename — simple field update
-        if pending:
-            registry.update_device(original_key, **pending)
+    registry.update_device(original_key, **pending)
 
 
 def _device_config_screen(device_key: str, registry, out) -> None:
@@ -776,7 +754,6 @@ def _device_config_screen(device_key: str, registry, out) -> None:
 
     from .panels import render_action_divider
     from .screen import DEVICE_SETTINGS, render_device_config_screen
-    from .validation import validate_device_key
 
     theme = get_theme()
     original_key = device_key
@@ -787,10 +764,7 @@ def _device_config_screen(device_key: str, registry, out) -> None:
 
     while True:
         # Build working copy with pending overlaid
-        updates = {k: v for k, v in pending.items() if k != "key"}
-        working = dataclasses.replace(original, **updates)
-        if "key" in pending:
-            working = dataclasses.replace(working, key=pending["key"])
+        working = dataclasses.replace(original, **pending)
 
         clear_screen()
         print()
@@ -820,7 +794,7 @@ def _device_config_screen(device_key: str, registry, out) -> None:
             _save_device_edits(original_key, pending, registry)
             return
 
-        if key in ("1", "2", "3", "4", "5"):
+        if key in ("1", "2", "3", "4"):
             idx = int(key) - 1
             setting = DEVICE_SETTINGS[idx]
 
@@ -833,22 +807,6 @@ def _device_config_screen(device_key: str, registry, out) -> None:
                     continue
                 if raw:
                     pending["name"] = raw
-
-            elif setting["key"] == "key":
-                # Text edit with validation for device key
-                print(key)
-                while True:
-                    try:
-                        raw = input(f"  {setting['label']} [{working.key}]: ").strip()
-                    except (EOFError, KeyboardInterrupt):
-                        break
-                    if not raw:
-                        break
-                    ok, err = validate_device_key(raw, registry, current_key=original_key)
-                    if ok:
-                        pending["key"] = raw
-                        break
-                    print(f"  {theme.error}{err}{theme.reset}")
 
             elif setting["key"] == "flash_method":
                 # Cycle through values
@@ -888,7 +846,7 @@ def _device_config_screen(device_key: str, registry, out) -> None:
                                     print(
                                         f"  {theme.warning}MCU mismatch: "
                                         f"config has '{actual_mcu}' but "
-                                        f"device '{original_key}' expects "
+                                        f"device '{entry.name}' expects "
                                         f"'{entry.mcu}'{theme.reset}"
                                     )
                                     choice = (

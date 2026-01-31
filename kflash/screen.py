@@ -478,7 +478,6 @@ def render_config_screen(gc: GlobalConfig) -> str:
 
 DEVICE_SETTINGS: list[dict] = [
     {"key": "name", "label": "Display name", "type": "text"},
-    {"key": "key", "label": "Device key", "type": "text"},
     {
         "key": "flash_method",
         "label": "Flash method",
