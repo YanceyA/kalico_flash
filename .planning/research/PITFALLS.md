@@ -1,8 +1,290 @@
 # Pitfalls Research: klipper-flash
 
 **Domain:** Python CLI tool for Klipper firmware building and flashing via subprocesses
-**Researched:** 2026-01-25 (v1.0), 2026-01-26 (v2.0 additions), 2026-01-29 (v2.1 panel TUI + batch flash), 2026-01-30 (v3.2 visual dividers)
-**Overall confidence:** HIGH (domain knowledge from Klipper ecosystem, Linux device model, Python subprocess semantics, terminal output pitfalls)
+**Researched:** 2026-01-25 (v1.0), 2026-01-26 (v2.0 additions), 2026-01-29 (v2.1 panel TUI + batch flash), 2026-01-30 (v3.2 visual dividers), 2026-01-31 (v4.0 config device editing)
+**Overall confidence:** HIGH (domain knowledge from Klipper ecosystem, codebase analysis of key usage patterns, Python file operation semantics)
+
+---
+
+## v4.0 Config Device Pitfalls
+
+### CFG-1: Orphaned Config Cache After Key Rename
+
+**What goes wrong:** User renames device key from `octopus-pro` to `octo-v11`. Registry updates to new key, but the cached `.config` remains at `~/.config/kalico-flash/configs/octopus-pro/.config`. Next flash of `octo-v11` sees no cached config and forces a fresh menuconfig. The old directory sits on disk forever consuming space and causing confusion.
+
+**Why it happens:** Registry save (`registry.py:save()`) and config cache directory (`config.py:get_config_dir()`) are completely decoupled. There is no `rename_device()` method -- only `add()` and `remove()`. A naive implementation does `remove(old_key) + add(new_entry)` without touching the filesystem cache.
+
+**Warning signs:**
+- `registry.remove()` does not touch config cache (confirmed: lines 113-120 have no filesystem ops)
+- `_remove_cached_config()` in flash.py is a separate function called only during explicit device removal
+- No existing code links registry mutations to config directory operations
+
+**Prevention:**
+- Key rename must be an atomic operation: update registry JSON AND rename config directory in one logical transaction
+- Order matters: rename directory FIRST, then update registry. If directory rename fails, registry stays consistent. If registry update fails after directory rename, the old key's config is "lost" but recoverable (directory exists, just under new name)
+- Use `shutil.move()` (not `os.rename()`) for the config directory -- handles cross-filesystem moves if XDG_CONFIG_HOME is on different mount
+- If old config directory does not exist, skip the move silently (device may never have been configured)
+- Test: rename key, verify `get_config_dir(new_key)/.config` exists and old directory is gone
+
+**Phase:** Must be addressed in the key-rename implementation phase. Cannot be deferred.
+
+---
+
+### CFG-2: Key Rename Collision with Existing Device
+
+**What goes wrong:** User renames `octopus` to `nitehawk` but `nitehawk` already exists in the registry. Naive implementation overwrites the existing device entry, destroying its registration and potentially its config cache.
+
+**Why it happens:** `registry.add()` already checks for key collision (line 108-109: raises RegistryError if key exists). But a rename implemented as `remove(old) + add(new)` might skip this check if the add is done differently, or a direct dict mutation bypasses the guard entirely.
+
+**Warning signs:**
+- Implementation that modifies `registry.devices` dict directly instead of using `add()`
+- No validation of new key before starting the rename operation
+- Config directory collision: new key's config directory already exists from another device
+
+**Prevention:**
+- Validate new key does not exist in registry BEFORE any mutations
+- Also check if `get_config_dir(new_key)` directory already exists on disk (could be leftover from a previously deleted device)
+- If config directory collision: ask user whether to overwrite or abort
+- Perform all validation before any state changes (fail fast, mutate late)
+
+**Phase:** Key rename validation phase. Must be the first check in the rename flow.
+
+---
+
+### CFG-3: Key Rename Breaks In-Flight References
+
+**What goes wrong:** User has `--device octopus-pro` in shell aliases, cron jobs, or Moonraker macros. After renaming the key, those references silently fail with "device not found" errors. User doesn't realize until their next automated flash attempt fails.
+
+**Why it happens:** The device key is an external contract -- it's used as a CLI argument (`--device octopus-pro`). Renaming it breaks all external references. Unlike internal refactoring, CLI argument values are used by humans in scripts and muscle memory.
+
+**Warning signs:**
+- No warning shown to user about external references when renaming
+- No "alias" or "previous key" tracking
+
+**Prevention:**
+- Display a clear warning before confirming rename: "Warning: If you use 'octopus-pro' in scripts, aliases, or automation, those references will break."
+- Consider keeping old key as an alias (LOW priority, adds complexity)
+- At minimum, show the old and new key clearly in confirmation: "Rename 'octopus-pro' to 'octo-v11'? [y/N]"
+- Log the rename so user can find what changed: the registry diff is visible in devices.json git history
+
+**Phase:** UX/confirmation phase. Add warning text to the rename confirmation prompt.
+
+---
+
+### CFG-4: Partial Registry Update on Crash
+
+**What goes wrong:** Power loss or Ctrl+C between removing old key and adding new key in a rename-as-delete-then-add implementation. Device disappears from registry entirely. Config cache may or may not have been moved.
+
+**Why it happens:** `registry.remove()` calls `save()` which does an atomic JSON write. Then `registry.add()` calls `save()` again. Between these two atomic writes, the device does not exist. If the process dies in that window, the device is gone.
+
+**Warning signs:**
+- Rename implemented as two separate `save()` calls
+- Any code path where the device is absent from registry between operations
+- `registry.load()` -> mutate -> `registry.save()` pattern done twice instead of once
+
+**Prevention:**
+- Implement rename as a SINGLE load-mutate-save cycle: load registry, delete old key from dict, insert new key in dict, save once
+- The existing atomic write pattern (`_atomic_write_json`) ensures the JSON file is either fully old or fully new -- never partial
+- Example: `data = registry.load(); del data.devices[old_key]; data.devices[new_key] = entry; registry.save(data)`
+- For the config directory move: do it BEFORE the registry save. Worst case: directory moved but registry still has old key (recoverable by moving directory back)
+
+**Phase:** Core implementation. The single-save pattern must be the design from the start.
+
+---
+
+### CFG-5: Key Validation Inconsistency
+
+**What goes wrong:** The add-device wizard validates keys one way (e.g., lowercase alphanumeric + hyphens), but the edit/rename flow either skips validation or applies different rules. User creates a key with spaces or special characters that breaks `get_config_dir()` (directory name) or `--device` argument parsing.
+
+**Why it happens:** Key validation logic lives inline in the add-device wizard rather than in a shared function. When building the edit flow, developer writes new validation or forgets it entirely.
+
+**Warning signs:**
+- Key validation logic duplicated or absent in edit flow
+- No shared `validate_device_key()` function exists currently
+- Keys with `/`, `..`, spaces, or shell metacharacters could create path traversal or argument parsing issues
+
+**Prevention:**
+- Extract key validation into a shared function (e.g., `validation.py:validate_device_key()`)
+- Rules: lowercase, alphanumeric + hyphens only, no leading/trailing hyphens, 1-40 chars, no reserved names
+- Call the same validation for both add and rename flows
+- Specifically block path-unsafe characters: `/`, `\`, `..`, null bytes
+- Test edge cases: empty string, single char, 100+ chars, unicode, shell metacharacters
+
+**Phase:** Should be extracted before building the edit flow. Prerequisite task.
+
+---
+
+### CFG-6: Edit Flow Does Not Update DeviceEntry.key Field
+
+**What goes wrong:** Developer renames the registry dict key (`devices["new-key"] = devices.pop("old-key")`) but forgets to update `entry.key` on the DeviceEntry dataclass itself. The entry's `.key` field still says `"old-key"` even though it's stored under `"new-key"` in the dict. Display code that uses `entry.key` shows the old name.
+
+**Why it happens:** The `DeviceEntry.key` field (models.py line 27) is set during `load()` from the dict key (registry.py line 46: `key=key`). But during an in-memory mutation, the dict key and the dataclass field are separate values that must be updated independently.
+
+**Warning signs:**
+- `entry.key` used in output messages shows old key after rename
+- `list-devices` shows correct key in one column but old key in another
+- Config cache operations use `entry.key` and target the wrong directory
+
+**Prevention:**
+- When renaming, always create a NEW DeviceEntry with the new key: `new_entry = DeviceEntry(key=new_key, name=entry.name, ...)`
+- Never mutate `entry.key` on an existing instance (dataclasses are nominally immutable by convention)
+- The save path (registry.py line 90) iterates `sorted(registry.devices.items())` using dict keys, but the `key` field on DeviceEntry is written to... wait, it's NOT written to JSON (line 93-97 doesn't include `key`). The key is only the dict key. This means the `.key` field is only used at runtime for display/logic. Still must be correct.
+
+**Phase:** Core implementation. Use new DeviceEntry construction, not mutation.
+
+---
+
+### CFG-7: Flash Method Edit Accepts Invalid Values
+
+**What goes wrong:** User edits flash_method to "katapault" (typo) or "usb" (not a valid method). The value is stored in the registry. Next flash attempt fails with a confusing error deep in the flash logic rather than at edit time.
+
+**Why it happens:** `flash_method` is typed as `Optional[str]` with no enum or validation. Valid values are `"katapult"`, `"make_flash"`, or `None` (use global default). Without validation at edit time, any string is accepted.
+
+**Warning signs:**
+- flash_method stored as free-form string in DeviceEntry
+- No validation in registry.save() or registry.add()
+- Error surfaces at flash time, not at config time
+
+**Prevention:**
+- Define valid flash methods as a constant: `VALID_FLASH_METHODS = {"katapult", "make_flash"}`
+- Validate at edit time, not flash time
+- In the TUI, present flash method as a selection (pick from list) not free text input
+- Allow `None` / empty to mean "use global default" -- make this an explicit option in the picker
+
+**Phase:** Edit flow implementation. Use selection UI, not text input for constrained fields.
+
+---
+
+### CFG-8: Editing serial_pattern Breaks Device Matching
+
+**What goes wrong:** User edits serial_pattern to fix a typo but introduces a glob that matches zero devices or matches the wrong device. Next flash attempt either fails discovery ("no matching device") or matches an unintended board.
+
+**Why it happens:** Serial patterns use glob matching against `/dev/serial/by-id/` filenames. A subtle change (e.g., removing a `*` wildcard, changing `stm32h723xx` to `stm32h723`) can break matching. Users don't understand glob syntax.
+
+**Warning signs:**
+- Pattern edited via free text input with no live validation
+- No "test this pattern against currently connected devices" feature
+- User edits pattern, doesn't test until next flash (could be days later)
+
+**Prevention:**
+- After pattern edit, immediately scan `/dev/serial/by-id/` and show matches: "This pattern matches: [list] or No devices match this pattern"
+- If zero matches: warn but allow save (device may be disconnected)
+- If multiple matches: warn about ambiguity
+- Consider offering to re-run discovery instead of manual pattern editing
+
+**Phase:** Edit flow implementation. Add live pattern validation after edit.
+
+---
+
+### CFG-9: TUI Edit Panel State Management
+
+**What goes wrong:** User starts editing a device, changes several fields, then cancels. But some changes were already saved incrementally (e.g., name was saved before the user got to key rename and cancelled). Device is now in a partially-edited state.
+
+**Why it happens:** If each field edit triggers an immediate registry save (like `set_flashable()` does on line 143-149), then cancellation cannot roll back prior field saves. The tool has no transaction/rollback mechanism.
+
+**Warning signs:**
+- Individual field edits call `registry.save()` immediately
+- No "save all changes at once" pattern
+- Cancel button/option exists but doesn't undo prior saves
+
+**Prevention:**
+- Collect ALL edits in memory, then save once at the end when user confirms
+- Show a summary of all changes before saving: "Changes: name 'Octopus Pro' -> 'Octopus Pro v1.1', flash_method 'katapult' -> 'make_flash'. Save? [y/N]"
+- Cancel discards all in-memory changes, registry untouched
+- This matches the single-save pattern from CFG-4
+
+**Phase:** TUI design phase. Decide collect-then-save vs save-per-field before building.
+
+---
+
+### CFG-10: Concurrent Registry Access During Edit
+
+**What goes wrong:** User has two SSH sessions open. Session A starts editing a device. Session B flashes a device, which updates registry (e.g., flash method fallback). Session A saves, overwriting Session B's changes because it loaded a stale copy.
+
+**Why it happens:** `registry.load()` reads the full file into memory. Edits mutate the in-memory copy. `registry.save()` writes the full file. There's no locking. The edit flow holds the in-memory copy for the duration of user interaction (could be minutes).
+
+**Warning signs:**
+- Edit flow calls `load()` at start, `save()` at end, with user interaction in between
+- No file locking mechanism exists
+- Multiple SSH sessions are the standard usage pattern (CLAUDE.md confirms SSH access)
+
+**Prevention:**
+- For MVP: accept the race condition. It's unlikely (single-user tool) and the atomic write prevents corruption (just data loss from overwrite)
+- Document: "Don't edit device config while flashing in another session"
+- Future improvement: load-modify-save with a re-read before save to detect changes, or advisory file locking with `fcntl.flock()`
+- The atomic write pattern prevents file corruption but not logical conflicts
+
+**Phase:** Acknowledged risk, not a blocker. Document in tool help/warnings. Consider locking in future version.
+
+---
+
+## Technical Debt Patterns (v4.0)
+
+| Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
+|----------|-------------------|----------------|-----------------|
+| Rename as delete+add (two saves) | Simple implementation | Race window where device is missing | Never -- use single load-mutate-save |
+| Skip config directory migration | Faster to ship | Orphaned directories, lost configs on rename | Never -- core to the rename feature |
+| Inline key validation in edit flow | No refactoring needed | Inconsistent validation, duplicate logic | Only if add-device is being rewritten simultaneously |
+| Save per field in TUI | Simpler state management | No cancel/rollback capability | Never -- collect-then-save is not much harder |
+| Free text for flash_method | No enum to maintain | Typos stored, fail at flash time | Never -- use selection UI |
+
+## Integration Gotchas (v4.0)
+
+| Integration Point | Common Mistake | Correct Approach |
+|--------------------|----------------|------------------|
+| Registry dict key vs DeviceEntry.key | Rename dict key, forget to update entry.key | Create new DeviceEntry with new key |
+| Config cache directory | Rename registry key, forget directory migration | shutil.move() old dir to new dir BEFORE registry save |
+| Key validation | Different rules in add vs edit | Extract shared validate_device_key() function |
+| flash_method values | Accept any string | Selection from {"katapult", "make_flash", None} |
+| serial_pattern edit | No live validation | Scan /dev/serial/by-id/ after edit, show matches |
+| Cancel/rollback | Save each field immediately | Collect all edits, save once on confirm |
+
+## "Looks Done But Isn't" Checklist (v4.0)
+
+- [ ] **Key rename:** Both registry JSON key AND DeviceEntry.key field updated
+- [ ] **Config migration:** Old config directory moved to new key's path
+- [ ] **Collision check:** New key checked against existing registry entries AND existing config directories
+- [ ] **Single save:** Rename uses one load-mutate-save cycle, not two
+- [ ] **Shared validation:** Same key validation rules for add and rename
+- [ ] **Flash method:** Constrained selection, not free text
+- [ ] **serial_pattern:** Live match test after edit
+- [ ] **Cancel works:** No partial saves when user cancels mid-edit
+- [ ] **Warning shown:** User warned about external references (scripts, aliases) on key rename
+- [ ] **Edge cases:** Empty key, duplicate key, key with path chars, key with spaces all rejected
+
+## Pitfall-to-Phase Mapping (v4.0)
+
+| Pitfall | Prevention Phase | Verification |
+|---------|------------------|--------------|
+| Orphaned config cache (CFG-1) | Key rename implementation | Rename key, verify old dir gone, new dir has .config |
+| Key collision (CFG-2) | Key rename validation | Try renaming to existing key, verify rejection |
+| Broken external refs (CFG-3) | UX/confirmation | Rename shows warning about scripts/aliases |
+| Partial update on crash (CFG-4) | Core implementation | Single registry.save() call in rename path |
+| Key validation (CFG-5) | Prerequisite extraction | Shared function used by both add and rename |
+| DeviceEntry.key stale (CFG-6) | Core implementation | After rename, entry.key matches new key |
+| Invalid flash method (CFG-7) | Edit flow UI | Selection picker, not free text |
+| Pattern breaks matching (CFG-8) | Edit flow UI | Live scan after pattern edit |
+| No cancel/rollback (CFG-9) | TUI design | Cancel after partial edits, verify no changes saved |
+| Concurrent access (CFG-10) | Documentation | Acknowledged race, document limitation |
+
+## Sources (v4.0)
+
+### Codebase Analysis (HIGH confidence)
+- `kflash/registry.py` - Registry CRUD: add/remove/save use load-mutate-save pattern, no rename method exists
+- `kflash/models.py` - DeviceEntry has `.key` field separate from dict key, flash_method is Optional[str] with no validation
+- `kflash/config.py` - `get_config_dir(device_key)` uses key as directory name, no rename/move capability
+- `kflash/flash.py` - `_remove_cached_config()` is the only place config dirs are cleaned up, called only on explicit device removal
+- `kflash/registry.py:_atomic_write_json()` - Atomic write prevents corruption but not logical conflicts
+
+### Domain Knowledge (HIGH confidence)
+- Python `shutil.move()` vs `os.rename()` cross-filesystem behavior
+- `fcntl.flock()` advisory locking semantics on Linux
+- Glob pattern matching behavior for serial device paths
+- Dataclass field vs dict key independence in Python
+
+---
+
+*[Previous v1.0, v2.0, v2.1, v3.2 pitfalls preserved below for historical context]*
 
 ---
 
@@ -327,10 +609,6 @@
 
 ---
 
-*[Previous v1.0, v2.0, v2.1 pitfalls preserved below for historical context]*
-
----
-
 ## Critical Pitfalls (can brick boards or lose data)
 
 ### CP-1: Klipper Service Not Restarted After Flash Failure
@@ -392,9 +670,5 @@
 
 ---
 
-*[... remaining v1.0, v2.0, v2.1 pitfalls omitted for brevity, preserved in full file ...]*
-
----
-
-*Pitfalls research: 2026-01-25 (v1.0), 2026-01-26 (v2.0 additions), 2026-01-29 (v2.1 panel TUI + batch flash), 2026-01-30 (v3.2 visual dividers)*
-*Confidence: HIGH -- based on direct codebase analysis, Klipper ecosystem domain knowledge, Python terminal handling semantics, CLI visual separator research.*
+*Pitfalls research: 2026-01-25 (v1.0), 2026-01-26 (v2.0 additions), 2026-01-29 (v2.1 panel TUI + batch flash), 2026-01-30 (v3.2 visual dividers), 2026-01-31 (v4.0 config device editing)*
+*Confidence: HIGH -- based on direct codebase analysis of registry.py, config.py, models.py key usage patterns, and Python file operation semantics.*

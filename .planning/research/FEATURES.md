@@ -6,6 +6,212 @@
 
 ---
 
+## v3.3 Features Research: Config Device Editor
+
+**Focus:** Per-device property editing via TUI config screen, following existing global config screen pattern
+**Researched:** 2026-01-31
+**Confidence:** HIGH (based on existing codebase patterns and standard CLI editing conventions)
+
+---
+
+### Table Stakes
+
+Features users expect when editing device properties. Missing these = editor feels broken.
+
+| Feature | Why Expected | Complexity | Notes |
+|---------|--------------|------------|-------|
+| Show current values | User must see what they're changing before changing it | LOW | Reuse `render_panel` with numbered settings rows, same as global config screen |
+| Show device identity (read-only) | MCU type and serial pattern are derived from hardware; editing them makes no sense. Displaying them orients the user. | LOW | Show MCU and serial_pattern at top of screen, not numbered, visually distinct |
+| Edit display name | Most common edit: user wants friendlier name than what was auto-assigned | LOW | Text input with current value as default. Same pattern as path editing in `_config_screen` |
+| Edit flash method | Per-device override of global default (katapult vs make_flash). Already stored in `DeviceEntry.flash_method` | LOW | Cycle/toggle between: "default", "katapult", "make_flash". Single keypress toggles like skip_menuconfig |
+| Edit include/exclude status | Toggle `flashable` boolean. Already exists in model and registry (`set_flashable`) | LOW | Toggle type, flip on keypress. Same as skip_menuconfig toggle |
+| Immediate persistence | Changes save to registry on each edit, not on "save and exit". Matches existing global config behavior | LOW | Use `registry.save()` after each field change, identical to `_config_screen` pattern |
+| Back/escape to return | Consistent navigation with global config screen (Esc or B) | LOW | Already established pattern in `_config_screen` |
+| Device selection prompt | User picks which device to configure via device number prompt | LOW | Reuse `_prompt_device_number` from tui.py |
+
+### Differentiators
+
+Features that improve the editing experience beyond the minimum.
+
+| Feature | Value Proposition | Complexity | Notes |
+|---------|-------------------|------------|-------|
+| Edit device key (with migration) | Renaming the key affects CLI `--device` flag and cached config directory. Doing it correctly with migration is valuable. | MEDIUM | Must: validate new key (no spaces, no duplicates), rename config cache dir, update registry atomically. Show warning about CLI flag change. |
+| Show effective flash method | When flash_method is None (use default), show "default (katapult)" so user sees what will actually happen | LOW | Read global_config.default_flash_method and display alongside "default" option |
+| Validation on text input | Reject empty names, reject duplicate keys, reject keys with spaces/special chars | LOW | Reuse validation pattern from add-device wizard. Key validation: lowercase, alphanumeric + hyphens |
+| Status message after edit | Brief confirmation like "Name updated" shown on redraw, same as global config screen implicitly does by redrawing | LOW | Already happens naturally with screen redraw pattern |
+
+### Anti-Features
+
+Things to deliberately NOT build for device config editing.
+
+| Anti-Feature | Why Avoid | What to Do Instead |
+|--------------|-----------|-------------------|
+| Edit MCU type | MCU is extracted from serial path during discovery. Changing it would break config cache matching and build targeting. | Show as read-only. If wrong, user should remove and re-add device. |
+| Edit serial pattern | Serial pattern is hardware-derived. Changing it breaks device matching on USB scan. | Show as read-only. If wrong, remove and re-add. |
+| Multi-device batch edit | "Change flash method for all devices" adds complexity for a rare action. Users have 2-5 devices typically. | Edit one device at a time. Fast enough with single-keypress toggles. |
+| Undo/revert changes | Adds state tracking complexity. Edits are simple field changes, not dangerous operations. | Each field saves immediately. User can re-edit to previous value. |
+| Free-form JSON editing | Exposing raw JSON is error-prone and breaks the abstraction. | Structured fields with validation only. |
+| Delete device from config screen | Config screen is for editing properties. Delete is a separate destructive action already handled by Remove Device (R key). Mixing edit and delete UX is confusing. | Keep Remove as separate main menu action with its own confirmation flow. |
+| Edit blocked_devices list | Blocked devices are a separate concept from registered device config. Mixing them muddies the UI. | Blocked devices managed via separate mechanism if needed. |
+
+### Feature Dependencies
+
+```
+[Existing: _config_screen pattern in tui.py]
+    |-- provides --> [Screen layout pattern: status panel + settings panel]
+    |-- provides --> [Input handling: _getch for selection, input() for text]
+    |-- provides --> [Toggle pattern: flip boolean on keypress]
+    |-- provides --> [Text edit pattern: prompt with [current] default]
+
+[Existing: _prompt_device_number in tui.py]
+    |-- provides --> [Device selection before entering config screen]
+
+[Existing: Registry.save() + atomic writes]
+    |-- provides --> [Immediate persistence after each edit]
+
+[Existing: DeviceEntry model in models.py]
+    |-- defines --> [Editable fields: key, name, flash_method, flashable]
+    |-- defines --> [Read-only fields: mcu, serial_pattern]
+
+[NEW: Device key rename]
+    |-- requires --> [Registry: remove old key + add new key atomically]
+    |-- requires --> [Config cache: rename directory from old key to new key]
+    |-- requires --> [Validation: no duplicate keys, valid key format]
+```
+
+**Dependency Notes:**
+- **Zero new modules needed.** All patterns exist in `_config_screen`. Device config is essentially the same screen with different fields and a different data source (DeviceEntry instead of GlobalConfig).
+- **Key rename is the only non-trivial operation.** It touches registry (remove+add) and filesystem (config cache dir rename). Everything else is simple field assignment.
+- **Registry already has `set_flashable()`** but lacks a general `update_device()` method. Will need either a new method or direct load/modify/save pattern.
+
+### MVP Definition (v3.3)
+
+Launch with the minimum that makes device config editing functional.
+
+- [ ] Device config screen accessible via new main menu action key
+  - **Why essential:** Must be reachable. Add "E" (Edit Device) or similar to actions panel.
+- [ ] Device selection via numbered prompt (reuse `_prompt_device_number`)
+  - **Why essential:** Must pick which device to edit
+- [ ] Read-only identity section showing MCU and serial pattern
+  - **Why essential:** Orients user; prevents "where do I change MCU?" confusion
+- [ ] Editable display name (text input with current value default)
+  - **Why essential:** Most common edit operation
+- [ ] Editable flash method (toggle: default / katapult / make_flash)
+  - **Why essential:** Per-device flash method override is core functionality
+- [ ] Editable include/exclude status (toggle)
+  - **Why essential:** Already exists as concept; needs UI exposure
+- [ ] Immediate save on each edit (match global config pattern)
+  - **Why essential:** Consistency with existing settings screen
+
+### Add After Validation (v3.4+)
+
+Features to add once core device config is working.
+
+- [ ] Device key rename with config cache migration -- Trigger: user requests it or finds key naming painful
+- [ ] Show effective flash method ("default (katapult)") -- Trigger: user confusion about what "default" means
+- [ ] Input validation feedback (duplicate key, empty name) -- Trigger: user manages to corrupt registry via bad input
+
+### Design Decisions
+
+**Screen Layout: Match Global Config Pattern**
+
+```
+  ┌─[ S T A T U S ]──────────────────────────────────────────┐
+  │  Press setting number to edit, Esc to return              │
+  └───────────────────────────────────────────────────────────┘
+
+  ┌─[ D E V I C E :  O C T O P U S - P R O ]────────────────┐
+  │                                                           │
+  │  MCU:     stm32h723                                       │
+  │  Serial:  usb-Klipper_stm32h723xx_29001A*                 │
+  │                                                           │
+  │  1. Name:          Octopus Pro v1.1                       │
+  │  2. Flash method:  default                                │
+  │  3. Included:      YES                                    │
+  │                                                           │
+  └───────────────────────────────────────────────────────────┘
+```
+
+**Rationale:**
+- Panel title includes device key for identification
+- Read-only fields (MCU, Serial) shown first without numbers
+- Editable fields numbered starting at 1, same as global config
+- Three fields keeps it simple; more can be added later
+
+**Field Types (matching existing `_config_screen` patterns):**
+
+| Field | Type | Behavior |
+|-------|------|----------|
+| Name | text | Prompt with `[current]` default, Enter to keep |
+| Flash method | cycle | Keypress cycles: default -> katapult -> make_flash -> default |
+| Included | toggle | Keypress flips YES/NO immediately |
+
+**Rationale for "cycle" instead of "toggle" for flash method:**
+- Flash method has 3 values, not 2. Toggle is for booleans.
+- Cycle on keypress (no Enter needed) matches the toggle UX but for 3-state.
+- Display: "default", "katapult", "make_flash"
+
+**Action Key: "E" for Edit Device**
+
+Adding to ACTIONS list after Remove:
+```
+("E", "Edit Device")
+```
+
+**Rationale:**
+- "C" is already taken by Config (global settings)
+- "E" for Edit is intuitive and not taken
+- Follows alphabetical-ish pattern: F(lash), A(dd), R(emove), E(dit), D(evices), C(onfig), B(atch), Q(uit)
+
+**Registry Update Pattern:**
+
+Use load/modify/save (same as `_config_screen`):
+```python
+data = registry.load()
+device = data.devices[device_key]
+device.name = new_name  # or flash_method, flashable
+registry.save(data)
+```
+
+This is simpler than adding a new `update_device()` method and matches the existing `_config_screen` pattern exactly (which uses `dataclasses.replace` on GlobalConfig then `registry.save_global()`).
+
+### Implementation Notes
+
+**Minimal code needed:**
+1. **screen.py:** Add `DEVICE_SETTINGS` list and `render_device_config_screen()` function (follows `render_config_screen` pattern)
+2. **tui.py:** Add `_device_config_screen(registry, out, device_key)` function (follows `_config_screen` pattern)
+3. **tui.py:** Add "E" key handler in `run_menu` dispatch (follows "R" remove pattern: prompt device number, then enter screen)
+4. **screen.py:** Add "E" to ACTIONS list
+5. **validation.py:** Add `validate_device_name()` if input validation is included in MVP
+
+**Estimated touch points:** 2 files (screen.py, tui.py), ~80-120 lines of new code.
+
+### Real-World CLI Patterns (from Codebase Analysis)
+
+**Existing Global Config Screen (the pattern to follow):**
+- Clear screen, draw panels, prompt for setting number
+- Single keypress selects field
+- Toggle fields flip immediately (no Enter)
+- Text/numeric fields prompt with `[current]` default
+- Empty input = keep current value
+- Loops back to redraw after each edit
+- Esc/B returns to main menu
+
+**Existing Device Selection (reusable):**
+- `_prompt_device_number()` handles single/multi device selection
+- Auto-selects if only one device exists
+- 3-attempt retry on invalid input
+- Returns device key string
+
+**These patterns mean device config is essentially a composition of existing behaviors, not a new paradigm.**
+
+### Sources
+
+**Primary source:** Existing codebase patterns in `tui.py` (`_config_screen`), `screen.py` (`render_config_screen`, `SETTINGS`), `validation.py`, `registry.py`
+**Confidence:** HIGH -- all patterns are verified in working code
+
+---
+
 ## v3.2 Features Research: Visual Dividers for Action Workflows
 
 **Focus:** Lightweight separators between workflow steps in flash, add-device, remove-device, and flash-all
@@ -20,7 +226,7 @@ Features users expect in professional CLI tools with multi-step workflows. Missi
 
 | Feature | Why Expected | Complexity | Notes |
 |---------|--------------|------------|-------|
-| Visual step separation | Users need to scan back through output; separators signal step boundaries | LOW | Simple character-based dividers (┄ or ---) |
+| Visual step separation | Users need to scan back through output; separators signal step boundaries | LOW | Simple character-based dividers (--- or ---) |
 | Consistent placement | Dividers always appear in same position relative to content | LOW | Before prompts, between phases, between devices |
 | Color inheritance | Dividers use existing theme colors for visual coherence | LOW | Already have theme.border (muted teal) and theme.subtle |
 | Lightweight rendering | Dividers don't slow down output or clutter simple workflows | LOW | Single print statement, no animations |
@@ -32,7 +238,7 @@ Features that set kalico-flash apart from typical CLI tools. Not required, but v
 
 | Feature | Value Proposition | Complexity | Notes |
 |---------|-------------------|------------|-------|
-| Device-labeled dividers | Flash-all shows ─── 1/N DeviceName ─── for each device | MEDIUM | Helps user track multi-device flash progress visually |
+| Device-labeled dividers | Flash-all shows --- 1/N DeviceName --- for each device | MEDIUM | Helps user track multi-device flash progress visually |
 | Step-labeled dividers | Show step count in flash-all (step 1, step 2, step 3) | LOW | Already common in Docker/yarn; reinforces progress |
 | Adaptive width | Dividers span terminal width for clean edge-to-edge look | MEDIUM | Need to detect terminal width reliably (shutil.get_terminal_size) |
 | Silent mode respected | Dividers disappear when --quiet flag is used | LOW | Respects existing output conventions |
@@ -44,7 +250,7 @@ Features that seem good but create problems in terminal output.
 
 | Feature | Why Requested | Why Problematic | Alternative |
 |---------|---------------|-----------------|-------------|
-| Fancy Unicode art | "Make it look modern" | Breaks on ASCII-only terminals, looks busy, hard to grep | Simple ┄ or --- already professional |
+| Fancy Unicode art | "Make it look modern" | Breaks on ASCII-only terminals, looks busy, hard to grep | Simple --- already professional |
 | Progress bars inside dividers | "Show completion at divider" | Clutters divider area, redraws create flicker | Keep progress separate; divider is static boundary |
 | Colored dividers per status | "Green for success, red for fail" | User scans for divider shape, not color; changing color breaks consistency | Use status markers ([OK], [FAIL]) not divider color |
 | Animated dividers | "Sliding effect when step completes" | Terminal redraws are jarring; breaks scrollback | Static dividers signal completed steps clearly |
@@ -54,61 +260,57 @@ Features that seem good but create problems in terminal output.
 
 ```
 [Theme system (EXISTING)]
-    └──requires──> [Color detection (EXISTING)]
-                       └──enables──> [Colored dividers]
+    +--requires--> [Color detection (EXISTING)]
+                       +--enables--> [Colored dividers]
 
 [Unicode detection (EXISTING)]
-    └──enables──> [Unicode dividers (┄) with ASCII fallback (---)]
+    +--enables--> [Unicode dividers with ASCII fallback (---)]
 
 [Terminal width detection (NEW)]
-    └──enables──> [Adaptive-width dividers]
-    └──optional for──> [Fixed-width dividers (60 chars)]
+    +--enables--> [Adaptive-width dividers]
+    +--optional for--> [Fixed-width dividers (60 chars)]
 
 [Output interface (EXISTING)]
-    └──requires──> [Divider output method]
-                       └──used by──> [Flash workflow]
-                       └──used by──> [Add-device wizard]
-                       └──used by──> [Flash-all batch]
+    +--requires--> [Divider output method]
+                       +--used by--> [Flash workflow]
+                       +--used by--> [Add-device wizard]
+                       +--used by--> [Flash-all batch]
 ```
 
 **Dependency Notes:**
 - **Theme system enables colored dividers:** Already have `theme.border` and `theme.subtle` defined in theme.py (RGB: 100,160,180 and 100,120,130). Dividers inherit these colors automatically.
-- **Unicode detection enables ┄ vs ---:** tui.py already has `_supports_unicode()` checking LANG/LC_ALL for UTF-8. Reuse this for divider character selection.
+- **Unicode detection enables character selection:** tui.py already has `_supports_unicode()` checking LANG/LC_ALL for UTF-8. Reuse this for divider character selection.
 - **Terminal width optional:** Can use fixed 60-character dividers initially, add adaptive width later if needed.
 - **Output interface needs divider method:** Add `out.step_divider()` and `out.device_divider()` to Output protocol in output.py, implement in CliOutput, NullOutput for testing.
 
 ### MVP Definition (Milestone 16)
 
-Launch with minimum viable dividers — what's needed to improve workflow readability.
+Launch with minimum viable dividers -- what's needed to improve workflow readability.
 
 - [x] Simple dividers before prompts
   - **Why essential:** Separates user action (input) from system output (info)
-  - **Example:** `┄┄┄┄┄` line before "Device #:" prompt
 - [x] Dividers between flash workflow phases
-  - **Why essential:** Discovery → Config → Build → Flash phases need visual breaks
-  - **Example:** Divider after [Discovery] output, before [Config] starts
+  - **Why essential:** Discovery -> Config -> Build -> Flash phases need visual breaks
 - [x] Device-labeled dividers in flash-all
   - **Why essential:** Multi-device flash needs clear "now flashing X" boundaries
-  - **Example:** `─── 1/2 Octopus Pro ───` before each device's build/flash output
 - [x] Unicode detection with ASCII fallback
   - **Why essential:** Can't break on ASCII-only SSH terminals
-  - **Pattern:** `┄` if UTF-8, `---` otherwise
 
 ### Add After Validation (v3.3+)
 
 Features to add once core dividers are working and tested.
 
-- [ ] Adaptive terminal width — Trigger: user reports dividers look too short/long
-- [ ] Step-labeled dividers in flash-all — Trigger: user confusion about which step is running
-- [ ] Quiet mode suppression — Trigger: when `--quiet` flag is added
-- [ ] Divider style customization in settings — Trigger: user requests different character
+- [ ] Adaptive terminal width -- Trigger: user reports dividers look too short/long
+- [ ] Step-labeled dividers in flash-all -- Trigger: user confusion about which step is running
+- [ ] Quiet mode suppression -- Trigger: when `--quiet` flag is added
+- [ ] Divider style customization in settings -- Trigger: user requests different character
 
 ### Future Consideration (v4.0+)
 
 Features to defer until usage patterns are established.
 
-- [ ] Theme-specific divider characters — Why defer: theme system may expand; wait to see what's needed
-- [ ] Section headers with dividers — Why defer: may conflict with panel-based TUI if both are visible
+- [ ] Theme-specific divider characters -- Why defer: theme system may expand; wait to see what's needed
+- [ ] Section headers with dividers -- Why defer: may conflict with panel-based TUI if both are visible
 
 ### Feature Prioritization Matrix
 
@@ -124,9 +326,9 @@ Features to defer until usage patterns are established.
 | Colored dividers (theme integration) | LOW | LOW | P3 |
 
 **Priority key:**
-- P1: Must have for launch — improves readability for all workflows
-- P2: Should have, add when possible — polish and edge cases
-- P3: Nice to have, future consideration — theme consistency
+- P1: Must have for launch -- improves readability for all workflows
+- P2: Should have, add when possible -- polish and edge cases
+- P3: Nice to have, future consideration -- theme consistency
 
 ### Real-World CLI Patterns (from Research)
 
@@ -136,13 +338,13 @@ Features to defer until usage patterns are established.
 - **Lesson:** Numbered steps help users track progress through sequential workflows
 
 **Yarn Install Output:**
-- Four distinct phases: Resolution → Fetch → Link → Build
+- Four distinct phases: Resolution -> Fetch -> Link -> Build
 - Phase labels printed with timing information
 - No explicit dividers; blank lines separate phases
 - **Lesson:** Phase labels alone may be sufficient for simple flows; dividers add polish
 
 **NPM Package Installers:**
-- Use `─────────────────────────────────────────────────────────────────` (dash lines) for separators
+- Use dash lines for separators
 - Inquirer.js provides `new inquirer.Separator()` that defaults to `--------`
 - Prompts package supports custom separator characters
 - **Lesson:** Industry standard is simple dash/underscore lines, 40-70 chars wide
@@ -164,7 +366,7 @@ kalico-flash is a niche tool (Klipper firmware flashing), so "competitors" are g
 | Feature | Docker Build | Yarn Install | Inquirer.js Prompts | kalico-flash Approach |
 |---------|--------------|--------------|---------------------|----------------------|
 | Step numbering | Yes (Step 1/6) | No | No | Yes (flash-all: 1/2 DeviceName) |
-| Visual dividers | No (blank lines) | No | Yes (Separator class) | Yes (┄ or ---) |
+| Visual dividers | No (blank lines) | No | Yes (Separator class) | Yes (--- or ---) |
 | Phase labels | Yes ([stage name]) | Yes (Resolution, Fetch) | No | Yes ([Discovery], [Build]) |
 | Color coding | Yes (ANSI colors) | Yes (chalk library) | Yes (ansi colors) | Yes (theme.border) |
 | Unicode support | Yes | Yes (respects NO_COLOR) | Yes | Yes (with ASCII fallback) |
@@ -176,15 +378,15 @@ kalico-flash is a niche tool (Klipper firmware flashing), so "competitors" are g
 
 ### Design Decisions
 
-**Divider Character: ┄ (box drawings light quadruple dash) vs ─ (box drawings light horizontal)**
+**Divider Character: box drawings light quadruple dash vs box drawings light horizontal**
 
-**Choice:** Use `┄` (U+2504) for regular dividers, `─` (U+2500) for device-labeled dividers
+**Choice:** Use light quadruple dash (U+2504) for regular dividers, light horizontal (U+2500) for device-labeled dividers
 
 **Rationale:**
-- `┄` (dotted line) is lighter, less intrusive — good for separating steps within a workflow
-- `─` (solid line) is stronger — good for device-labeled sections in flash-all
+- Dotted line is lighter, less intrusive -- good for separating steps within a workflow
+- Solid line is stronger -- good for device-labeled sections in flash-all
 - Both are in the same Unicode block (Box Drawing) so terminals that support one support both
-- ASCII fallback: `┄ → '- '` (dash-space pattern), `─ → '-'` (solid dashes)
+- ASCII fallback: dotted -> '- ' (dash-space pattern), solid -> '-' (solid dashes)
 
 **Divider Width: Fixed 60 chars vs Terminal Width**
 
@@ -202,20 +404,19 @@ kalico-flash is a niche tool (Klipper firmware flashing), so "competitors" are g
 |----------|------------------|---------|
 | Flash single device | Before each phase change | After [Discovery], before [Config] |
 | Flash single device | Before confirmation prompts | Before "Flash Octopus Pro? [Y/n]" |
-| Flash-all | Before each device section | ─── 1/2 Octopus Pro ─── |
-| Flash-all | Before build/flash sub-steps | ┄ Building firmware... |
-| Add-device | Before each wizard prompt | ┄ before "Device key:" |
-| Remove-device | Before confirmation prompt | ┄ before "Remove 'octopus-pro'?" |
+| Flash-all | Before each device section | --- 1/2 Octopus Pro --- |
+| Flash-all | Before build/flash sub-steps | Building firmware... |
+| Add-device | Before each wizard prompt | before "Device key:" |
+| Remove-device | Before confirmation prompt | before "Remove 'octopus-pro'?" |
 | Config menu | Not used (panel-based) | Panel borders provide structure |
 
 **Color: theme.border vs theme.subtle**
 
-**Choice:** Use `theme.border` (100, 160, 180 RGB — muted teal)
+**Choice:** Use `theme.border` (100, 160, 180 RGB -- muted teal)
 
 **Rationale:**
 - Matches panel border color in TUI for visual consistency
 - `theme.subtle` (100, 120, 130) is too dim; dividers might be invisible on dark terminals
-- Mockup (zen_mockup.py line 42, 47, 51, 84) shows `SUBTLE` color for dividers, but that's `BORDER` variable in mockup palette
 - User's intention: dividers should match panel borders (muted teal, not grey)
 
 ### Implementation Notes
@@ -227,11 +428,11 @@ Add to `output.py` Protocol and CliOutput:
 ```python
 def step_divider(self) -> None:
     """Print lightweight divider before workflow steps."""
-    # ┄ (U+2504) if Unicode, else dash-space pattern "- - - - ..."
+    # U+2504 if Unicode, else dash-space pattern "- - - - ..."
 
 def device_divider(self, index: int, total: int, device_name: str) -> None:
     """Print device-labeled divider for flash-all batches."""
-    # Example: ─── 1/2 Octopus Pro ───
+    # Example: --- 1/2 Octopus Pro ---
 ```
 
 **Unicode Detection**
@@ -240,7 +441,7 @@ Reuse `tui._supports_unicode()` logic:
 
 ```python
 def _get_divider_char() -> str:
-    return "\u2504" if _supports_unicode() else "- "  # ┄ or dash-space
+    return "\u2504" if _supports_unicode() else "- "
 ```
 
 **Width Calculation**
@@ -263,7 +464,7 @@ width = shutil.get_terminal_size().columns - 4  # Reserve 4 for indent
 
 **CLI Best Practices:**
 - [Command Line Interface Guidelines](https://clig.dev/)
-- [CLI UX best practices: 3 patterns for improving progress displays—Martian Chronicles](https://evilmartians.com/chronicles/cli-ux-best-practices-3-patterns-for-improving-progress-displays)
+- [CLI UX best practices: 3 patterns for improving progress displays -- Martian Chronicles](https://evilmartians.com/chronicles/cli-ux-best-practices-3-patterns-for-improving-progress-displays)
 
 **Docker Build Output:**
 - [Best practices | Docker Docs](https://docs.docker.com/build/building/best-practices/)
@@ -327,7 +528,7 @@ Things to deliberately NOT build. Common mistakes when building panel TUIs.
 
 | Anti-Feature | Why Avoid | What to Do Instead |
 |--------------|-----------|-------------------|
-| Full curses/ncurses interactive TUI | Massive complexity. Breaks piping, breaks some SSH clients, requires handling resize signals, partial screen updates, and input buffering. Overkill for a menu that redraws after each action. | Print-and-clear: clear screen, print all panels, wait for input. No cursor positioning, no partial updates. Simple, robust, debuggable. |
+| Full curses/ncurses interactive TUI | Massive complexity. Breaks piping, breaks some SSH clients, requires handling resize signals, partial screen updates, and input buffering. Overkill for a menu that redraws after each action. | Print-and-clear: clear screen, print all panels, wait for input. Simple, robust, debuggable. |
 | Real-time progress bars (tqdm-style) | Adds dependency (forbidden) or complex custom code. Build output already streams from make. A progress bar fighting subprocess output for the terminal causes visual chaos. | Let make output stream naturally between step dividers. Show spinner only for brief waits (service stop) using simple `\r` overwrite. |
 | Async/parallel flash of multiple devices | USB serial flashing is inherently serial. Parallel flash attempts cause USB bus contention and potential firmware corruption. There is no safe way to flash two USB devices simultaneously. | Sequential with continue-on-failure. The service bracket (single stop/start) already provides the batch speed win. |
 | Mouse support | Target users SSH into a Pi. Mouse events are unreliable over SSH, especially through tmux/screen. Adds complexity for zero practical benefit. | Keyboard numbers only. Type number, press Enter. |
@@ -342,30 +543,30 @@ Things to deliberately NOT build. Common mistakes when building panel TUIs.
 The main screen has three visual sections stacked vertically within a single bordered box:
 
 ```
-╭─────────────────────────────────────────────╮
-│           [ S T A T U S ]                   │
-│  Last: Octopus Pro flashed successfully     │
-├─────────────────────────────────────────────┤
-│           [ D E V I C E S ]                 │
-│                                             │
-│  Registered                                 │
-│    1) Octopus Pro v1.1      ● Connected     │
-│    2) Nitehawk 36           ○ Disconnected  │
-│                                             │
-│  New                                        │
-│    3) usb-Klipper_rp2040_E66...             │
-│                                             │
-│  Blocked                                    │
-│    -  Beacon Probe          (excluded)      │
-│                                             │
-├─────────────────────────────────────────────┤
-│           [ A C T I O N S ]                 │
-│                                             │
-│  F) Flash device        A) Flash All        │
-│  C) Configure           S) Settings         │
-│  R) Refresh             Q) Quit             │
-│                                             │
-╰─────────────────────────────────────────────╯
++---------------------------------------------+
+|           [ S T A T U S ]                   |
+|  Last: Octopus Pro flashed successfully     |
++---------------------------------------------+
+|           [ D E V I C E S ]                 |
+|                                             |
+|  Registered                                 |
+|    1) Octopus Pro v1.1      * Connected     |
+|    2) Nitehawk 36           o Disconnected  |
+|                                             |
+|  New                                        |
+|    3) usb-Klipper_rp2040_E66...             |
+|                                             |
+|  Blocked                                    |
+|    -  Beacon Probe          (excluded)      |
+|                                             |
++---------------------------------------------+
+|           [ A C T I O N S ]                 |
+|                                             |
+|  F) Flash device        A) Flash All        |
+|  C) Configure           S) Settings         |
+|  R) Refresh             Q) Quit             |
+|                                             |
++---------------------------------------------+
 ```
 
 **Key behaviors:**
@@ -387,35 +588,35 @@ Flash All: 3 devices queued
 [Service] Stopping Klipper...
 [Service] Klipper stopped.
 
-─── [1/3] Octopus Pro v1.1 ───────────────────
+--- [1/3] Octopus Pro v1.1 -----------------------
 [Config]  Loading cached config
 [Build]   make clean && make -j4... done (48KB)
 [Flash]   Flashing via Katapult... OK
-[Verify]  Device reconnected ✓
+[Verify]  Device reconnected
 
-─── [2/3] Nitehawk 36 ────────────────────────
+--- [2/3] Nitehawk 36 ----------------------------
 [Config]  Loading cached config
 [Build]   make clean && make -j4... done (22KB)
 [Flash]   Flashing via Katapult... FAILED
           flashtool.py exited with code 1
 
-─── [3/3] EBB36 ──────────────────────────────
+--- [3/3] EBB36 ----------------------------------
 [Config]  Config unchanged, skipping build
 [Flash]   Flashing via Katapult... OK
-[Verify]  Device reconnected ✓
+[Verify]  Device reconnected
 
 [Service] Starting Klipper...
 [Service] Klipper started.
 
-╭─────────────────────────────────────────────╮
-│         [ S U M M A R Y ]                   │
-│                                             │
-│  Octopus Pro v1.1    PASS    12.4s          │
-│  Nitehawk 36         FAIL    8.2s           │
-│  EBB36               PASS    3.1s           │
-│                                             │
-│  Result: 2/3 succeeded                      │
-╰─────────────────────────────────────────────╯
++---------------------------------------------+
+|         [ S U M M A R Y ]                   |
+|                                             |
+|  Octopus Pro v1.1    PASS    12.4s          |
+|  Nitehawk 36         FAIL    8.2s           |
+|  EBB36               PASS    3.1s           |
+|                                             |
+|  Result: 2/3 succeeded                      |
++---------------------------------------------+
 ```
 
 **Key behaviors:**
@@ -430,17 +631,17 @@ Flash All: 3 devices queued
 ### Expected Behavior: Config Screen
 
 ```
-╭─────────────────────────────────────────────╮
-│         [ S E T T I N G S ]                 │
-│                                             │
-│  1) Klipper directory    ~/klipper          │
-│  2) Katapult directory   ~/katapult         │
-│  3) Flash method         katapult           │
-│  4) Countdown seconds    5                  │
-│  5) Auto-skip menuconfig ON                 │
-│                                             │
-│  B) Back to main menu                       │
-╰─────────────────────────────────────────────╯
++---------------------------------------------+
+|         [ S E T T I N G S ]                 |
+|                                             |
+|  1) Klipper directory    ~/klipper          |
+|  2) Katapult directory   ~/katapult         |
+|  3) Flash method         katapult           |
+|  4) Countdown seconds    5                  |
+|  5) Auto-skip menuconfig ON                 |
+|                                             |
+|  B) Back to main menu                       |
++---------------------------------------------+
 ```
 
 **Key behaviors:**
@@ -1011,6 +1212,17 @@ Things to deliberately NOT build and why:
 
 ## Feature Dependencies (All Versions)
 
+### v3.3 device config depending on v3.0+ capabilities
+
+| v3.3 Feature | Depends On | Existing Capability |
+|--------------|------------|---------------------|
+| Device config screen | Config screen pattern | tui.py `_config_screen` |
+| Device selection | Device number prompt | tui.py `_prompt_device_number` |
+| Panel rendering | Panel system | panels.py `render_panel` |
+| Toggle editing | Toggle pattern | tui.py `_config_screen` toggle handler |
+| Text editing | Text input pattern | tui.py `_config_screen` path/numeric handler |
+| Persistence | Registry save | registry.py `save()` |
+
 ### v3.2 dividers depending on v2.1+ capabilities
 
 | v3.2 Feature | Depends On | v2.1+ Capability |
@@ -1051,11 +1263,13 @@ Things to deliberately NOT build and why:
 
 | Finding | Confidence | Basis |
 |---------|------------|-------|
+| Device config follows global config pattern | HIGH | Verified in codebase: tui.py _config_screen, screen.py render_config_screen |
+| Three editable fields sufficient for MVP | HIGH | DeviceEntry model has 6 fields; 2 are hardware-derived (read-only), 1 is key (rename is complex) |
+| Cycle-toggle for 3-state flash method | HIGH | Established toggle pattern works for boolean; cycle is natural extension for enum |
+| "E" action key available | HIGH | Verified ACTIONS list in screen.py: F, A, R, D, C, B, Q used |
+| No new modules needed | HIGH | All patterns exist in current codebase |
+| Key rename needs config cache migration | HIGH | Config cache stored at `{config_cache_dir}/{device-key}/` per config.py |
 | CLI divider patterns | HIGH | Verified with Docker, Yarn, npm/inquirer.js, separator scripts |
-| ┄ vs ─ character usage | MEDIUM | Box Drawing Unicode block; convention not standardized |
-| Fixed 60-char width | HIGH | Standard 80-column terminal with 2-space indent margin |
-| theme.border color choice | HIGH | Existing theme.py palette; matches panel borders |
-| Unicode fallback to dash-space | MEDIUM | Common pattern; not in official docs but widely used |
 | Panel TUI print-and-clear pattern | HIGH | Standard Unix terminal pattern; KIAUH uses this approach |
 | KIAUH panel layout style | MEDIUM | WebSearch results describe menu structure; could not fetch exact source |
 | Flash All single-bracket pattern | HIGH | Follows from existing `klipper_service_stopped()` context manager design |

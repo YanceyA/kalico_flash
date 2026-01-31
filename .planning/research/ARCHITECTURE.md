@@ -1,265 +1,258 @@
 # Architecture Patterns
 
-**Domain:** TUI panel redesign and batch flash for kalico-flash
-**Researched:** 2026-01-29
+**Domain:** "Config Device" TUI action for kalico-flash
+**Researched:** 2026-01-31
 **Confidence:** HIGH (based on direct codebase analysis)
 
-## Current Architecture Summary
+## Integration Summary
 
-Hub-and-spoke: `flash.py` is the sole orchestrator. Modules do not cross-import (except `tui.py` late-imports `flash.cmd_*` functions). Data flows through dataclasses in `models.py`. Theme is a cached singleton in `theme.py`. Output is a Protocol-based pluggable interface in `output.py`.
+The "Config device" feature slots cleanly into the existing hub-and-spoke architecture. **No new modules are needed.** The feature follows the exact same pattern as the existing `_config_screen` (global settings) but targets a `DeviceEntry` instead of `GlobalConfig`.
 
-Key observation: `tui.py` currently owns both rendering (box drawing, menu layout) and input handling (choice selection, dispatch). These are interleaved in the same functions.
+## Modules Requiring Changes
 
-## Recommended Architecture for New Features
+| Module | Change Type | What Changes |
+|--------|------------|--------------|
+| `tui.py` | **Modified** | New `"e"` key handler in `run_menu`, new `_action_config_device` handler, new `_device_config_screen` function |
+| `screen.py` | **Modified** | New `DEVICE_SETTINGS` list, new `render_device_config_screen` function |
+| `registry.py` | **Modified** | New `update_device` method (load-modify-save with key rename support) |
+| `config.py` | **Modified** | New `rename_config_cache` function for key change migration |
+| `validation.py` | **Modified** | New `validate_device_key` function (non-empty, no spaces, not duplicate) |
+| `models.py` | **No change** | `DeviceEntry` already has all needed fields (key, name, mcu, serial_pattern, flash_method, flashable) |
+| `panels.py` | **No change** | `render_panel` already supports arbitrary content |
+| `flash.py` | **No change** | Hub does not need modification; TUI handles dispatch |
 
-### Component Map: New vs Modified
-
-| Component | Status | Purpose |
-|-----------|--------|---------|
-| `panels.py` | **NEW** | Panel rendering engine (box drawing, layout, content formatting) |
-| `tui.py` | **MODIFY** | Refactor to use panels.py for rendering, add Flash All menu option |
-| `theme.py` | **MODIFY** | Add truecolor support, panel-specific styles (border, heading, divider) |
-| `models.py` | **MODIFY** | Add `BatchFlashResult` dataclass |
-| `flash.py` | **MODIFY** | Add `cmd_flash_all()` orchestrator function |
-| `output.py` | **MODIFY** | Add `divider()` method to Output Protocol and CliOutput |
-| `service.py` | **NO CHANGE** | Existing context manager works as-is for batch flash |
-| `flasher.py` | **NO CHANGE** | Per-device flash logic unchanged |
-
-### Why a New `panels.py` Module
-
-The current `tui.py` mixes rendering with input/dispatch. The new panel system (Status, Devices, Actions panels with box drawing) is a rendering concern. Keeping it in `tui.py` would bloat that module and make panel rendering unavailable to other contexts.
-
-`panels.py` should be a pure rendering module:
-- Takes data in, returns strings out
-- No input handling, no side effects
-- Consumes `theme.py` for styling
-- Called by `tui.py` for the interactive menu
-
-This preserves hub-and-spoke: `tui.py` calls `panels.py` for rendering, `flash.py` for actions. `panels.py` does not import either.
-
-### Component Boundaries
+## Data Flow: Config Device Action
 
 ```
-flash.py (orchestrator)
-  |
-  +-- tui.py (input loop + dispatch)
-  |     |
-  |     +-- panels.py (pure rendering, returns strings)
-  |     |     |
-  |     |     +-- theme.py (color codes)
-  |     |
-  |     +-- flash.cmd_* (late imports for actions)
-  |
-  +-- cmd_flash_all() (new, in flash.py)
-        |
-        +-- service.klipper_service_stopped() (single context manager)
-        +-- config.ConfigManager (per device)
-        +-- build.run_build() (per device)
-        +-- flasher.flash_device() (per device)
-        +-- tui.wait_for_device() (per device)
+User presses "E" in main menu
+    |
+    v
+tui.py: run_menu dispatches to _action_config_device
+    |
+    v
+tui.py: _prompt_device_number (reused from Flash/Remove)
+    |
+    v
+tui.py: _device_config_screen(registry, out, device_key)
+    |
+    +-- registry.get(device_key) -> DeviceEntry
+    |
+    +-- screen.render_device_config_screen(entry) -> panel string
+    |
+    +-- getch() -> setting number
+    |
+    +-- Edit loop (same pattern as _config_screen):
+    |     toggle: flip immediately, registry.update_device(...)
+    |     text:   input() with validation, registry.update_device(...)
+    |     key:    input() + validate_device_key() + rename_config_cache()
+    |             + registry.update_device(old_key, new_entry)
+    |
+    +-- Loop back to render until Esc/B
+    |
+    v
+Returns (status_message, status_level) to run_menu
 ```
 
-## Flash All Data Flow
+## Component Boundaries
 
-This is the critical architectural decision. The key constraint: Klipper must be stopped only ONCE for the entire batch, not per-device.
+### tui.py: `_device_config_screen`
 
-### Recommended: `cmd_flash_all()` in `flash.py`
+Owns the interaction loop. Reads keypresses, dispatches edits, calls registry. Mirrors `_config_screen` exactly in structure.
 
-Add a new function in `flash.py` (the existing orchestrator) rather than a new module. Rationale: batch flash is orchestration logic, and `flash.py` already orchestrates single-device flash. A separate `batch.py` would duplicate imports and break the pattern that `flash.py` is the single orchestration hub.
+**Receives:** registry, out, device_key (string, may change during session if key renamed)
+**Returns:** None (modifies registry as side effect, like `_config_screen`)
 
-### Data Flow
+### screen.py: `DEVICE_SETTINGS` + `render_device_config_screen`
 
-```
-cmd_flash_all(registry, out, skip_menuconfig):
-  1. Load registry, get all flashable+connected devices
-  2. Preflight ALL devices (validate configs, MCU types)
-  3. Safety check: Moonraker print status (once)
-  4. Build ALL devices sequentially (Klipper still running)
-     - For each device: load config -> optional menuconfig -> validate MCU -> make clean + make
-     - Collect BuildResult per device
-     - STOP on first build failure (don't flash partial set)
-  5. Stop Klipper ONCE:
-     with klipper_service_stopped(out=out):
-       for device in devices:
-         flash_device(...)          # existing function
-         wait_for_device(...)       # verify before next device
-  6. Klipper restarts (context manager exit)
-  7. Report summary: per-device success/failure
-```
-
-### New Dataclass
+Defines the editable fields and renders the panel. Pure rendering, no state mutation.
 
 ```python
-@dataclass
-class BatchFlashResult:
-    """Result of a batch flash operation."""
-    total: int
-    succeeded: list[str]       # device keys
-    failed: list[tuple[str, str]]  # (device_key, error_message)
-    elapsed_seconds: float
+DEVICE_SETTINGS: list[dict] = [
+    {"key": "name", "label": "Display name", "type": "text"},
+    {"key": "key", "label": "Device key", "type": "key"},
+    {"key": "mcu", "label": "MCU type", "type": "text"},
+    {"key": "serial_pattern", "label": "Serial pattern", "type": "readonly"},
+    {"key": "flash_method", "label": "Flash method", "type": "choice", "choices": ["katapult", "make_flash", "global default"]},
+    {"key": "flashable", "label": "Flashable", "type": "toggle"},
+]
 ```
 
-### Why Build Before Stop, Flash Inside Stop
+**Receives:** DeviceEntry
+**Returns:** Multi-line panel string
 
-Building firmware does NOT require Klipper to be stopped (make runs against source, not running firmware). Flashing DOES require Klipper stopped (it holds the serial port). This minimizes Klipper downtime.
+### registry.py: `update_device`
 
-### Error Handling Strategy
-
-- Build failure on any device: abort entire batch before stopping Klipper. No partial flash.
-- Flash failure on one device: log failure, continue flashing remaining devices. Rationale: Klipper is already stopped, other devices still need flashing.
-- Verification failure: log warning, continue. Device may need manual intervention later.
-
-## Panel Rendering Architecture
-
-### `panels.py` API Surface
+Atomic update of a device entry. Handles key rename (remove old + add new in single `save()` call).
 
 ```python
-def render_status_panel(message: str, style: str, width: int) -> str:
-    """Render the status panel (last command result)."""
-
-def render_device_panel(
-    devices: list[DeviceDisplayInfo],
-    width: int,
-) -> str:
-    """Render the device panel with grouped numbered devices."""
-
-def render_actions_panel(
-    options: list[tuple[str, str]],
-    width: int,
-) -> str:
-    """Render the actions panel (menu options)."""
-
-def render_config_panel(
-    settings: dict[str, str],
-    width: int,
-) -> str:
-    """Render the config/settings panel."""
-
-@dataclass
-class DeviceDisplayInfo:
-    """Display-ready device info for panel rendering."""
-    number: int
-    key: str
-    name: str
-    mcu: str
-    status: str          # "connected", "disconnected", "excluded", "blocked"
-    version: str | None
+def update_device(self, old_key: str, entry: DeviceEntry) -> None:
+    """Update device, handling key rename if entry.key != old_key."""
+    data = self.load()
+    if old_key not in data.devices:
+        raise RegistryError(f"Device '{old_key}' not found")
+    if entry.key != old_key and entry.key in data.devices:
+        raise RegistryError(f"Device '{entry.key}' already exists")
+    del data.devices[old_key]
+    data.devices[entry.key] = entry
+    self.save(data)
 ```
 
-Key design: panels return multi-line strings. `tui.py` composes them (decides layout order, spacing) and prints. This means `panels.py` has zero I/O.
+### config.py: `rename_config_cache`
 
-### Panel Composition in `tui.py`
+Moves cached `.config` directory when device key changes.
 
 ```python
-def _render_main_screen(registry_data, usb_devices, status_msg) -> str:
-    """Compose all panels into a single screen."""
-    width = _get_terminal_width()
-    parts = []
-    parts.append(render_status_panel(status_msg, width))
-    parts.append(render_device_panel(device_infos, width))
-    parts.append(render_actions_panel(MENU_OPTIONS, width))
-    return "\n".join(parts)
+def rename_config_cache(old_key: str, new_key: str) -> bool:
+    """Rename config cache directory. Returns True if moved."""
+    old_dir = get_config_dir(old_key)
+    new_dir = get_config_dir(new_key)
+    if old_dir.exists() and not new_dir.exists():
+        new_dir.parent.mkdir(parents=True, exist_ok=True)
+        old_dir.rename(new_dir)
+        return True
+    return False
 ```
 
-### Config Screen
-
-The config screen replaces the current `_settings_menu()` loop. Instead of a separate box-drawn menu, it renders a config panel showing current values with numbered edit options. Same pattern: `panels.py` renders, `tui.py` handles input.
-
-## Theme Upgrade Path
-
-### Current: 16-color ANSI
+### validation.py: `validate_device_key`
 
 ```python
-_GREEN = "\033[92m"  # Bright green
+def validate_device_key(raw: str, existing_keys: list[str], current_key: str = "") -> tuple[bool, str]:
+    """Validate device key. Returns (is_valid, error_message)."""
+    if not raw:
+        return False, "Key cannot be empty"
+    if " " in raw:
+        return False, "Key cannot contain spaces"
+    if raw != current_key and raw in existing_keys:
+        return False, f"Key '{raw}' already exists"
+    return True, ""
 ```
 
-### Target: Truecolor with fallback
+## Patterns to Follow
+
+### Pattern 1: Config Screen Loop (from existing `_config_screen`)
+
+The existing global config screen establishes the exact pattern:
+
+1. `while True:` loop
+2. Load current state from registry
+3. `clear_screen()` + render action divider + render panel
+4. `_getch()` for setting number
+5. Dispatch by setting type (toggle/text/numeric/path)
+6. Validate with reject-and-reprompt, save, loop
+
+Device config replicates this 1:1 with `DeviceEntry` instead of `GlobalConfig`.
+
+### Pattern 2: Action Handler Signature
+
+All TUI actions follow the same signature and return pattern:
 
 ```python
-# In theme.py
-def _truecolor(r: int, g: int, b: int) -> str:
-    return f"\033[38;2;{r};{g};{b}m"
-
-def supports_truecolor() -> bool:
-    """Check COLORTERM env var for truecolor/24bit."""
-    colorterm = os.environ.get("COLORTERM", "").lower()
-    return colorterm in ("truecolor", "24bit")
+def _action_config_device(registry, out, device_key: str) -> tuple[str, str]:
+    """Returns (status_message, status_level)."""
+    try:
+        _device_config_screen(registry, out, device_key)
+        return ("Device config saved", "success")
+    except KeyboardInterrupt:
+        return ("Config: cancelled", "warning")
+    except Exception as exc:
+        return (f"Config: {exc}", "error")
 ```
 
-Add a third theme tier: `_truecolor_theme`, `_color_theme` (existing 16-color), `_no_color_theme`. Detection order: NO_COLOR -> FORCE_COLOR -> truecolor check -> TTY check.
+### Pattern 3: Registry Load-Modify-Save
 
-Theme dataclass adds new fields for panels:
-
-```python
-# New fields
-panel_border: str     # Box drawing color
-panel_heading: str    # Panel title color
-divider: str          # Step divider color
-status_ok: str        # Status panel success
-status_fail: str      # Status panel failure
-device_connected: str
-device_disconnected: str
-```
-
-## Step Dividers
-
-Add `divider(label: str)` to the Output Protocol:
-
-```python
-def divider(self, label: str) -> None:
-    """Print a labeled horizontal divider."""
-    t = self.theme
-    line = t.divider + "--- " + label + " " + "-" * (60 - len(label)) + t.reset
-    print(line)
-```
-
-This is a minor Output Protocol extension. Add to CliOutput and NullOutput.
+All registry mutations follow load -> modify -> save through `Registry.save()` which calls `_atomic_write_json`. The new `update_device` method follows this same pattern with a single `save()` call for atomicity.
 
 ## Anti-Patterns to Avoid
 
-### Anti-Pattern 1: Putting batch logic in flasher.py
-**Why bad:** flasher.py is a leaf module for single-device flash. Adding batch orchestration (service lifecycle, build coordination) violates its single responsibility and the hub-and-spoke pattern.
-**Instead:** Keep batch orchestration in flash.py.
+### Anti-Pattern 1: Cross-Module Imports
 
-### Anti-Pattern 2: Panels that call input()
-**Why bad:** Couples rendering to terminal I/O, prevents reuse for future Moonraker output.
-**Instead:** Panels return strings. tui.py handles all input().
+**What:** Having screen.py import from registry.py or config.py directly.
+**Why bad:** Violates hub-and-spoke. Creates coupling.
+**Instead:** tui.py orchestrates. screen.py receives data, returns strings. registry.py persists.
 
-### Anti-Pattern 3: Stopping Klipper per-device in batch
-**Why bad:** Unnecessary service churn. Each stop/start cycle takes ~5-10 seconds and risks race conditions with device enumeration.
-**Instead:** Single stop before all flashes, single start after.
+### Anti-Pattern 2: Key Rename as Two Separate Save Operations
 
-### Anti-Pattern 4: New orchestrator module for batch
-**Why bad:** Creates a second hub alongside flash.py, breaking the single-orchestrator pattern.
-**Instead:** cmd_flash_all() lives in flash.py next to cmd_flash().
+**What:** Calling `registry.remove(old)` then `registry.add(new)` as separate method calls.
+**Why bad:** Each calls `save()` internally. If process dies between remove and add, device is lost.
+**Instead:** Single `update_device` method that does both in one `load()` + modify + `save()` cycle.
+
+### Anti-Pattern 3: Editing Serial Pattern Freely
+
+**What:** Letting users type arbitrary serial patterns via free-text input.
+**Why bad:** Invalid patterns break device matching silently. The pattern is auto-generated from USB discovery during `cmd_add_device` and follows a specific glob format.
+**Instead:** Display serial pattern as **read-only** info in the config screen. If the user needs to change it, they remove and re-add the device.
+
+### Anti-Pattern 4: Tracking Key Rename State Across Loop Iterations
+
+**What:** Passing the "current key" through the loop by mutation and losing track.
+**Why bad:** After a key rename, `device_key` variable is stale. Next iteration would fail to load.
+**Instead:** When key is renamed, update the local `device_key` variable immediately. The `while True` loop re-loads from registry at the top of each iteration using the current key.
+
+## Key Design Decision: Serial Pattern Editability
+
+The serial pattern is auto-generated from USB discovery during `cmd_add_device`. Allowing free-text editing creates risk of broken patterns. **Recommendation:** Display serial pattern as read-only info in the config screen (type `"readonly"`). This means 5 editable fields + 1 display-only field.
+
+## Main Menu Integration
+
+Current actions use keys: F, A, R, D, C, B, Q.
+
+| Key | Rationale |
+|-----|-----------|
+| **E** | "Edit device" - distinct from C (Config/global settings), intuitive |
+
+**Recommendation:** Use **E** for "Edit Device". Update `ACTIONS` list in `screen.py` and dispatch in `run_menu`.
+
+```python
+# screen.py ACTIONS becomes:
+ACTIONS: list[tuple[str, str]] = [
+    ("F", "Flash Device"),
+    ("A", "Add Device"),
+    ("E", "Edit Device"),      # NEW
+    ("R", "Remove Device"),
+    ("D", "Refresh Devices"),
+    ("C", "Config"),
+    ("B", "Flash All"),
+    ("Q", "Quit"),
+]
+```
+
+The `run_menu` unknown-key message updates from `F/A/R/D/C/B/Q` to `F/A/E/R/D/C/B/Q`.
 
 ## Suggested Build Order
 
-Build in this order to maintain a working system at each step:
+Build in dependency order. Each step is independently testable on the Pi via SSH.
 
-1. **Theme upgrade** (theme.py only) - Add truecolor detection and new style fields. Zero risk, no other module changes needed. Existing code continues to work because new fields have defaults.
-
-2. **Output Protocol extension** (output.py) - Add `divider()` method. Backward compatible addition.
-
-3. **Panel renderer** (new panels.py) - Pure rendering module. Can be built and tested in isolation since it just returns strings.
-
-4. **TUI refactor** (tui.py) - Replace `_render_menu()` with panel-based composition. Replace `_settings_menu()` with config panel. This is the integration point.
-
-5. **BatchFlashResult model** (models.py) - Add dataclass. No impact on existing code.
-
-6. **Flash All command** (flash.py) - Add `cmd_flash_all()`, wire into TUI menu and argparse. This depends on everything above being stable.
+1. **registry.py: `update_device`** - Foundation. Everything else calls this.
+2. **config.py: `rename_config_cache`** - Needed before key editing works.
+3. **validation.py: `validate_device_key`** - Needed before TUI can accept key input.
+4. **screen.py: `DEVICE_SETTINGS` + `render_device_config_screen`** - Rendering layer. Can be tested by calling directly.
+5. **tui.py: `_device_config_screen`** - Interaction loop, wires everything together.
+6. **tui.py: `run_menu` dispatch + screen.py `ACTIONS`** - Menu integration (new "E" key).
 
 ### Dependency Graph
 
 ```
-theme.py (step 1) <-- panels.py (step 3) <-- tui.py (step 4)
-output.py (step 2) <------------------------------/
-models.py (step 5) <-- flash.py cmd_flash_all (step 6)
-                        service.py (no change) <--/
-                        flasher.py (no change) <--/
+registry.update_device (step 1)
+    ^
+    |
+config.rename_config_cache (step 2) --+
+    ^                                  |
+    |                                  |
+validation.validate_device_key (step 3)|
+    ^                                  |
+    |                                  |
+screen.render_device_config_screen (step 4)
+    ^                                  |
+    |                                  |
+tui._device_config_screen (step 5) ---+
+    ^
+    |
+tui.run_menu "E" key (step 6)
 ```
 
 ## Sources
 
-- Direct codebase analysis of all 10 Python modules in `kflash/`
-- Architecture patterns from existing CLAUDE.md documentation
+- Direct codebase analysis of all modules in `C:/dev_projects/kalico_flash/kflash/`
+- Existing patterns from `_config_screen`, `_action_flash_device`, `_action_remove_device` in tui.py
+- Registry CRUD patterns from registry.py
+- Config cache path logic from config.py `get_config_dir`
