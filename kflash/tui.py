@@ -694,6 +694,162 @@ def _config_screen(registry, out) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Device config screen
+# ---------------------------------------------------------------------------
+
+
+def _save_device_edits(original_key: str, pending: dict, registry) -> None:
+    """Save accumulated device edits atomically.
+
+    Handles key rename (move cache dir -> atomic registry rewrite) and
+    simple field updates (Registry.update_device) separately.
+    """
+    if not pending:
+        return
+
+    new_key = pending.pop("key", None)
+    if new_key and new_key != original_key:
+        # Move config cache first (safe: registry unchanged if this fails)
+        from .config import rename_device_config_cache
+
+        try:
+            rename_device_config_cache(original_key, new_key)
+        except FileExistsError:
+            pending["key"] = new_key  # restore for retry
+            raise
+
+        # Atomic registry: load, delete old, insert new with all updates
+        data = registry.load()
+        device = data.devices.pop(original_key)
+        for fld, value in pending.items():
+            setattr(device, fld, value)
+        device.key = new_key
+        data.devices[new_key] = device
+        registry.save(data)
+    else:
+        # No key rename — simple field update
+        if pending:
+            registry.update_device(original_key, **pending)
+
+
+def _device_config_screen(device_key: str, registry, out) -> None:
+    """Device config screen with collect-then-save editing.
+
+    Renders device identity (read-only) and numbered settings. Single
+    keypress selects a setting to edit. Changes accumulate in a pending
+    dict and are saved atomically on Esc/B exit. Ctrl+C discards.
+    """
+    from .screen import render_device_config_screen, DEVICE_SETTINGS
+    from .panels import render_action_divider
+    from .validation import validate_device_key
+    import dataclasses
+
+    theme = get_theme()
+    original_key = device_key
+    original = registry.get(device_key)
+    if original is None:
+        return
+    pending: dict[str, object] = {}
+
+    while True:
+        # Build working copy with pending overlaid
+        updates = {k: v for k, v in pending.items() if k != "key"}
+        working = dataclasses.replace(original, **updates)
+        if "key" in pending:
+            working = dataclasses.replace(working, key=pending["key"])
+
+        clear_screen()
+        print()
+        print(render_action_divider())
+        print()
+        print(render_device_config_screen(working))
+        print()
+        print(
+            f"  {theme.prompt}Setting # (or Esc/B to save & return):{theme.reset} ",
+            end="",
+            flush=True,
+        )
+
+        try:
+            key = _getch()
+        except (EOFError, OSError):
+            _save_device_edits(original_key, pending, registry)
+            return
+
+        # Ctrl+C — discard pending
+        if key == "\x03":
+            return
+
+        # Esc or B — save and return
+        if key == "\x1b" or key == "b":
+            _save_device_edits(original_key, pending, registry)
+            return
+
+        if key in ("1", "2", "3", "4", "5"):
+            idx = int(key) - 1
+            setting = DEVICE_SETTINGS[idx]
+
+            if setting["key"] == "name":
+                # Text edit for display name
+                print(key)
+                try:
+                    raw = input(f"  {setting['label']} [{working.name}]: ").strip()
+                except (EOFError, KeyboardInterrupt):
+                    continue
+                if raw:
+                    pending["name"] = raw
+
+            elif setting["key"] == "key":
+                # Text edit with validation for device key
+                print(key)
+                while True:
+                    try:
+                        raw = input(f"  {setting['label']} [{working.key}]: ").strip()
+                    except (EOFError, KeyboardInterrupt):
+                        break
+                    if not raw:
+                        break
+                    ok, err = validate_device_key(raw, registry, current_key=original_key)
+                    if ok:
+                        pending["key"] = raw
+                        break
+                    else:
+                        print(f"  {theme.error}{err}{theme.reset}")
+
+            elif setting["key"] == "flash_method":
+                # Cycle through values
+                values = setting["values"]
+                current = working.flash_method
+                try:
+                    cur_idx = values.index(current)
+                except ValueError:
+                    cur_idx = 0
+                next_idx = (cur_idx + 1) % len(values)
+                pending["flash_method"] = values[next_idx]
+
+            elif setting["key"] == "flashable":
+                # Toggle
+                pending["flashable"] = not working.flashable
+
+            elif setting["key"] == "menuconfig":
+                # Launch menuconfig using original key (cache not renamed yet)
+                print(key)
+                try:
+                    from .build import run_menuconfig
+                    from .config import ConfigManager
+
+                    gc = registry.load_global()
+                    cm = ConfigManager(original_key, gc.klipper_dir)
+                    cm.load_cached_config()
+                    config_path = str(cm.cache_path)
+                    ret_code, was_saved = run_menuconfig(gc.klipper_dir, config_path)
+                    if was_saved:
+                        cm.save_cached_config()
+                except Exception as exc:
+                    print(f"  {theme.error}{exc}{theme.reset}")
+
+
+# ---------------------------------------------------------------------------
 # Post-flash device verification
 # ---------------------------------------------------------------------------
 
