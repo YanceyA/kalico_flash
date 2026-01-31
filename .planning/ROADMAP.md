@@ -206,7 +206,7 @@ Plans:
 
 </details>
 
-### 📋 v3.4 Check Katapult (Planned)
+### v3.4 Check Katapult (Planned)
 
 **Milestone Goal:** Add Katapult bootloader detection to the device config screen — probe a device to determine if Katapult is installed
 
@@ -223,7 +223,7 @@ Plans:
 **Plans**: 1 plan
 
 Plans:
-- [ ] 21-01: SSH to Pi, test sysfs resolution, serial substring matching, timing, flashtool behavior
+- [ ] 21-01: Validate research completeness and write summary
 
 #### Phase 22: Core Detection Engine
 **Goal**: Reusable check_katapult() function with helpers for bootloader detection and USB recovery
@@ -256,10 +256,71 @@ Plans:
 Plans:
 - [ ] 23-01: Wire "K" key handler in device config screen with warning, confirmation, service lifecycle, result display
 
+### v4.0 Remove CLI & Internalize Device Keys (Planned)
+
+**Milestone Goal:** Remove all CLI/argparse elements and make device keys auto-generated internal identifiers — the tool operates exclusively through TUI
+
+#### Phase 24: Slug Generation
+**Goal**: New devices get filesystem-safe keys auto-derived from display names
+**Depends on**: Phase 23
+**Requirements**: KEY-01, KEY-02
+**Success Criteria** (what must be TRUE):
+  1. `generate_device_key()` converts "Octopus Pro v1.1" to `octopus-pro-v1-1` (lowercase, hyphens, stripped edges)
+  2. When a slug collides with an existing registry key, a numeric suffix is appended (`-2`, `-3`) until unique
+  3. Edge cases handled: empty result after strip rejected, long names truncated to 64 chars, path-traversal characters stripped
+**Plans**: TBD
+
+Plans:
+- [ ] 24-01: Add generate_device_key() to validation.py with slugification and collision handling
+
+#### Phase 25: Key Internalization in TUI
+**Goal**: Device keys are invisible internal identifiers — users interact only with display names
+**Depends on**: Phase 24
+**Requirements**: KEY-03, KEY-04, KEY-05, KEY-06
+**Success Criteria** (what must be TRUE):
+  1. Add-device wizard prompts only for display name — no key prompt, system generates key silently
+  2. Device config screen has no key edit option (setting removed from DEVICE_SETTINGS)
+  3. All user-facing output (device lists, flash messages, batch results) shows `entry.name` not `entry.key`
+  4. Existing devices.json keys preserved exactly as-is — no re-derivation or migration on load
+**Plans**: TBD
+
+Plans:
+- [ ] 25-01: Remove key prompt from add-device wizard, wire generate_device_key()
+- [ ] 25-02: Remove key edit from device config screen, replace entry.key with entry.name in all output
+
+#### Phase 26: Remove CLI
+**Goal**: kflash launches directly into TUI with no argument parsing
+**Depends on**: Phase 25
+**Requirements**: CLI-01, CLI-02, CLI-03, CLI-04
+**Success Criteria** (what must be TRUE):
+  1. Running `kflash` with no arguments on a TTY launches the TUI menu directly
+  2. Running `kflash --device X` or any old flag prints a friendly migration message and exits cleanly (no traceback)
+  3. `build_parser()`, `_parse_args()`, and all argparse imports are deleted from flash.py
+  4. Late-import branches that only existed for CLI code paths are removed
+**Plans**: TBD
+
+Plans:
+- [ ] 26-01: Delete argparse, simplify main() to TUI launcher with migration message for old flags
+
+#### Phase 27: Documentation & Cleanup
+**Goal**: All docs and error messages reflect TUI-only operation
+**Depends on**: Phase 26
+**Requirements**: DOC-01, DOC-02, DOC-03, DOC-04
+**Success Criteria** (what must be TRUE):
+  1. README has no CLI reference section — documents TUI-only usage with kflash entry point
+  2. CLAUDE.md CLI Commands section replaced with TUI Menu section
+  3. Error recovery messages reference TUI actions ("Press F to flash") instead of CLI flags ("--device KEY")
+  4. install.sh has no flag references (kflash symlink preserved)
+**Plans**: TBD
+
+Plans:
+- [ ] 27-01: Update README, CLAUDE.md, install.sh for TUI-only operation
+- [ ] 27-02: Audit and update error templates and recovery messages in errors.py
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 18 → 19 → 20 → 21 → 22 → 23
+Phases execute in numeric order: 21 → 22 → 23 → 24 → 25 → 26 → 27
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -283,7 +344,10 @@ Phases execute in numeric order: 18 → 19 → 20 → 21 → 22 → 23
 | 18. Foundation & Screen | v3.3 | 2/2 | Complete | 2026-01-31 |
 | 19. Edit Interaction | v3.3 | 1/1 | Complete | 2026-01-31 |
 | 20. Menu Integration | v3.3 | 1/1 | Complete | 2026-01-31 |
-
 | 21. Pi Hardware Research | v3.4 | 0/1 | Not started | - |
 | 22. Core Detection Engine | v3.4 | 0/1 | Not started | - |
 | 23. TUI Integration | v3.4 | 0/1 | Not started | - |
+| 24. Slug Generation | v4.0 | 0/1 | Not started | - |
+| 25. Key Internalization in TUI | v4.0 | 0/2 | Not started | - |
+| 26. Remove CLI | v4.0 | 0/1 | Not started | - |
+| 27. Documentation & Cleanup | v4.0 | 0/2 | Not started | - |
