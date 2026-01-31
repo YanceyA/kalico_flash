@@ -12,11 +12,9 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Optional
 
-from .ansi import display_width
 from .models import DeviceEntry, GlobalConfig
 from .panels import render_panel, render_two_column
 from .theme import get_theme
-
 
 # ---------------------------------------------------------------------------
 # Config screen settings definition
@@ -24,8 +22,20 @@ from .theme import get_theme
 
 SETTINGS: list[dict] = [
     {"key": "skip_menuconfig", "label": "Skip menuconfig", "type": "toggle"},
-    {"key": "stagger_delay", "label": "Flash stagger delay (seconds)", "type": "numeric", "min": 0, "max": 30},
-    {"key": "return_delay", "label": "Menu return delay (seconds)", "type": "numeric", "min": 0, "max": 60},
+    {
+        "key": "stagger_delay",
+        "label": "Flash stagger delay (seconds)",
+        "type": "numeric",
+        "min": 0,
+        "max": 30,
+    },
+    {
+        "key": "return_delay",
+        "label": "Menu return delay (seconds)",
+        "type": "numeric",
+        "min": 0,
+        "max": 60,
+    },
     {"key": "klipper_dir", "label": "Klipper directory", "type": "path"},
     {"key": "katapult_dir", "label": "Katapult directory", "type": "path"},
     {"key": "config_cache_dir", "label": "Config cache directory", "type": "path"},
@@ -35,6 +45,7 @@ SETTINGS: list[dict] = [
 # ---------------------------------------------------------------------------
 # Data structures
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class DeviceRow:
@@ -79,6 +90,7 @@ ACTIONS: list[tuple[str, str]] = [
 # Utility functions
 # ---------------------------------------------------------------------------
 
+
 def truncate_serial(path: str, max_width: int = 40) -> str:
     """Truncate a serial path to fit within max_width visible characters.
 
@@ -103,6 +115,7 @@ def truncate_serial(path: str, max_width: int = 40) -> str:
 # ---------------------------------------------------------------------------
 # Device list building
 # ---------------------------------------------------------------------------
+
 
 def build_device_list(
     registry_data,
@@ -129,7 +142,7 @@ def build_device_list(
     """
     import fnmatch
 
-    from .discovery import is_supported_device, match_devices, extract_mcu_from_serial
+    from .discovery import extract_mcu_from_serial, is_supported_device, match_devices
 
     if mcu_versions is None:
         mcu_versions = {}
@@ -205,30 +218,34 @@ def build_device_list(
     for device in unmatched:
         blocked, reason = _is_blocked(device.filename)
         if blocked or not is_supported_device(device.filename):
-            blocked_devices.append(DeviceRow(
-                number=0,
-                key=device.filename,
-                name=device.filename,
-                mcu="",
-                serial_path=device.filename,
-                version=None,
-                connected=True,
-                group="blocked",
-            ))
+            blocked_devices.append(
+                DeviceRow(
+                    number=0,
+                    key=device.filename,
+                    name=device.filename,
+                    mcu="",
+                    serial_path=device.filename,
+                    version=None,
+                    connected=True,
+                    group="blocked",
+                )
+            )
         else:
             # Try to look up version by extracting MCU type from serial name
             guessed_mcu = extract_mcu_from_serial(device.filename)
             new_version = _lookup_version(guessed_mcu) if guessed_mcu else None
-            new_devices.append(DeviceRow(
-                number=0,
-                key=device.filename,
-                name=device.filename,
-                mcu=guessed_mcu or "unknown",
-                serial_path=device.filename,
-                version=new_version,
-                connected=True,
-                group="new",
-            ))
+            new_devices.append(
+                DeviceRow(
+                    number=0,
+                    key=device.filename,
+                    name=device.filename,
+                    mcu=guessed_mcu or "unknown",
+                    serial_path=device.filename,
+                    version=new_version,
+                    connected=True,
+                    group="new",
+                )
+            )
 
     # Assign sequential numbers
     counter = 1
@@ -243,6 +260,7 @@ def build_device_list(
 # ---------------------------------------------------------------------------
 # Rendering functions
 # ---------------------------------------------------------------------------
+
 
 def render_device_rows(row: DeviceRow, host_version: Optional[str] = None) -> list[str]:
     """Render a single device as one or more lines.
@@ -415,6 +433,7 @@ def render_main_screen(state: ScreenState) -> str:
 # Config screen rendering
 # ---------------------------------------------------------------------------
 
+
 def render_config_screen(gc: GlobalConfig) -> str:
     """Render the config screen with status and settings panels.
 
@@ -427,9 +446,7 @@ def render_config_screen(gc: GlobalConfig) -> str:
     theme = get_theme()
 
     # Status panel
-    status_content = [
-        f"{theme.text}Press setting number to edit, Esc to return{theme.reset}"
-    ]
+    status_content = [f"{theme.text}Press setting number to edit, Esc to return{theme.reset}"]
     status = render_panel("status", status_content)
 
     # Settings panel
@@ -461,7 +478,12 @@ def render_config_screen(gc: GlobalConfig) -> str:
 DEVICE_SETTINGS: list[dict] = [
     {"key": "name", "label": "Display name", "type": "text"},
     {"key": "key", "label": "Device key", "type": "text"},
-    {"key": "flash_method", "label": "Flash method", "type": "cycle", "values": [None, "katapult", "make_flash"]},
+    {
+        "key": "flash_method",
+        "label": "Flash method",
+        "type": "cycle",
+        "values": [None, "katapult", "make_flash"],
+    },
     {"key": "flashable", "label": "Include in flash operations", "type": "toggle"},
     {"key": "menuconfig", "label": "Edit firmware config", "type": "action"},
 ]
@@ -470,6 +492,7 @@ DEVICE_SETTINGS: list[dict] = [
 # ---------------------------------------------------------------------------
 # Device config screen rendering
 # ---------------------------------------------------------------------------
+
 
 def render_device_config_screen(device_entry: DeviceEntry) -> str:
     """Render the device config screen with identity and settings panels.

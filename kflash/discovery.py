@@ -9,7 +9,6 @@ from typing import Optional
 
 from .models import DiscoveredDevice
 
-
 SERIAL_BY_ID = "/dev/serial/by-id"
 
 # Supported device prefixes for Klipper/Katapult USB IDs (case-insensitive)

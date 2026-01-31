@@ -1,0 +1,30 @@
+target-version = "py39"
+line-length = 100
+
+[lint]
+select = [
+    "E",     # pycodestyle errors
+    "W",     # pycodestyle warnings
+    "F",     # pyflakes
+    "I",     # isort
+    "UP",    # pyupgrade (modernize syntax for 3.9+)
+    "B",     # flake8-bugbear
+    "SIM",   # flake8-simplify
+    "RET",   # flake8-return
+    "PIE",   # flake8-pie
+    "C4",    # flake8-comprehensions
+    "T20",   # flake8-print (catch stray prints)
+]
+ignore = [
+    "T201",   # print() — CLI tool uses print for output
+    "RET505", # unnecessary else after return — sometimes clearer
+    "UP045",  # X | None syntax — needs 3.10+ without __future__ annotations everywhere
+    "SIM108", # ternary suggestions — often less readable
+    "SIM102", # collapsible-if — nested ifs are sometimes clearer
+]
+
+[lint.isort]
+known-first-party = ["kflash"]
+
+[format]
+quote-style = "double"

@@ -29,8 +29,10 @@ _DIM = "\033[2m"
 # Color tier detection
 # ---------------------------------------------------------------------------
 
+
 class ColorTier(enum.Enum):
     """Terminal color capability tiers, from richest to none."""
+
     TRUECOLOR = "truecolor"
     ANSI256 = "256"
     ANSI16 = "16"
@@ -109,16 +111,16 @@ def supports_color() -> bool:
 # ---------------------------------------------------------------------------
 
 PALETTE: dict[str, tuple[int, int, int]] = {
-    "border":  (100, 160, 180),
-    "header":  (130, 200, 220),
-    "label":   (140, 180, 160),
-    "prompt":  (180, 220, 200),
-    "text":    (200, 210, 215),
-    "value":   (220, 225, 230),
-    "subtle":  (100, 120, 130),
-    "green":   (80, 200, 120),
-    "yellow":  (220, 190, 60),
-    "red":     (200, 80, 80),
+    "border": (100, 160, 180),
+    "header": (130, 200, 220),
+    "label": (140, 180, 160),
+    "prompt": (180, 220, 200),
+    "text": (200, 210, 215),
+    "value": (220, 225, 230),
+    "subtle": (100, 120, 130),
+    "green": (80, 200, 120),
+    "yellow": (220, 190, 60),
+    "red": (200, 80, 80),
 }
 
 
@@ -208,6 +210,7 @@ def rgb_to_ansi(r: int, g: int, b: int, tier: ColorTier, bg: bool = False) -> st
 # Theme dataclass
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class Theme:
     """Theme with semantic style definitions.
@@ -228,11 +231,11 @@ class Theme:
     subtle: str = ""
 
     # Semantic message styles
-    success: str = ""    # [OK] messages
-    warning: str = ""    # [!!] warnings
-    error: str = ""      # [FAIL] errors
-    info: str = ""       # [section] info
-    phase: str = ""      # [Discovery], [Build], etc.
+    success: str = ""  # [OK] messages
+    warning: str = ""  # [!!] warnings
+    error: str = ""  # [FAIL] errors
+    info: str = ""  # [section] info
+    phase: str = ""  # [Discovery], [Build], etc.
 
     # Backward-compat UI element styles
     menu_title: str = ""

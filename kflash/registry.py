@@ -8,8 +8,8 @@ import tempfile
 from pathlib import Path
 from typing import Optional
 
-from .models import DeviceEntry, GlobalConfig, RegistryData, BlockedDevice
 from .errors import RegistryError
+from .models import BlockedDevice, DeviceEntry, GlobalConfig, RegistryData
 
 
 class Registry:

@@ -76,9 +76,7 @@ def _atomic_copy(src: str, dst: str) -> None:
     dst_dir = os.path.dirname(os.path.abspath(dst))
     os.makedirs(dst_dir, exist_ok=True)
 
-    with tempfile.NamedTemporaryFile(
-        mode="wb", dir=dst_dir, delete=False, suffix=".tmp"
-    ) as tf:
+    with tempfile.NamedTemporaryFile(mode="wb", dir=dst_dir, delete=False, suffix=".tmp") as tf:
         tmp_path = tf.name
         try:
             with open(src, "rb") as sf:
@@ -151,8 +149,8 @@ class ConfigManager:
                 recovery=(
                     "1. Run make menuconfig first\n"
                     "2. Save config before exiting menuconfig\n"
-                    "3. Check path: ls {klipper_dir}/.config"
-                ).format(klipper_dir=self.klipper_dir),
+                    f"3. Check path: ls {self.klipper_dir}/.config"
+                ),
             )
             raise ConfigError(msg)
 
@@ -180,8 +178,8 @@ class ConfigManager:
                 recovery=(
                     "1. Run make menuconfig to create .config\n"
                     "2. Or use --skip-menuconfig with existing cached config\n"
-                    "3. Check: ls {klipper_dir}/.config"
-                ).format(klipper_dir=self.klipper_dir),
+                    f"3. Check: ls {self.klipper_dir}/.config"
+                ),
             )
             raise ConfigError(msg)
 
@@ -194,15 +192,13 @@ class ConfigManager:
                 recovery=(
                     "1. Run make menuconfig and select MCU type\n"
                     "2. Save config before exiting\n"
-                    "3. Verify: grep CONFIG_MCU {config_path}"
-                ).format(config_path=self.klipper_config_path),
+                    f"3. Verify: grep CONFIG_MCU {self.klipper_config_path}"
+                ),
             )
             raise ConfigError(msg)
 
         # Prefix match: device registry may have 'stm32h723', config has 'stm32h723xx'
-        is_match = actual_mcu.startswith(expected_mcu) or expected_mcu.startswith(
-            actual_mcu
-        )
+        is_match = actual_mcu.startswith(expected_mcu) or expected_mcu.startswith(actual_mcu)
 
         return is_match, actual_mcu
 

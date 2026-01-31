@@ -15,8 +15,7 @@ from __future__ import annotations
 import os
 import sys
 
-from .theme import get_theme, clear_screen
-
+from .theme import clear_screen, get_theme
 
 # ---------------------------------------------------------------------------
 # Unicode / ASCII box-drawing detection
@@ -88,9 +87,7 @@ def _render_menu(options: list[tuple[str, str]], box: dict[str, str]) -> str:
     pad_total = inner_width - title_width
     pad_left = pad_total // 2
     pad_right = pad_total - pad_left
-    lines.append(
-        box["tl"] + box["h"] * pad_left + title_display + box["h"] * pad_right + box["tr"]
-    )
+    lines.append(box["tl"] + box["h"] * pad_left + title_display + box["h"] * pad_right + box["tr"])
 
     lines.append(box["v"] + box["h"] * inner_width + box["v"])
 
@@ -117,14 +114,15 @@ def _getch() -> str:
     try:
         # Windows
         import msvcrt
+
         ch = msvcrt.getwch()
         return ch.lower()
     except ImportError:
         pass
 
     # Unix / Linux
-    import tty
     import termios
+    import tty
 
     fd = sys.stdin.fileno()
     old_settings = termios.tcgetattr(fd)
@@ -157,8 +155,8 @@ def _wait_for_key(timeout: float = 1.0) -> bool:
         pass
 
     import select
-    import tty
     import termios
+    import tty
 
     fd = sys.stdin.fileno()
     old = termios.tcgetattr(fd)
@@ -242,9 +240,9 @@ def _build_screen_state(registry, status_message: str, status_level: str):
     Returns (ScreenState, device_map) where device_map maps device number
     to DeviceRow for device-targeting actions.
     """
-    from .screen import ScreenState, build_device_list
     from .discovery import scan_serial_devices
     from .flash import _build_blocked_list
+    from .screen import ScreenState, build_device_list
 
     data = registry.load()
     usb_devices = scan_serial_devices()
@@ -254,7 +252,8 @@ def _build_screen_state(registry, status_message: str, status_level: str):
     mcu_versions = None
     host_version = None
     try:
-        from .moonraker import get_mcu_versions, get_host_klipper_version
+        from .moonraker import get_host_klipper_version, get_mcu_versions
+
         mcu_versions = get_mcu_versions()
         if data.global_config:
             host_version = get_host_klipper_version(data.global_config.klipper_dir)
@@ -410,6 +409,7 @@ def _action_add_device(registry, out, device_row=None) -> tuple[str, str]:
         if device_row is not None:
             # Find matching DiscoveredDevice by scanning USB
             from .discovery import scan_serial_devices
+
             usb_devices = scan_serial_devices()
             matched_device = None
             for dev in usb_devices:
@@ -467,8 +467,8 @@ def run_menu(registry, out) -> int:
         print("Run 'kflash' to launch the interactive menu.")
         return 0
 
-    from .screen import render_main_screen
     from .panels import render_action_divider
+    from .screen import render_main_screen
 
     theme = get_theme()
     status_message = "Welcome to kalico-flash. Select an action below."
@@ -478,9 +478,7 @@ def run_menu(registry, out) -> int:
     while True:
         try:
             # Build screen state (scans USB, loads registry)
-            state, device_map = _build_screen_state(
-                registry, status_message, status_level
-            )
+            state, device_map = _build_screen_state(registry, status_message, status_level)
 
             # Render and display
             clear_screen()
@@ -513,9 +511,7 @@ def run_menu(registry, out) -> int:
                 print()
                 device_key = _prompt_device_number(device_map, out)
                 if device_key:
-                    status_message, status_level = _action_flash_device(
-                        registry, out, device_key
-                    )
+                    status_message, status_level = _action_flash_device(registry, out, device_key)
                     print()
                     _countdown_return(registry.load().global_config.return_delay)
                 else:
@@ -527,9 +523,7 @@ def run_menu(registry, out) -> int:
                 print()
                 device_key, device_row = _prompt_new_device_number(device_map, out)
                 if device_row:
-                    status_message, status_level = _action_add_device(
-                        registry, out, device_row
-                    )
+                    status_message, status_level = _action_add_device(registry, out, device_row)
                     print()
                     _countdown_return(registry.load().global_config.return_delay)
                 else:
@@ -541,9 +535,7 @@ def run_menu(registry, out) -> int:
                 print()
                 device_key = _prompt_device_number(device_map, out)
                 if device_key:
-                    status_message, status_level = _action_remove_device(
-                        registry, out, device_key
-                    )
+                    status_message, status_level = _action_remove_device(registry, out, device_key)
                     print()
                     _countdown_return(registry.load().global_config.return_delay)
                 else:
@@ -565,6 +557,7 @@ def run_menu(registry, out) -> int:
                 print(key)
                 print()
                 from .flash import cmd_flash_all
+
                 result = cmd_flash_all(registry, out)
                 if result == 0:
                     status_message = "Flash All: completed successfully"
@@ -594,6 +587,7 @@ def run_menu(registry, out) -> int:
 # Settings submenu (unchanged)
 # ---------------------------------------------------------------------------
 
+
 def _config_screen(registry, out) -> None:
     """Config screen with panel-based settings display and inline editing.
 
@@ -601,11 +595,10 @@ def _config_screen(registry, out) -> None:
     numbered rows. Single keypress selects a setting to edit. Toggle settings
     flip immediately; numeric and path settings prompt for typed input.
     """
-    from .screen import render_config_screen, SETTINGS
-    from .models import GlobalConfig
     import dataclasses
 
     from .panels import render_action_divider
+    from .screen import SETTINGS, render_config_screen
 
     theme = get_theme()
 
@@ -667,8 +660,7 @@ def _config_screen(registry, out) -> None:
                         new_gc = dataclasses.replace(gc, **{field_key: val})
                         registry.save_global(new_gc)
                         break
-                    else:
-                        print(f"  {theme.error}{err}{theme.reset}")
+                    print(f"  {theme.error}{err}{theme.reset}")
                 continue
 
             elif setting["type"] == "path":
@@ -688,8 +680,7 @@ def _config_screen(registry, out) -> None:
                         new_gc = dataclasses.replace(gc, **{field_key: raw})
                         registry.save_global(new_gc)
                         break
-                    else:
-                        print(f"  {theme.error}{err}{theme.reset}")
+                    print(f"  {theme.error}{err}{theme.reset}")
                 continue
 
 
@@ -739,10 +730,11 @@ def _device_config_screen(device_key: str, registry, out) -> None:
     keypress selects a setting to edit. Changes accumulate in a pending
     dict and are saved atomically on Esc/B exit. Ctrl+C discards.
     """
-    from .screen import render_device_config_screen, DEVICE_SETTINGS
-    from .panels import render_action_divider
-    from .validation import validate_device_key
     import dataclasses
+
+    from .panels import render_action_divider
+    from .screen import DEVICE_SETTINGS, render_device_config_screen
+    from .validation import validate_device_key
 
     theme = get_theme()
     original_key = device_key
@@ -813,8 +805,7 @@ def _device_config_screen(device_key: str, registry, out) -> None:
                     if ok:
                         pending["key"] = raw
                         break
-                    else:
-                        print(f"  {theme.error}{err}{theme.reset}")
+                    print(f"  {theme.error}{err}{theme.reset}")
 
             elif setting["key"] == "flash_method":
                 # Cycle through values
@@ -868,8 +859,9 @@ def wait_for_device(
     Returns:
         A 3-tuple ``(success, device_path, error_reason)``.
     """
-    import time
     import fnmatch
+    import time
+
     from .discovery import scan_serial_devices
 
     start = time.monotonic()

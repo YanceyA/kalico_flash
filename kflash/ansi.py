@@ -55,5 +55,5 @@ def get_terminal_width(default: int = 80, minimum: int = 40) -> int:
 
 def supports_unicode() -> bool:
     """Check if stdout encoding supports Unicode box-drawing characters."""
-    encoding = getattr(sys.stdout, 'encoding', '') or ''
-    return 'utf' in encoding.lower()
+    encoding = getattr(sys.stdout, "encoding", "") or ""
+    return "utf" in encoding.lower()

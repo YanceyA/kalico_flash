@@ -81,9 +81,7 @@ def get_mcu_versions() -> Optional[dict[str, str]]:
 
         # Find all MCU objects (mcu, mcu linux, mcu nhk, etc.)
         all_objects = data["result"]["objects"]
-        mcu_objects = [
-            obj for obj in all_objects if obj == "mcu" or obj.startswith("mcu ")
-        ]
+        mcu_objects = [obj for obj in all_objects if obj == "mcu" or obj.startswith("mcu ")]
 
         if not mcu_objects:
             return None

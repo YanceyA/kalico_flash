@@ -247,13 +247,9 @@ def get_recovery_text(template_key: str, from_tui: bool = False) -> str:
 class KlipperFlashError(Exception):
     """Base for all kalico-flash errors."""
 
-    pass
-
 
 class RegistryError(KlipperFlashError):
     """Registry file errors: corrupt JSON, missing fields, duplicate keys."""
-
-    pass
 
 
 class DeviceNotFoundError(KlipperFlashError):
@@ -268,31 +264,21 @@ class DeviceNotFoundError(KlipperFlashError):
 class DiscoveryError(KlipperFlashError):
     """USB discovery failures."""
 
-    pass
-
 
 class ConfigError(KlipperFlashError):
     """Config file errors: missing, corrupt, MCU mismatch."""
-
-    pass
 
 
 class BuildError(KlipperFlashError):
     """Build failures: make menuconfig, make clean, make."""
 
-    pass
-
 
 class ServiceError(KlipperFlashError):
     """Klipper service lifecycle errors: stop/start failures."""
 
-    pass
-
 
 class FlashError(KlipperFlashError):
     """Flash operation failures: Katapult, make flash, device not found."""
-
-    pass
 
 
 class ConfigMismatchError(KlipperFlashError):

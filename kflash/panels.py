@@ -9,7 +9,12 @@ even when content contains color escape sequences.
 
 from __future__ import annotations
 
-from kflash.ansi import display_width, get_terminal_width, pad_to_width, strip_ansi, supports_unicode
+from kflash.ansi import (
+    display_width,
+    get_terminal_width,
+    pad_to_width,
+    supports_unicode,
+)
 from kflash.theme import get_theme
 
 # ---------------------------------------------------------------------------
@@ -21,8 +26,8 @@ BOX_ROUNDED: dict[str, str] = {
     "tr": "\u256e",  # ╮
     "bl": "\u2570",  # ╰
     "br": "\u256f",  # ╯
-    "h":  "\u2500",  # ─
-    "v":  "\u2502",  # │
+    "h": "\u2500",  # ─
+    "v": "\u2502",  # │
 }
 
 MAX_PANEL_WIDTH = 80
@@ -31,6 +36,7 @@ MAX_PANEL_WIDTH = 80
 # ---------------------------------------------------------------------------
 # Panel rendering
 # ---------------------------------------------------------------------------
+
 
 def _spaced_header(text: str) -> str:
     """Convert *text* to spaced uppercase letters in brackets.
@@ -97,25 +103,19 @@ def render_panel(
         # Clamp: ensure exactly inner_width visible columns
         padded = " " * padding + pad_to_width(line, inner_width - 2 * padding) + " " * padding
         lines.append(
-            f"{theme.border}{b['v']}{theme.reset}"
-            f"{padded}"
-            f"{theme.border}{b['v']}{theme.reset}"
+            f"{theme.border}{b['v']}{theme.reset}{padded}{theme.border}{b['v']}{theme.reset}"
         )
 
     # Empty panel: add one blank line
     if not content_lines:
         blank = " " * inner_width
         lines.append(
-            f"{theme.border}{b['v']}{theme.reset}"
-            f"{blank}"
-            f"{theme.border}{b['v']}{theme.reset}"
+            f"{theme.border}{b['v']}{theme.reset}{blank}{theme.border}{b['v']}{theme.reset}"
         )
 
     # Bottom border: ╰────────────────────╯
     bottom_fill = b["h"] * inner_width
-    lines.append(
-        f"{theme.border}{b['bl']}{bottom_fill}{b['br']}{theme.reset}"
-    )
+    lines.append(f"{theme.border}{b['bl']}{bottom_fill}{b['br']}{theme.reset}")
 
     return "\n".join(lines)
 
@@ -123,6 +123,7 @@ def render_panel(
 # ---------------------------------------------------------------------------
 # Two-column layout
 # ---------------------------------------------------------------------------
+
 
 def render_two_column(items: list[tuple[str, str]], gap: int = 4) -> list[str]:
     """Split items into two balanced columns with adaptive widths.
@@ -141,11 +142,7 @@ def render_two_column(items: list[tuple[str, str]], gap: int = 4) -> list[str]:
 
     # Format each item
     def fmt(number: str, label: str) -> str:
-        return (
-            f"{theme.label}{number}{theme.reset} "
-            f"{theme.subtle}\u25b8{theme.reset} "
-            f"{label}"
-        )
+        return f"{theme.label}{number}{theme.reset} {theme.subtle}\u25b8{theme.reset} {label}"
 
     formatted = [fmt(n, l) for n, l in items]
 
@@ -172,6 +169,7 @@ def render_two_column(items: list[tuple[str, str]], gap: int = 4) -> list[str]:
 # ---------------------------------------------------------------------------
 # Step divider
 # ---------------------------------------------------------------------------
+
 
 def render_step_divider(label: str, total_width: int | None = None) -> str:
     """Render a partial-width dashed line with centered label.
@@ -257,6 +255,7 @@ def render_device_divider(index: int, total: int, name: str, total_width: int | 
 # ---------------------------------------------------------------------------
 # Panel centering
 # ---------------------------------------------------------------------------
+
 
 def center_panel(panel_str: str, terminal_width: int | None = None) -> str:
     """Horizontally center a rendered panel in the terminal.

@@ -52,9 +52,7 @@ def validate_path_setting(raw: str, setting_key: str) -> tuple[bool, str]:
     return True, ""
 
 
-def validate_device_key(
-    key: str, registry, current_key: str | None = None
-) -> tuple[bool, str]:
+def validate_device_key(key: str, registry, current_key: str | None = None) -> tuple[bool, str]:
     """Validate a device key for registration or rename.
 
     Args:

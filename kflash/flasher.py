@@ -197,9 +197,7 @@ def flash_device(
     last_result: Optional[FlashResult] = None
     for current in methods:
         if current == "katapult":
-            result = _try_katapult_flash(
-                device_path, firmware_path, katapult_dir, timeout
-            )
+            result = _try_katapult_flash(device_path, firmware_path, katapult_dir, timeout)
         else:
             result = _try_make_flash(device_path, klipper_dir, timeout)
 

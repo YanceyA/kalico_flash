@@ -33,7 +33,6 @@ import shutil
 import sys
 from pathlib import Path
 
-
 # Python version guard
 if sys.version_info < (3, 9):
     sys.exit("Error: kalico-flash requires Python 3.9 or newer.")
@@ -67,9 +66,7 @@ def _blocked_reason_for_filename(
     return None
 
 
-def _blocked_reason_for_entry(
-    entry, blocked_list: list[tuple[str, str | None]]
-) -> str | None:
+def _blocked_reason_for_entry(entry, blocked_list: list[tuple[str, str | None]]) -> str | None:
     serial_pattern = entry.serial_pattern.lower()
     for pattern, reason in blocked_list:
         normalized = _normalize_pattern(pattern)
@@ -252,9 +249,7 @@ def _remove_cached_config(device_key: str, out, prompt: bool = True) -> None:
 
     should_remove = True
     if prompt:
-        should_remove = out.confirm(
-            f"Also remove cached config for '{device_key}'?", default=False
-        )
+        should_remove = out.confirm(f"Also remove cached config for '{device_key}'?", default=False)
 
     if not should_remove:
         out.info("Registry", "Cached config kept")
@@ -273,14 +268,15 @@ def cmd_build(registry, device_key: str, out, from_tui: bool = False) -> int:
     Orchestrates: load cached config -> menuconfig -> save config -> MCU validation -> build
     """
     # Late imports for fast startup
+    from .build import run_build, run_menuconfig
     from .config import ConfigManager
-    from .build import run_menuconfig, run_build
-    from .errors import ConfigError, ERROR_TEMPLATES
+    from .errors import ERROR_TEMPLATES, ConfigError
 
     # Load device entry
     entry = registry.get(device_key)
     if entry is None:
         from .errors import get_recovery_text
+
         template = ERROR_TEMPLATES["device_not_registered"]
         out.error_with_recovery(
             template["error_type"],
@@ -315,9 +311,7 @@ def cmd_build(registry, device_key: str, out, from_tui: bool = False) -> int:
 
     # Step 2: Run menuconfig
     out.info("Config", "Launching menuconfig...")
-    ret_code, was_saved = run_menuconfig(
-        klipper_dir, str(config_mgr.klipper_config_path)
-    )
+    ret_code, was_saved = run_menuconfig(klipper_dir, str(config_mgr.klipper_config_path))
 
     if ret_code != 0:
         template = ERROR_TEMPLATES["menuconfig_failed"]
@@ -355,9 +349,7 @@ def cmd_build(registry, device_key: str, out, from_tui: bool = False) -> int:
             template = ERROR_TEMPLATES["mcu_mismatch"]
             out.error_with_recovery(
                 template["error_type"],
-                template["message_template"].format(
-                    actual=actual_mcu, expected=entry.mcu
-                ),
+                template["message_template"].format(actual=actual_mcu, expected=entry.mcu),
                 context={
                     "device": device_key,
                     "expected": entry.mcu,
@@ -399,7 +391,9 @@ def cmd_build(registry, device_key: str, out, from_tui: bool = False) -> int:
     return 0
 
 
-def cmd_flash(registry, device_key, out, skip_menuconfig: bool = False, from_tui: bool = False) -> int:
+def cmd_flash(
+    registry, device_key, out, skip_menuconfig: bool = False, from_tui: bool = False
+) -> int:
     """Build and flash firmware for a registered device.
 
     Orchestrates the full workflow:
@@ -419,26 +413,25 @@ def cmd_flash(registry, device_key, out, skip_menuconfig: bool = False, from_tui
     """
     import time
 
+    from .build import TIMEOUT_BUILD, run_build, run_menuconfig
+    from .config import ConfigManager
+
     # Late imports for fast startup
     from .discovery import (
-        scan_serial_devices,
         find_registered_devices,
+        is_supported_device,
         match_device,
         match_devices,
-        is_supported_device,
+        scan_serial_devices,
     )
-    from .config import ConfigManager
-    from .build import run_menuconfig, run_build, TIMEOUT_BUILD
+    from .errors import ERROR_TEMPLATES, ConfigError, DiscoveryError
+    from .flasher import TIMEOUT_FLASH, flash_device, verify_device_path
     from .service import klipper_service_stopped, verify_passwordless_sudo
-    from .flasher import flash_device, verify_device_path, TIMEOUT_FLASH
-    from .errors import ConfigError, DiscoveryError, ERROR_TEMPLATES
-    from .tui import wait_for_device, _get_menu_choice
+    from .tui import _get_menu_choice, wait_for_device
 
     # TTY check for interactive mode
     if device_key is None and not sys.stdin.isatty():
-        out.error(
-            "Interactive terminal required. Use --device KEY or run from SSH terminal."
-        )
+        out.error("Interactive terminal required. Use --device KEY or run from SSH terminal.")
         return 1
 
     # Load registry data
@@ -451,12 +444,13 @@ def cmd_flash(registry, device_key, out, skip_menuconfig: bool = False, from_tui
 
     # Fetch version information early for display in device selection
     from .moonraker import (
-        get_print_status,
-        get_mcu_versions,
         get_host_klipper_version,
-        is_mcu_outdated,
         get_mcu_version_for_device,
+        get_mcu_versions,
+        get_print_status,
+        is_mcu_outdated,
     )
+
     mcu_versions = get_mcu_versions()
     host_version = get_host_klipper_version(data.global_config.klipper_dir)
 
@@ -506,17 +500,13 @@ def cmd_flash(registry, device_key, out, skip_menuconfig: bool = False, from_tui
                     if entry is None:
                         continue
                     details = ", ".join(d.filename for d in devices)
-                    out.device_line(
-                        "DUP", f"{entry.key} ({entry.mcu}) [duplicate]", details
-                    )
+                    out.device_line("DUP", f"{entry.key} ({entry.mcu}) [duplicate]", details)
                 return 1
 
             if blocked_entries:
                 blocked_connected = [
                     (entry, device)
-                    for entry, device in find_registered_devices(
-                        usb_devices, data.devices
-                    )[0]
+                    for entry, device in find_registered_devices(usb_devices, data.devices)[0]
                     if entry.key in blocked_entries
                 ]
                 if blocked_connected:
@@ -528,9 +518,7 @@ def cmd_flash(registry, device_key, out, skip_menuconfig: bool = False, from_tui
                     out.phase("Discovery", "Blocked registered devices:")
                     for entry, device in blocked_connected:
                         reason = blocked_entries.get(entry.key, "Blocked by policy")
-                        out.device_line(
-                            "BLK", f"{entry.key} ({entry.mcu}) [blocked]", reason
-                        )
+                        out.device_line("BLK", f"{entry.key} ({entry.mcu}) [blocked]", reason)
                     return 1
 
             if from_tui:
@@ -544,9 +532,7 @@ def cmd_flash(registry, device_key, out, skip_menuconfig: bool = False, from_tui
             )
             out.phase("Discovery", "Found USB devices but none are registered:")
             for device in usb_devices:
-                blocked_reason = _blocked_reason_for_filename(
-                    device.filename, blocked_list
-                )
+                blocked_reason = _blocked_reason_for_filename(device.filename, blocked_list)
                 if blocked_reason or not is_supported_device(device.filename):
                     out.device_line(
                         "BLK",
@@ -564,9 +550,7 @@ def cmd_flash(registry, device_key, out, skip_menuconfig: bool = False, from_tui
                 if entry is None:
                     continue
                 details = ", ".join(d.filename for d in devices)
-                out.device_line(
-                    "DUP", f"{entry.key} ({entry.mcu}) [duplicate]", details
-                )
+                out.device_line("DUP", f"{entry.key} ({entry.mcu}) [duplicate]", details)
 
         # Filter to only flashable devices for selection
         flashable_matched = [(e, d) for e, d in matched if e.flashable]
@@ -576,28 +560,23 @@ def cmd_flash(registry, device_key, out, skip_menuconfig: bool = False, from_tui
         if excluded_matched:
             out.phase("Discovery", "Excluded devices (not selectable):")
             for entry, device in excluded_matched:
-                out.device_line(
-                    "REG", f"{entry.key} ({entry.mcu}) [excluded]", device.filename
-                )
+                out.device_line("REG", f"{entry.key} ({entry.mcu}) [excluded]", device.filename)
 
         if blocked_entries:
             blocked_connected = [
                 (entry, device)
-                for entry, device in find_registered_devices(usb_devices, data.devices)[
-                    0
-                ]
+                for entry, device in find_registered_devices(usb_devices, data.devices)[0]
                 if entry.key in blocked_entries
             ]
             if blocked_connected:
                 out.phase("Discovery", "Blocked devices (not selectable):")
                 for entry, device in blocked_connected:
                     reason = blocked_entries.get(entry.key, "Blocked by policy")
-                    out.device_line(
-                        "BLK", f"{entry.key} ({entry.mcu}) [blocked]", reason
-                    )
+                    out.device_line("BLK", f"{entry.key} ({entry.mcu}) [blocked]", reason)
 
         if not flashable_matched:
             from .errors import get_recovery_text
+
             template = ERROR_TEMPLATES["device_excluded"]
             out.error_with_recovery(
                 template["error_type"],
@@ -619,6 +598,7 @@ def cmd_flash(registry, device_key, out, skip_menuconfig: bool = False, from_tui
         # Show host Klipper version before selection
         if host_version:
             from .moonraker import detect_firmware_flavor
+
             out.info("Version", f"Host: {detect_firmware_flavor(host_version)} {host_version}")
 
         # Single device: auto-select with confirmation
@@ -651,6 +631,7 @@ def cmd_flash(registry, device_key, out, skip_menuconfig: bool = False, from_tui
         entry = registry.get(device_key)
         if entry is None:
             from .errors import get_recovery_text
+
             template = ERROR_TEMPLATES["device_not_registered"]
             out.error_with_recovery(
                 template["error_type"],
@@ -710,6 +691,7 @@ def cmd_flash(registry, device_key, out, skip_menuconfig: bool = False, from_tui
         usb_device = match_device(entry.serial_pattern, usb_devices)
         if usb_device is None:
             from .errors import get_recovery_text
+
             template = ERROR_TEMPLATES["device_not_connected"]
             out.error_with_recovery(
                 template["error_type"],
@@ -728,14 +710,10 @@ def cmd_flash(registry, device_key, out, skip_menuconfig: bool = False, from_tui
     preferred_method = _resolve_flash_method(entry, data.global_config)
     allow_fallback = data.global_config.allow_flash_fallback
 
-    if not _preflight_flash(
-        out, klipper_dir, katapult_dir, preferred_method, allow_fallback
-    ):
+    if not _preflight_flash(out, klipper_dir, katapult_dir, preferred_method, allow_fallback):
         return 1
 
-    out.phase(
-        "Discovery", f"Target: {entry.name} ({entry.mcu}) at {_short_path(device_path)}"
-    )
+    out.phase("Discovery", f"Target: {entry.name} ({entry.mcu}) at {_short_path(device_path)}")
 
     out.step_divider()
 
@@ -773,6 +751,7 @@ def cmd_flash(registry, device_key, out, skip_menuconfig: bool = False, from_tui
 
     if host_version:
         from .moonraker import detect_firmware_flavor
+
         out.phase("Version", f"Host: {detect_firmware_flavor(host_version)} {host_version}")
 
         if mcu_versions:
@@ -783,10 +762,7 @@ def cmd_flash(registry, device_key, out, skip_menuconfig: bool = False, from_tui
             friendly = [n for n in mcu_versions if not any(c.isdigit() for c in n)]
             chip_keys = [n for n in mcu_versions if any(c.isdigit() for c in n)]
             for mcu_name in friendly + chip_keys:
-                if (
-                    entry.mcu.lower() in mcu_name.lower()
-                    or mcu_name.lower() in entry.mcu.lower()
-                ):
+                if entry.mcu.lower() in mcu_name.lower() or mcu_name.lower() in entry.mcu.lower():
                     target_mcu = mcu_name
                     break
             # If no match found by name, use "main" as default for primary MCU
@@ -794,9 +770,7 @@ def cmd_flash(registry, device_key, out, skip_menuconfig: bool = False, from_tui
                 target_mcu = "main"
 
             # Build set of friendly names (no digits = not a chip-type alias)
-            friendly_names = {
-                n for n in mcu_versions if not any(c.isdigit() for c in n)
-            }
+            friendly_names = {n for n in mcu_versions if not any(c.isdigit() for c in n)}
             # If target matched a chip-type alias, find the friendly name
             # with the same version so we can mark it with [*]
             display_target = target_mcu
@@ -858,9 +832,7 @@ def cmd_flash(registry, device_key, out, skip_menuconfig: bool = False, from_tui
 
     if not skip_menuconfig:
         out.phase("Config", "Launching menuconfig...")
-        ret_code, was_saved = run_menuconfig(
-            klipper_dir, str(config_mgr.klipper_config_path)
-        )
+        ret_code, was_saved = run_menuconfig(klipper_dir, str(config_mgr.klipper_config_path))
 
         if ret_code != 0:
             template = ERROR_TEMPLATES["menuconfig_failed"]
@@ -898,9 +870,7 @@ def cmd_flash(registry, device_key, out, skip_menuconfig: bool = False, from_tui
             template = ERROR_TEMPLATES["mcu_mismatch"]
             out.error_with_recovery(
                 template["error_type"],
-                template["message_template"].format(
-                    actual=actual_mcu, expected=entry.mcu
-                ),
+                template["message_template"].format(actual=actual_mcu, expected=entry.mcu),
                 context={
                     "device": device_key,
                     "expected": entry.mcu,
@@ -1011,9 +981,7 @@ def cmd_flash(registry, device_key, out, skip_menuconfig: bool = False, from_tui
 
     # === Summary ===
     if flash_result.success and verified:
-        out.success(
-            f"Flashed {entry.name} via {flash_result.method} in {flash_elapsed:.1f}s"
-        )
+        out.success(f"Flashed {entry.name} via {flash_result.method} in {flash_elapsed:.1f}s")
         out.phase("Verify", f"Device confirmed at: {device_path_new}")
         return 0
 
@@ -1072,21 +1040,22 @@ def cmd_flash_all(registry, out) -> int:
     import tempfile
     import time
 
+    from .build import run_build
+
     # Late imports
     from .config import ConfigManager
-    from .build import run_build
-    from .discovery import scan_serial_devices, match_device
-    from .flasher import flash_device, TIMEOUT_FLASH
-    from .service import klipper_service_stopped, verify_passwordless_sudo
-    from .moonraker import (
-        get_print_status,
-        get_mcu_versions,
-        get_host_klipper_version,
-        is_mcu_outdated,
-        get_mcu_version_for_device,
-    )
-    from .tui import wait_for_device
+    from .discovery import match_device, scan_serial_devices
+    from .flasher import TIMEOUT_FLASH, flash_device
     from .models import BatchDeviceResult
+    from .moonraker import (
+        get_host_klipper_version,
+        get_mcu_version_for_device,
+        get_mcu_versions,
+        get_print_status,
+        is_mcu_outdated,
+    )
+    from .service import klipper_service_stopped, verify_passwordless_sudo
+    from .tui import wait_for_device
 
     # Load registry
     data = registry.load()
@@ -1147,6 +1116,7 @@ def cmd_flash_all(registry, out) -> int:
 
     # Validate MCU match for each cached config
     from .errors import ConfigError
+
     mcu_mismatches: list[tuple[str, str, str]] = []
     for entry in flashable_devices:
         config_mgr = ConfigManager(entry.key, klipper_dir)
@@ -1173,7 +1143,9 @@ def cmd_flash_all(registry, out) -> int:
         age_str = age_display or "unknown"
         out.info("", f"  {entry.name} ({entry.key}): config cached {age_str}")
         if age_display and "Recommend Review" in age_display:
-            out.warn(f"  {entry.key} config is very old — consider flashing individually to review config")
+            out.warn(
+                f"  {entry.key} config is very old — consider flashing individually to review config"
+            )
             stale_warned = True
 
     out.phase("Flash All", f"{len(flashable_devices)} device(s) validated")
@@ -1190,6 +1162,7 @@ def cmd_flash_all(registry, out) -> int:
         out.warn("Version check unavailable -- Moonraker not reachable. Flashing all devices.")
     else:
         from .moonraker import detect_firmware_flavor
+
         out.phase("Version", f"Host: {detect_firmware_flavor(host_version)} {host_version}")
         outdated: list = []
         current: list = []
@@ -1230,11 +1203,13 @@ def cmd_flash_all(registry, out) -> int:
     # Initialize results tracking
     results: list[BatchDeviceResult] = []
     for entry in flash_list:
-        results.append(BatchDeviceResult(
-            device_key=entry.key,
-            device_name=entry.name,
-            config_ok=True,  # Already validated in Stage 1
-        ))
+        results.append(
+            BatchDeviceResult(
+                device_key=entry.key,
+                device_name=entry.name,
+                config_ok=True,  # Already validated in Stage 1
+            )
+        )
 
     # === Stage 3: Build all firmware ===
     out.step_divider()
@@ -1256,9 +1231,7 @@ def cmd_flash_all(registry, out) -> int:
                 # Copy firmware to temp dir
                 device_fw_dir = os.path.join(temp_dir, entry.key)
                 os.makedirs(device_fw_dir, exist_ok=True)
-                fw_src = os.path.join(
-                    str(Path(klipper_dir).expanduser()), "out", "klipper.bin"
-                )
+                fw_src = os.path.join(str(Path(klipper_dir).expanduser()), "out", "klipper.bin")
                 fw_dst = os.path.join(device_fw_dir, "klipper.bin")
                 shutil.copy2(fw_src, fw_dst)
                 result.build_ok = True
@@ -1328,14 +1301,20 @@ def cmd_flash_all(registry, out) -> int:
                     result.flash_ok = True
                     # Post-flash verification
                     verified, _, error_reason = wait_for_device(
-                        entry.serial_pattern, timeout=30.0, out=out,
+                        entry.serial_pattern,
+                        timeout=30.0,
+                        out=out,
                     )
                     if verified:
                         result.verify_ok = True
-                        print(f"  \u2713 {entry.name} flashed and verified ({flash_idx}/{flash_total})")
+                        print(
+                            f"  \u2713 {entry.name} flashed and verified ({flash_idx}/{flash_total})"
+                        )
                     else:
                         result.error_message = error_reason or "Verification failed"
-                        print(f"  \u2717 {entry.name} flash OK but verify failed ({flash_idx}/{flash_total})")
+                        print(
+                            f"  \u2717 {entry.name} flash OK but verify failed ({flash_idx}/{flash_total})"
+                        )
 
                     # Re-scan after flash for next device
                     usb_devices = scan_serial_devices()
@@ -1469,8 +1448,8 @@ def cmd_list_devices(registry, out, from_menu: bool = False) -> int:
         out: Output interface for user messages.
         from_menu: If True, suppress "Use --add-device" hint (menu has its own navigation).
     """
-    from .discovery import scan_serial_devices, match_devices, is_supported_device
-    from .moonraker import get_mcu_versions, get_host_klipper_version, get_mcu_version_for_device
+    from .discovery import is_supported_device, match_devices, scan_serial_devices
+    from .moonraker import get_host_klipper_version, get_mcu_version_for_device, get_mcu_versions
 
     # Load registry and scan USB devices
     data = registry.load()
@@ -1493,18 +1472,13 @@ def cmd_list_devices(registry, out, from_menu: bool = False) -> int:
             device_matches.setdefault(device.filename, []).append(entry)
 
     matched_filenames = set(device_matches.keys())
-    unmatched = [
-        device for device in usb_devices if device.filename not in matched_filenames
-    ]
+    unmatched = [device for device in usb_devices if device.filename not in matched_filenames]
 
-    duplicate_entry_keys = {
-        key for key, matches in entry_matches.items() if len(matches) > 1
-    }
+    duplicate_entry_keys = {key for key, matches in entry_matches.items() if len(matches) > 1}
     duplicate_devices = {
         filename
         for filename, entries in device_matches.items()
-        if len(entries) > 1
-        or any(entry.key in duplicate_entry_keys for entry in entries)
+        if len(entries) > 1 or any(entry.key in duplicate_entry_keys for entry in entries)
     }
 
     registered_connected = 0
@@ -1546,7 +1520,9 @@ def cmd_list_devices(registry, out, from_menu: bool = False) -> int:
                 marker = "NEW"
                 detail = "Unregistered device"
             out.device_line(marker, device.filename, detail)
-        hint = "Press A to register a board." if from_menu else "Run --add-device to register a board."
+        hint = (
+            "Press A to register a board." if from_menu else "Run --add-device to register a board."
+        )
         out.info("Devices", hint)
         return 0
 
@@ -1623,6 +1599,7 @@ def cmd_list_devices(registry, out, from_menu: bool = False) -> int:
     if host_version:
         out.info("", "")  # blank line for separation
         from .moonraker import detect_firmware_flavor
+
         out.info("Version", f"Host: {detect_firmware_flavor(host_version)} {host_version}")
 
     return 0
@@ -1639,26 +1616,25 @@ def cmd_add_device(registry, out, selected_device=None) -> int:
     """
     # Import discovery functions for USB scanning
     from .discovery import (
-        scan_serial_devices,
         extract_mcu_from_serial,
         generate_serial_pattern,
         is_supported_device,
         match_devices,
+        scan_serial_devices,
     )
     from .models import DeviceEntry, GlobalConfig
     from .tui import _get_menu_choice
 
     # TTY check: wizard requires interactive terminal
     if not sys.stdin.isatty():
-        out.error(
-            "Interactive terminal required for --add-device. Run from SSH terminal."
-        )
+        out.error("Interactive terminal required for --add-device. Run from SSH terminal.")
         return 1
 
     if selected_device is not None:
         # TUI path: device already selected, skip discovery/listing/selection
         selected = selected_device
         from .screen import truncate_serial
+
         out.info("Selected", truncate_serial(selected.filename))
 
         # Determine if this device is already registered
@@ -1693,9 +1669,7 @@ def cmd_add_device(registry, out, selected_device=None) -> int:
             for device in matches:
                 device_matches.setdefault(device.filename, []).append(entry)
 
-        duplicate_entry_keys = {
-            key for key, matches in entry_matches.items() if len(matches) > 1
-        }
+        duplicate_entry_keys = {key for key, matches in entry_matches.items() if len(matches) > 1}
 
         registered_devices: list[tuple[object, object]] = []
         new_devices: list = []
@@ -1710,8 +1684,7 @@ def cmd_add_device(registry, out, selected_device=None) -> int:
 
             entries = device_matches.get(device.filename, [])
             if entries and (
-                len(entries) > 1
-                or any(entry.key in duplicate_entry_keys for entry in entries)
+                len(entries) > 1 or any(entry.key in duplicate_entry_keys for entry in entries)
             ):
                 duplicate_devices.append((device, entries))
                 continue
@@ -1747,17 +1720,13 @@ def cmd_add_device(registry, out, selected_device=None) -> int:
                 selectable.append((device, None))
 
         if duplicate_devices:
-            out.info(
-                "Discovery", f"Duplicate devices (not eligible) ({len(duplicate_devices)}):"
-            )
+            out.info("Discovery", f"Duplicate devices (not eligible) ({len(duplicate_devices)}):")
             for device, entries in duplicate_devices:
                 keys = ", ".join(entry.key for entry in entries)
                 out.device_line("DUP", device.filename, f"Matches: {keys}")
 
         if blocked_devices:
-            out.info(
-                "Discovery", f"Blocked devices (not eligible) ({len(blocked_devices)}):"
-            )
+            out.info("Discovery", f"Blocked devices (not eligible) ({len(blocked_devices)}):")
             for device, reason in blocked_devices:
                 out.device_line("BLK", device.filename, reason)
 
@@ -1778,6 +1747,7 @@ def cmd_add_device(registry, out, selected_device=None) -> int:
 
         selected, existing_entry = selectable[int(choice) - 1]
         from .screen import truncate_serial
+
         out.info("Selected", truncate_serial(selected.filename))
 
     # Check if selected device is already registered
@@ -1816,9 +1786,7 @@ def cmd_add_device(registry, out, selected_device=None) -> int:
     # Step 4: Device key
     device_key = None
     for attempt in range(3):
-        key_input = out.prompt(
-            "Device key (used with --device flag, e.g., 'octopus-pro')"
-        )
+        key_input = out.prompt("Device key (used with --device flag, e.g., 'octopus-pro')")
         if not key_input:
             out.warn("Device key cannot be empty.")
             continue
@@ -1826,9 +1794,7 @@ def cmd_add_device(registry, out, selected_device=None) -> int:
             out.warn("Device key cannot contain spaces.")
             continue
         if registry.get(key_input) is not None:
-            out.warn(
-                f"Device '{key_input}' already registered. Choose a different key."
-            )
+            out.warn(f"Device '{key_input}' already registered. Choose a different key.")
             continue
         device_key = key_input
         break
@@ -1867,10 +1833,7 @@ def cmd_add_device(registry, out, selected_device=None) -> int:
     # Check if pattern matches multiple connected devices (duplicate USB IDs)
     pattern_matches = match_devices(serial_pattern, devices)
     if len(pattern_matches) > 1:
-        out.error(
-            "Serial pattern matches multiple connected devices. "
-            "Unplug duplicates and retry."
-        )
+        out.error("Serial pattern matches multiple connected devices. Unplug duplicates and retry.")
         for device in pattern_matches:
             out.device_line("DUP", device.filename, "Duplicate USB ID")
         return 1
@@ -1902,18 +1865,14 @@ def cmd_add_device(registry, out, selected_device=None) -> int:
         default_method = "katapult"
     if registry_data.global_config is not None:
         fallback_state = (
-            "enabled"
-            if registry_data.global_config.allow_flash_fallback
-            else "disabled"
+            "enabled" if registry_data.global_config.allow_flash_fallback else "disabled"
         )
         out.info(
             "Flash",
             f"Preferred method default is {default_method}. Flash fallback is {fallback_state}.",
         )
     for attempt in range(3):
-        method_input = (
-            out.prompt("Preferred flash method", default=default_method).strip().lower()
-        )
+        method_input = out.prompt("Preferred flash method", default=default_method).strip().lower()
         if method_input in ("katapult", "make_flash"):
             # If same as global default, store None to inherit
             if method_input == default_method:
@@ -1929,9 +1888,7 @@ def cmd_add_device(registry, out, selected_device=None) -> int:
     out.step_divider()
 
     # Step 9: Ask if device is flashable
-    exclude_from_flash = out.confirm(
-        "Exclude this device from flashing?", default=False
-    )
+    exclude_from_flash = out.confirm("Exclude this device from flashing?", default=False)
     is_flashable = not exclude_from_flash
 
     out.step_divider()
@@ -1956,9 +1913,9 @@ def main() -> int:
     args = parser.parse_args()
 
     # Late imports for fast startup
+    from .errors import KlipperFlashError
     from .output import CliOutput
     from .registry import Registry
-    from .errors import KlipperFlashError
 
     out = CliOutput()
 
@@ -1981,9 +1938,7 @@ def main() -> int:
 
         # Handle explicit --device flash
         elif args.device:
-            return cmd_flash(
-                registry, args.device, out, skip_menuconfig=args.skip_menuconfig
-            )
+            return cmd_flash(registry, args.device, out, skip_menuconfig=args.skip_menuconfig)
 
         # No args: interactive menu on TTY, help on non-TTY
         else:
