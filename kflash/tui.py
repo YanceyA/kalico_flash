@@ -960,9 +960,8 @@ def _device_config_screen(device_key: str, registry, out) -> None:
             device_path = matches[0].path
 
             # Warning
-            print(f"  {theme.warning}Warning: This will briefly put the device into bootloader mode.{theme.reset}")
-            print(f"  {theme.warning}If the device does not have Katapult, it may enter DFU mode{theme.reset}")
-            print(f"  {theme.warning}and require a manual USB unplug/replug to recover.{theme.reset}")
+            print(f"  {theme.warning}Warning: This will put the device into bootloader mode.{theme.reset}")
+            print(f"  {theme.warning}Use Flash (F) from the main menu or unplug/replug to recover.{theme.reset}")
             print()
 
             # Confirmation (default No)
@@ -998,6 +997,9 @@ def _device_config_screen(device_key: str, registry, out) -> None:
                     print(
                         f"  {theme.success}Katapult bootloader detected"
                         f" ({result.elapsed_seconds:.1f}s){theme.reset}"
+                    )
+                    print(
+                        f"  {theme.info}Flash the device or unplug/replug to restore normal operation.{theme.reset}"
                     )
                 elif result.has_katapult is False:
                     print(
