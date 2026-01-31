@@ -236,7 +236,7 @@ Plans:
   4. KatapultCheckResult dataclass captures tri-state result with error context
   5. Helper functions (_resolve_usb_sysfs_path, _usb_sysfs_reset, _poll_for_serial_device) are independently callable
   6. Timing values use constants derived from Phase 21 research
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
 - [ ] 22-01: KatapultCheckResult dataclass, helper functions, check_katapult() core logic
