@@ -230,7 +230,7 @@ Plans:
 **Plans**: 1 plan
 
 Plans:
-- [ ] 24-01: Add generate_device_key() to validation.py with slugification and collision handling
+- [x] 24-01: Add generate_device_key() to validation.py with slugification and collision handling
 
 #### Phase 25: Key Internalization in TUI
 **Goal**: Device keys are invisible internal identifiers — users interact only with display names
@@ -306,7 +306,7 @@ Phases execute in numeric order: 21 → 22 → 23 → 24 → 25 → 26 → 27
 | 21. Pi Hardware Research | v3.4 | 1/1 | Complete (parked) | 2026-01-31 |
 | 22. Core Detection Engine | v3.4 | 1/1 | Complete (parked) | 2026-01-31 |
 | 23. TUI Integration | v3.4 | 1/1 | Complete (parked) | 2026-01-31 |
-| 24. Slug Generation | v4.0 | 0/1 | Not started | - |
+| 24. Slug Generation | v4.0 | 1/1 | Complete | 2026-02-01 |
 | 25. Key Internalization in TUI | v4.0 | 0/2 | Not started | - |
 | 26. Remove CLI | v4.0 | 0/1 | Not started | - |
 | 27. Documentation & Cleanup | v4.0 | 0/2 | Not started | - |

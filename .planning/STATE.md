@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-01-31)
 
 **Core value:** One command to build and flash any registered board — no remembering serial paths, flash commands, or config locations.
-**Current focus:** v4.0 Remove CLI & Internalize Device Keys (planned)
+**Current focus:** v4.0 Remove CLI & Internalize Device Keys (in progress)
 
 ## Current Position
 
-Milestone: v4.0 Remove CLI & Internalize Device Keys (not started)
-Phase: 24 of 27 (Slug Generation) — in progress
-Plan: 1 of 1 complete
-Status: Phase 24 complete
+Milestone: v4.0 Remove CLI & Internalize Device Keys (in progress)
+Phase: 24 of 27 (Slug Generation) — complete, verified ✓
+Plan: 1/1 complete
+Status: Ready for Phase 25
 
-Progress: [█████████████████████████] 45/45 plans (through phase 24-01)
+Progress: [█████████████████████████] 45/50 plans (through phase 24)
 
 ## Shipped Milestones
 
