@@ -5,14 +5,14 @@
 See: .planning/PROJECT.md (updated 2026-01-31)
 
 **Core value:** One command to build and flash any registered board — no remembering serial paths, flash commands, or config locations.
-**Current focus:** Milestone v3.3 Config Device — Phase 19 Edit Interaction
+**Current focus:** Milestone v3.3 Config Device — Phase 20 Menu Integration
 
 ## Current Position
 
 Milestone: v3.3 Config Device
 Phase: 19 of 20 (Edit Interaction)
 Plan: 1 of 1 complete
-Status: In progress
+Status: Phase complete
 Last activity: 2026-01-31 — Completed 19-01-PLAN.md
 
 Progress: [████████████████████] 40/41 plans
@@ -77,7 +77,7 @@ Recent decisions affecting v3.3:
 Last session: 2026-01-31
 Stopped at: Completed 19-01-PLAN.md
 Resume file: None
-Next step: Plan Phase 20 (Check Katapult)
+Next step: Plan Phase 20
 
 ---
-*Last updated: 2026-01-31 after 19-01 completion*
+*Last updated: 2026-01-31 after Phase 19 completion*
