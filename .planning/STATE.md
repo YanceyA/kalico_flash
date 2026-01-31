@@ -13,7 +13,7 @@ Milestone: v3.4 Check Katapult
 Phase: 21 of 23 (Pi Hardware Research)
 Plan: Not started
 Status: Ready to plan
-Last activity: 2026-01-31 — Completed quick task 012: Menuconfig prompt after add-device
+Last activity: 2026-01-31 — Completed quick task 013: MCU mismatch check after menuconfig
 
 Progress: [█████████████████████] 41/41 plans (through v3.3)
 
@@ -43,13 +43,14 @@ Progress: [█████████████████████] 41/4
 | 010 | Config device prompt to add unregistered | 2026-01-31 | b3ce459 | [010-config-device-prompt-add-unregistered](./quick/010-config-device-prompt-add-unregistered/) |
 | 011 | Restore Refresh Devices to actions panel | 2026-01-31 | f2ce437 | [011-restore-refresh-devices-action](./quick/011-restore-refresh-devices-action/) |
 | 012 | Menuconfig prompt after add-device | 2026-01-31 | 9cd8ded | [012-menuconfig-prompt-after-add-device](./quick/012-menuconfig-prompt-after-add-device/) |
+| 013 | MCU mismatch check after menuconfig | 2026-01-31 | 18d9ad8 | [013-mcu-mismatch-check-after-menuconfig](./quick/013-mcu-mismatch-check-after-menuconfig/) |
 
 ## Session Continuity
 
 Last session: 2026-01-31
-Stopped at: Completed quick task 012
+Stopped at: Completed quick task 013
 Resume file: None
 Next step: /gsd:new-milestone for v3.4
 
 ---
-*Last updated: 2026-01-31 after quick task 012*
+*Last updated: 2026-01-31 after quick task 013*
