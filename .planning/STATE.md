@@ -5,18 +5,18 @@
 See: .planning/PROJECT.md (updated 2026-01-31)
 
 **Core value:** One command to build and flash any registered board — no remembering serial paths, flash commands, or config locations.
-**Current focus:** v3.4 Check Katapult (pending), v4.0 Remove CLI & Internalize Keys (roadmapped)
+**Current focus:** v3.4 Check Katapult (in progress), v4.0 Remove CLI & Internalize Keys (roadmapped)
 
 ## Current Position
 
 Milestone: v3.4 Check Katapult (in progress)
-Phase: 22 of 27 (Core Detection Engine) — complete, verified
+Phase: 23 of 27 (TUI Integration) — complete
 Plan: 1/1 complete
-Status: Phase 22 verified, ready to plan Phase 23
+Status: Phase 23 complete
 
 Planned milestone: v4.0 Remove CLI & Internalize Device Keys (phases 24-27, after v3.4)
 
-Progress: [███████████████████████] 43/43 plans (through phase 22)
+Progress: [████████████████████████] 44/44 plans (through phase 23)
 
 ## Shipped Milestones
 
@@ -50,9 +50,9 @@ Progress: [███████████████████████
 ## Session Continuity
 
 Last session: 2026-01-31
-Stopped at: Completed 22-01-PLAN.md (Core Detection Engine)
+Stopped at: Completed 23-01-PLAN.md (TUI Integration)
 Resume file: None
-Next step: Plan and execute Phase 23 (TUI Integration)
+Next step: v3.4 milestone may be complete (phases 21-23 done); plan Phase 24 or ship v3.4
 
 ---
-*Last updated: 2026-01-31 after Phase 22 completion*
+*Last updated: 2026-01-31 after Phase 23 completion*
