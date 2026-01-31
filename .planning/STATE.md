@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-01-31)
 ## Current Position
 
 Milestone: v4.0 Remove CLI & Internalize Device Keys (in progress)
-Phase: 25 of 27 (Key Internalization in TUI) — in progress
-Plan: 1/2 complete
-Status: In progress
+Phase: 25 of 27 (Key Internalization in TUI) — complete
+Plan: 2/2 complete
+Status: Phase complete
 
-Progress: [█████████████████████████] 46/50 plans (through 25-01)
+Progress: [██████████████████████████] 47/50 plans (through 25-02)
 
 ## Shipped Milestones
 
@@ -49,9 +49,9 @@ Progress: [███████████████████████
 ## Session Continuity
 
 Last session: 2026-02-01
-Stopped at: Completed 25-01-PLAN.md (remove key prompt, wire auto-key generation)
+Stopped at: Completed 25-02-PLAN.md (key internalization in user-facing output)
 Resume file: None
-Next step: Phase 25 Plan 02 (checker issues - remaining TUI key internalization)
+Next step: Phase 26
 
 ---
-*Last updated: 2026-02-01 after 25-01 plan completion*
+*Last updated: 2026-02-01 after 25-02 plan completion*
