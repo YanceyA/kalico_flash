@@ -241,10 +241,10 @@ Plans:
   1. Pressing "E" in main menu launches device config flow
   2. User sees numbered device selection prompt (same style as Flash/Remove) before config screen
   3. Step dividers separate sections within the config device flow
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
-- [ ] 20-01: Wire "E" key handler, device selection prompt, and step dividers into main menu
+- [ ] 20-01-PLAN.md — Wire E key handler, device selection prompt, and step dividers into main menu
 
 ### 📋 v3.4 Check Katapult (Planned)
 
