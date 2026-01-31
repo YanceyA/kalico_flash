@@ -64,6 +64,11 @@ def parse_mcu_from_config(config_path: str) -> Optional[str]:
 
     # Match: CONFIG_MCU="stm32h723xx"
     match = re.search(r'^CONFIG_MCU="([^"]+)"', content, re.MULTILINE)
+    if match:
+        return match.group(1)
+
+    # Fallback: CONFIG_BOARD_DIRECTORY="rp2040" (some archs have no CONFIG_MCU)
+    match = re.search(r'^CONFIG_BOARD_DIRECTORY="([^"]+)"', content, re.MULTILINE)
     return match.group(1) if match else None
 
 
@@ -185,17 +190,7 @@ class ConfigManager:
 
         actual_mcu = parse_mcu_from_config(str(self.klipper_config_path))
         if actual_mcu is None:
-            msg = format_error(
-                "Config error",
-                "No CONFIG_MCU found in .config file",
-                context={"path": str(self.klipper_config_path)},
-                recovery=(
-                    "1. Run make menuconfig and select MCU type\n"
-                    "2. Save config before exiting\n"
-                    f"3. Verify: grep CONFIG_MCU {self.klipper_config_path}"
-                ),
-            )
-            raise ConfigError(msg)
+            return False, "unknown"
 
         # Prefix match: device registry may have 'stm32h723', config has 'stm32h723xx'
         is_match = actual_mcu.startswith(expected_mcu) or expected_mcu.startswith(actual_mcu)
