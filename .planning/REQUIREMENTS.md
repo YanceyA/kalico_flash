@@ -7,8 +7,8 @@
 
 ### Menu Integration
 
-- [ ] **MENU-01**: "Config device" appears as main menu action with "E" key
-- [ ] **MENU-02**: Device selection prompt shows numbered list of registered devices (like Flash/Remove)
+- [x] **MENU-01**: "Config device" appears as main menu action with "E" key
+- [x] **MENU-02**: Device selection prompt shows numbered list of registered devices (like Flash/Remove)
 
 ### Config Device Screen
 
@@ -37,7 +37,7 @@
 
 ### Visual Consistency
 
-- [ ] **VIS-01**: Step dividers between sections in config device flow
+- [x] **VIS-01**: Step dividers between sections in config device flow
 - [ ] **VIS-02**: Screen follows Minimalist Zen aesthetic consistent with existing panels
 
 ## Future Requirements
@@ -61,8 +61,8 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| MENU-01 | Phase 20 | Pending |
-| MENU-02 | Phase 20 | Pending |
+| MENU-01 | Phase 20 | Complete |
+| MENU-02 | Phase 20 | Complete |
 | CDEV-01 | Phase 18 | Complete |
 | CDEV-02 | Phase 18 | Complete |
 | CDEV-03 | Phase 18 | Complete |
@@ -76,7 +76,7 @@
 | KEY-03 | Phase 19 | Complete |
 | SAVE-01 | Phase 19 | Complete |
 | SAVE-02 | Phase 18 | Complete |
-| VIS-01 | Phase 20 | Pending |
+| VIS-01 | Phase 20 | Complete |
 | VIS-02 | Phase 18 | Complete |
 
 **Coverage:**

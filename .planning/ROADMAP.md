@@ -8,7 +8,7 @@
 - ✅ **v3.0 TUI Redesign & Flash All** - Phases 10-14 (shipped 2026-01-30)
 - ✅ **v3.1 Config Validation** - Phase 15 (shipped 2026-01-30)
 - ✅ **v3.2 Action Dividers** - Phases 16-17 (shipped 2026-01-31)
-- 🚧 **v3.3 Config Device** - Phases 18-20 (in progress)
+- ✅ **v3.3 Config Device** - Phases 18-20 (shipped 2026-01-31)
 
 ## Phases
 
@@ -197,7 +197,7 @@ Plans:
 
 </details>
 
-### 🚧 v3.3 Config Device (In Progress)
+### ✅ v3.3 Config Device (Shipped 2026-01-31)
 
 **Milestone Goal:** Add "Config device" action to edit registered device properties from the TUI
 
@@ -244,7 +244,7 @@ Plans:
 **Plans**: 1 plan
 
 Plans:
-- [ ] 20-01-PLAN.md — Wire E key handler, device selection prompt, and step dividers into main menu
+- [x] 20-01-PLAN.md — Wire E key handler, device selection prompt, and step dividers into main menu
 
 ### 📋 v3.4 Check Katapult (Planned)
 
@@ -322,7 +322,7 @@ Phases execute in numeric order: 18 → 19 → 20 → 21 → 22 → 23
 | 17. Workflow Integration | v3.2 | 2/2 | Complete | 2026-01-31 |
 | 18. Foundation & Screen | v3.3 | 2/2 | Complete | 2026-01-31 |
 | 19. Edit Interaction | v3.3 | 1/1 | Complete | 2026-01-31 |
-| 20. Menu Integration | v3.3 | 0/1 | Not started | - |
+| 20. Menu Integration | v3.3 | 1/1 | Complete | 2026-01-31 |
 | 21. Pi Hardware Research | v3.4 | 0/1 | Not started | - |
 | 22. Core Detection Engine | v3.4 | 0/1 | Not started | - |
 | 23. TUI Integration | v3.4 | 0/1 | Not started | - |

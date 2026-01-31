@@ -59,6 +59,7 @@ Recent decisions affecting v3.3:
 | v3.0 | TUI Redesign & Flash All | 10-14 | 2026-01-30 |
 | v3.1 | Config Validation | 15 | 2026-01-30 |
 | v3.2 | Action Dividers | 16-17 | 2026-01-31 |
+| v3.3 | Config Device | 18-20 | 2026-01-31 |
 
 ## Quick Tasks Completed
 
