@@ -16,70 +16,42 @@ One-command firmware building and flashing for Kalico/Klipper USB boards.
    ```
    Expected output: `Installed kflash -> /home/pi/kalico-flash/kflash.py`
 
-3. **Add your first device:**
-   ```bash
-   kflash --add-device
-   ```
-   Follow the wizard to register a connected board.
-
-4. **Flash:**
+3. **Run kflash:**
    ```bash
    kflash
    ```
-   Select your device from the menu, or use `kflash -d DEVICE_KEY` directly.
+   The TUI guides you through adding your first device and flashing.
 
 ## Features
 
-### Interactive TUI Menu
+### Interactive TUI
 
-Run `kflash` with no arguments to get an interactive menu:
+Run `kflash` to launch the full-screen TUI. The main screen displays:
 
-```
-kflash
+- **Status panel** -- registered devices with connection status and firmware versions
+- **Actions panel** -- available operations
 
-  kalico-flash v0.1.0
+Available actions:
 
-  1) Flash a device
-  2) Add new device
-  3) List devices
-  4) Remove device
-  5) Settings
-  6) Exit
-
-  Select [1-6]:
-```
-
-### Skip Menuconfig
-
-Use `-s` to skip the menuconfig TUI when a cached config exists:
-
-```bash
-kflash -d octopus-pro -s
-```
-
-This uses the previously saved config, validates the MCU, builds, and flashes in one step. If no cached config exists, menuconfig launches anyway with a warning.
+- **Flash Device (F)** -- select a connected device, run menuconfig, build, and flash
+- **Flash All (A)** -- flash all connected (non-excluded) devices sequentially
+- **Add Device (N)** -- register a new USB device with interactive prompts for name and MCU
+- **Remove Device (X)** -- remove a registered device
+- **Config Device (C)** -- edit device settings (name, MCU, flash method, exclusion)
+- **Refresh Devices (R)** -- re-scan USB devices and update the status panel
+- **Quit (Q)** -- exit
 
 ### Device Exclusion
 
-Mark devices that shouldn't be flashed (like Beacon probes that manage their own firmware):
+Mark devices that should not be flashed (like Beacon probes that manage their own firmware). Use **Config Device** from the main menu to toggle a device's excluded status.
 
-```bash
-kflash --exclude-device beacon
-```
-
-Excluded devices appear in listings with `[excluded]` but aren't selectable for flashing. To re-enable:
-
-```bash
-kflash --include-device beacon
-```
+Excluded devices appear in the status panel with `[excluded]` but are not selectable for flashing.
 
 ### Flash Method and Fallback
 
-kalico-flash uses **Katapult** by default. Each device can store a *preferred* flash
-method during `--add-device`, and the global default is Katapult.
+kalico-flash uses **Katapult** by default. Each device can store a preferred flash method during registration, and the global default is Katapult.
 
-If **flash fallback** is enabled, a failed Katapult flash will automatically
-fall back to `make flash`. If disabled, flashing is strict (Katapult-only).
+If **flash fallback** is enabled, a failed Katapult flash will automatically fall back to `make flash`. If disabled, flashing is strict (Katapult-only).
 
 You can toggle fallback in the Settings menu:
 
@@ -89,26 +61,18 @@ Settings -> Toggle flash fallback (Katapult -> make flash)
 
 ### Unknown Device Blocking
 
-Only Klipper/Katapult USB devices are eligible for registration. Devices that
-do not appear with a `usb-Klipper_` or `usb-katapult_` prefix are shown as
-**blocked** and cannot be added or flashed.
+Only Klipper/Katapult USB devices are eligible for registration. Devices that do not appear with a `usb-Klipper_` or `usb-katapult_` prefix are shown as **blocked** and cannot be added or flashed.
 
 ### Print Safety
 
-kalico-flash checks Moonraker before flashing. If a print is in progress:
-
-```
-[Safety] Printer state: printing - 47% complete
-ERROR: Printer busy
-  Print in progress: benchy.gcode (47%)
+kalico-flash checks Moonraker before flashing. If a print is in progress, you will see an error with the print name and progress percentage.
 
 Recovery:
-  1. Wait for current print to complete
-  2. Or cancel print in Fluidd/Mainsail dashboard
-  3. Then re-run flash command
-```
+1. Wait for the current print to complete
+2. Or cancel the print in Fluidd/Mainsail dashboard
+3. Then use Flash Device from the main menu
 
-If Moonraker is unreachable, you're warned and asked to confirm before proceeding.
+If Moonraker is unreachable, you are warned and asked to confirm before proceeding.
 
 ### Version Display
 
@@ -120,7 +84,7 @@ Before flashing, kalico-flash shows host Klipper version and MCU firmware versio
 [Version]   [ ] MCU nhk: v0.12.0-250-g5e6f7a8b
 ```
 
-The `*` marks the MCU being flashed. If the MCU firmware is behind the host version, you'll see a warning recommending the update.
+The `*` marks the MCU being flashed. If the MCU firmware is behind the host version, you will see a warning recommending the update.
 
 ### Post-Flash Verification
 
@@ -133,26 +97,7 @@ After flashing, kalico-flash waits up to 30 seconds for the device to reappear w
 [OK] Flashed Octopus Pro v1.1 via katapult in 8.2s
 ```
 
-If the device doesn't reappear or reappears with the wrong serial prefix, you'll get specific recovery steps.
-
-## CLI Reference
-
-| Command | Description | Example |
-|---------|-------------|---------|
-| `kflash` | Interactive menu | `kflash` |
-| `kflash -d KEY` | Flash specific device | `kflash -d octopus-pro` |
-| `kflash -d KEY -s` | Flash, skip menuconfig | `kflash -d octopus-pro -s` |
-| `kflash --add-device` | Register new device | `kflash --add-device` |
-| `kflash --list-devices` | Show registered devices | `kflash --list-devices` |
-| `kflash --remove-device KEY` | Remove device | `kflash --remove-device old-board` |
-| `kflash --exclude-device KEY` | Mark non-flashable | `kflash --exclude-device beacon` |
-| `kflash --include-device KEY` | Mark flashable | `kflash --include-device beacon` |
-| `kflash --version` | Show version | `kflash --version` |
-| `kflash --help` | Show help | `kflash --help` |
-
-**Short flags:**
-- `-d KEY` is shorthand for `--device KEY`
-- `-s` is shorthand for `--skip-menuconfig`
+If the device does not reappear or reappears with the wrong serial prefix, you will get specific recovery steps.
 
 ## Installation
 
@@ -188,10 +133,10 @@ Because the install uses a symlink, updates via `git pull` take effect immediate
 ### Verify Installation
 
 ```bash
-kflash --version
+kflash
 ```
 
-Expected output: `kalico-flash v0.1.0`
+The TUI header displays the current version.
 
 ## Automatic Updates
 
@@ -212,7 +157,7 @@ After adding, restart Moonraker:
 sudo systemctl restart moonraker
 ```
 
-kalico-flash will then appear in the Update Manager section of your dashboard. Updates are applied via `git pull` - no service restart needed since kflash is a CLI tool, not a daemon.
+kalico-flash will then appear in the Update Manager section of your dashboard. Updates are applied via `git pull` - no service restart needed since kflash is a TUI tool, not a daemon.
 
 ## Uninstall
 
@@ -246,10 +191,10 @@ CAN bus devices are not supported - USB only.
 
 ## How It Works
 
-When you run `kflash`, the tool executes four phases:
+When you launch `kflash` and select Flash Device, the tool executes four phases:
 
 1. **Discovery** - Scans `/dev/serial/by-id/` for USB serial devices, matches against registered device patterns
-2. **Config** - Loads cached menuconfig settings, optionally launches menuconfig for review, validates MCU type
+2. **Config** - Loads cached menuconfig settings, launches menuconfig for review, validates MCU type
 
    **Config loading behavior:**
 
