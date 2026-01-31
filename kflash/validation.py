@@ -7,6 +7,7 @@ before they are saved to the global configuration.
 from __future__ import annotations
 
 import os
+import re
 
 
 def validate_numeric_setting(
@@ -47,5 +48,35 @@ def validate_path_setting(raw: str, setting_key: str) -> tuple[bool, str]:
         flashtool = os.path.join(expanded, "scripts", "flashtool.py")
         if not os.path.isfile(flashtool):
             return False, f"Missing expected file: {flashtool}"
+
+    return True, ""
+
+
+def validate_device_key(
+    key: str, registry, current_key: str | None = None
+) -> tuple[bool, str]:
+    """Validate a device key for registration or rename.
+
+    Args:
+        key: Proposed device key (whitespace is stripped).
+        registry: Registry instance for uniqueness check.
+        current_key: If renaming, the current key (self-rename is allowed).
+
+    Returns:
+        (is_valid, error_message) — empty string on success.
+    """
+    key = key.strip()
+
+    if not key:
+        return False, "Device key cannot be empty"
+
+    if not re.match(r"^[a-z0-9][a-z0-9_-]*$", key):
+        return False, "Key must start with a-z/0-9 and contain only a-z, 0-9, _ or -"
+
+    if current_key is not None and key == current_key:
+        return True, ""
+
+    if registry.get(key) is not None:
+        return False, f"Device '{key}' already registered"
 
     return True, ""

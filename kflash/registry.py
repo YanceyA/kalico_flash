@@ -140,6 +140,21 @@ class Registry:
         registry.global_config = config
         self.save(registry)
 
+    def update_device(self, key: str, **updates) -> bool:
+        """Update fields on a registered device. Returns False if key not found.
+
+        Uses load-modify-save pattern for atomic persistence.
+        Valid fields: name, mcu, serial_pattern, flash_method, flashable.
+        """
+        registry = self.load()
+        if key not in registry.devices:
+            return False
+        device = registry.devices[key]
+        for field, value in updates.items():
+            setattr(device, field, value)
+        self.save(registry)
+        return True
+
     def set_flashable(self, key: str, flashable: bool) -> bool:
         """Set flashable status for a device. Returns False if device not found."""
         registry = self.load()
