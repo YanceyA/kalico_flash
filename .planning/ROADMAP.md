@@ -244,8 +244,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 25-01-PLAN.md — Remove key prompt from add-device wizard, wire generate_device_key()
-- [ ] 25-02-PLAN.md — Remove key edit from device config screen, replace entry.key with entry.name in all output
+- [x] 25-01-PLAN.md — Remove key prompt from add-device wizard, wire generate_device_key()
+- [x] 25-02-PLAN.md — Remove key edit from device config screen, replace entry.key with entry.name in all output
 
 #### Phase 26: Remove CLI
 **Goal**: kflash launches directly into TUI with no argument parsing
@@ -307,6 +307,6 @@ Phases execute in numeric order: 21 → 22 → 23 → 24 → 25 → 26 → 27
 | 22. Core Detection Engine | v3.4 | 1/1 | Complete (parked) | 2026-01-31 |
 | 23. TUI Integration | v3.4 | 1/1 | Complete (parked) | 2026-01-31 |
 | 24. Slug Generation | v4.0 | 1/1 | Complete | 2026-02-01 |
-| 25. Key Internalization in TUI | v4.0 | 0/2 | Not started | - |
+| 25. Key Internalization in TUI | v4.0 | 2/2 | Complete | 2026-02-01 |
 | 26. Remove CLI | v4.0 | 0/1 | Not started | - |
 | 27. Documentation & Cleanup | v4.0 | 0/2 | Not started | - |
