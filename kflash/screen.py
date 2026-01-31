@@ -13,7 +13,7 @@ from dataclasses import dataclass, field
 from typing import Optional
 
 from .ansi import display_width
-from .models import GlobalConfig
+from .models import DeviceEntry, GlobalConfig
 from .panels import render_panel, render_two_column
 from .theme import get_theme
 
@@ -452,3 +452,62 @@ def render_config_screen(gc: GlobalConfig) -> str:
 
     panels = [status, settings]
     return "\n\n".join(panels)
+
+
+# ---------------------------------------------------------------------------
+# Device config screen settings definition
+# ---------------------------------------------------------------------------
+
+DEVICE_SETTINGS: list[dict] = [
+    {"key": "name", "label": "Display name", "type": "text"},
+    {"key": "key", "label": "Device key", "type": "text"},
+    {"key": "flash_method", "label": "Flash method", "type": "cycle", "values": [None, "katapult", "make_flash"]},
+    {"key": "flashable", "label": "Include in flash operations", "type": "toggle"},
+    {"key": "menuconfig", "label": "Edit firmware config", "type": "action"},
+]
+
+
+# ---------------------------------------------------------------------------
+# Device config screen rendering
+# ---------------------------------------------------------------------------
+
+def render_device_config_screen(device_entry: DeviceEntry) -> str:
+    """Render the device config screen with identity and settings panels.
+
+    Args:
+        device_entry: The device to render config for.
+
+    Returns:
+        Multi-line string ready for print().
+    """
+    theme = get_theme()
+
+    # Identity panel (read-only)
+    identity_lines = [
+        f"{theme.text}MCU Type:{theme.reset} {theme.value}{device_entry.mcu}{theme.reset}",
+        f"{theme.text}Serial Pattern:{theme.reset} {theme.value}{device_entry.serial_pattern}{theme.reset}",
+    ]
+    identity = render_panel("device identity", identity_lines)
+
+    # Settings panel (numbered, editable)
+    settings_lines: list[str] = []
+    for i, setting in enumerate(DEVICE_SETTINGS, 1):
+        if setting["type"] == "action":
+            display = f"{theme.subtle}\u25b6{theme.reset}"
+        else:
+            value = getattr(device_entry, setting["key"])
+            if setting["type"] == "toggle":
+                display = "ON" if value else "OFF"
+            elif setting["type"] == "cycle":
+                display = str(value) if value else "default"
+            else:
+                display = str(value)
+        settings_lines.append(
+            f"{theme.label}{i}.{theme.reset} "
+            f"{theme.text}{setting['label']}:{theme.reset} "
+            f"{theme.value}{display}{theme.reset}"
+        )
+
+    settings = render_panel("settings", settings_lines)
+
+    return "\n\n".join([identity, settings])
