@@ -8,27 +8,28 @@ A Python CLI tool that automates Klipper/Kalico firmware building and flashing f
 
 One command to build and flash any registered board — no remembering serial paths, flash commands, or config locations.
 
-## Current Milestone: v3.2 Action Dividers
+## Current Milestone: v3.3 Config Device
 
-**Goal:** Add lightweight step dividers to all action workflows for visual separation between steps
-**Started:** 2026-01-30
+**Goal:** Add a "Config device" action to edit registered device properties from the TUI
+**Started:** 2026-01-31
 
 **Target features:**
-- Light dashed `┄` dividers between steps in flash, add-device, remove-device workflows
-- Labeled `─── 1/N DeviceName ───` dividers between devices in flash-all
-- Divider color matches panel border (muted teal #64A0B4)
-- Output protocol extended with divider methods
-- Non-intrusive, consistent with existing Minimalist Zen aesthetic
+- New "Config device" main menu action
+- Device selection prompt (like Flash/Remove)
+- Config screen showing device identity at top, numbered editable fields below
+- Editable fields: device key, display name, flash method, include/exclude status
+- Key rename migrates cached .config directory automatically
+- Follows existing config screen pattern (flat numbered list, type-dispatched editing)
 
 See: `.planning/ROADMAP.md` for phase breakdown
 See: `.planning/REQUIREMENTS.md` for full requirements list
 
-## Previous State (v3.1 shipped)
+## Previous State (v3.2 shipped)
 
-**Shipped:** 2026-01-30
+**Shipped:** 2026-01-31
 **Modules:** 13 Python modules + validation.py
-**LOC:** 5,600 lines of Python
-**Status:** Config validation complete — all settings validated at edit time
+**LOC:** ~5,600 lines of Python
+**Status:** Action dividers complete — visual separation in all workflows
 
 **CLI commands:**
 - `kflash` — Interactive TUI menu with Add/List/Flash/Remove/Settings
@@ -180,4 +181,4 @@ python3 ~/katapult/scripts/flashtool.py -f ~/klipper/out/klipper.bin -d /dev/ser
 | Stdlib only for TUI redesign | No Rich/Textual — pure ANSI codes, maintain constraint | ✓ Good |
 
 ---
-*Last updated: 2026-01-30 after v3.2 milestone initialization*
+*Last updated: 2026-01-31 after v3.3 milestone initialization*

@@ -5,17 +5,15 @@
 See: .planning/PROJECT.md (updated 2026-01-30)
 
 **Core value:** One command to build and flash any registered board — no remembering serial paths, flash commands, or config locations.
-**Current focus:** Milestone v3.2 complete — ready for audit
+**Current focus:** Milestone v3.3 Config Device — defining requirements
 
 ## Current Position
 
-Milestone: v3.2 Action Dividers
-Phase: 17 of 17 (Workflow Integration)
-Plan: 2 of 2 in current phase
-Status: Milestone complete — ready for audit
-Last activity: 2026-01-31 — Phase 17 verified, milestone v3.2 complete
-
-Progress: [██████████████████] 100% (37/37 estimated plans complete across all phases)
+Milestone: v3.3 Config Device
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-01-31 — Milestone v3.3 started
 
 ## Performance Metrics
 
@@ -75,9 +73,9 @@ Recent decisions affecting v3.2:
 ## Session Continuity
 
 Last session: 2026-01-31
-Stopped at: Completed 17-02-PLAN.md (Phase 17 complete)
+Stopped at: Milestone v3.3 initialization — research phase
 Resume file: None
-Next step: /gsd:audit-milestone
+Next step: Complete research → define requirements → create roadmap
 
 ---
-*Last updated: 2026-01-31 after 17-02 execution*
+*Last updated: 2026-01-31 after v3.3 milestone start*
