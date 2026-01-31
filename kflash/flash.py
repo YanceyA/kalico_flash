@@ -1931,6 +1931,44 @@ def cmd_add_device(registry, out, selected_device=None) -> int:
     )
     registry.add(entry)
     out.success(f"Registered '{device_key}' ({display_name})")
+
+    # Offer to run menuconfig for the newly registered device
+    out.step_divider()
+    if out.confirm("Run menuconfig now to configure firmware?", default=True):
+        try:
+            from .build import run_menuconfig
+            from .config import ConfigManager
+
+            data = registry.load()
+            if data.global_config is None:
+                out.warning("Cannot run menuconfig: global config not set")
+                return 0
+
+            klipper_dir = data.global_config.klipper_dir
+            config_mgr = ConfigManager(device_key, klipper_dir)
+
+            # Load or start fresh config
+            if config_mgr.load_cached_config():
+                out.info("Config", f"Loaded cached config for '{device_key}'")
+            else:
+                config_mgr.clear_klipper_config()
+                out.info("Config", "No cached config found, starting fresh")
+
+            out.info("Config", "Launching menuconfig...")
+            ret_code, was_saved = run_menuconfig(
+                klipper_dir, str(config_mgr.klipper_config_path)
+            )
+
+            if ret_code != 0:
+                out.warning("menuconfig exited with errors, config not saved")
+            elif was_saved:
+                config_mgr.save_cached_config()
+                out.success(f"Config saved for '{device_key}'")
+            else:
+                out.info("Config", "menuconfig exited without saving")
+        except Exception as exc:
+            out.warning(f"menuconfig failed: {exc}")
+
     return 0
 
 
