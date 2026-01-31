@@ -206,7 +206,7 @@ Plans:
 
 </details>
 
-### v3.4 Check Katapult (Planned)
+### v3.4 Check Katapult (Completed 2026-01-31)
 
 **Milestone Goal:** Add Katapult bootloader detection to the device config screen — probe a device to determine if Katapult is installed
 
@@ -254,7 +254,7 @@ Plans:
 **Plans**: 1 plan
 
 Plans:
-- [ ] 23-01: Wire "K" key handler in device config screen with warning, confirmation, service lifecycle, result display
+- [x] 23-01: Wire "K" key handler in device config screen with warning, confirmation, service lifecycle, result display
 
 ### v4.0 Remove CLI & Internalize Device Keys (Planned)
 
@@ -346,7 +346,7 @@ Phases execute in numeric order: 21 → 22 → 23 → 24 → 25 → 26 → 27
 | 20. Menu Integration | v3.3 | 1/1 | Complete | 2026-01-31 |
 | 21. Pi Hardware Research | v3.4 | 1/1 | Complete | 2026-01-31 |
 | 22. Core Detection Engine | v3.4 | 1/1 | Complete | 2026-01-31 |
-| 23. TUI Integration | v3.4 | 0/1 | Not started | - |
+| 23. TUI Integration | v3.4 | 1/1 | Complete | 2026-01-31 |
 | 24. Slug Generation | v4.0 | 0/1 | Not started | - |
 | 25. Key Internalization in TUI | v4.0 | 0/2 | Not started | - |
 | 26. Remove CLI | v4.0 | 0/1 | Not started | - |
