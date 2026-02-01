@@ -5,15 +5,15 @@
 See: .planning/PROJECT.md (updated 2026-02-01)
 
 **Core value:** One command to build and flash any registered board -- no remembering serial paths, flash commands, or config locations.
-**Current focus:** v4.1 Flash All Safety & Cleanup
+**Current focus:** Planning next milestone
 
 ## Current Position
 
-Milestone: v4.1 Flash All Safety & Cleanup
-Phase: 30 of 30 (Dead Setting Removal)
-Plan: 1 of 1 in phase 30
-Status: Phase 30 complete -- v4.1 milestone complete
-Last activity: 2026-02-01 -- Completed 30-01-PLAN.md
+Milestone: v4.1 Flash All Safety & Cleanup -- SHIPPED
+Phase: 30 of 30 (all complete)
+Plan: All complete
+Status: Milestone shipped, ready for next milestone
+Last activity: 2026-02-01 -- v4.1 milestone complete
 
 Progress: [██████████] 100%
 
@@ -30,6 +30,7 @@ Progress: [██████████] 100%
 | v3.3 | Config Device | 18-20 | 2026-01-31 |
 | v3.4 | Check Katapult (parked) | 21-23 | 2026-01-31 |
 | v4.0 | Remove CLI & Internalize Device Keys | 24-27 | 2026-02-01 |
+| v4.1 | Flash All Safety & Cleanup | 28-30 | 2026-02-01 |
 
 ## Quick Tasks Completed
 
@@ -51,9 +52,9 @@ Progress: [██████████] 100%
 ## Session Continuity
 
 Last session: 2026-02-01
-Stopped at: Completed 30-01-PLAN.md
+Stopped at: v4.1 milestone complete
 Resume file: None
-Next step: v4.1 milestone complete
+Next step: /gsd:new-milestone for next version
 
 ---
-*Last updated: 2026-02-01 after 30-01 Dead Setting Removal completion*
+*Last updated: 2026-02-01 after v4.1 milestone completion*

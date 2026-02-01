@@ -1,5 +1,33 @@
 # Project Milestones: kalico-flash
 
+## v4.1 Flash All Safety & Cleanup (Shipped: 2026-02-01)
+
+**Delivered:** Closed safety gaps in Flash All with preflight environment validation, Moonraker safety prompts, duplicate USB path guards, hardware MCU cross-checks, build error output capture, and dead setting removal.
+
+**Phases completed:** 28-30 (3 plans total)
+
+**Key accomplishments:**
+
+- Preflight environment validation in Flash All — fails fast on missing Klipper dir, Makefile, make, or Katapult
+- Moonraker unreachable safety prompt in Flash All, matching single-device behavior
+- Duplicate USB path guard preventing same physical device targeted twice in batch
+- Hardware MCU cross-check before flashing — validates USB device identity against registry
+- Build error output capture with inline display of last 20 lines on failure in Flash All
+- Dead `config_cache_dir` setting removed from entire codebase
+
+**Stats:**
+
+- 5 Python files modified (+107/-15 code lines)
+- 6,472 lines of Python (total project)
+- 3 phases, 3 plans, 7 tasks
+- 1 day (2026-02-01)
+
+**Git range:** `c083736` → `7fd6a8e`
+
+**What's next:** TBD
+
+---
+
 ## v4.0 Remove CLI & Internalize Device Keys (Shipped: 2026-02-01)
 
 **Delivered:** Removed all CLI/argparse infrastructure and made device keys auto-generated internal identifiers. The tool now operates exclusively through TUI — `kflash` launches directly into the interactive menu with no argument parsing.

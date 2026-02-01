@@ -8,29 +8,22 @@ A Python TUI tool that automates Klipper/Kalico firmware building and flashing f
 
 One command to build and flash any registered board — no remembering serial paths, flash commands, or config locations.
 
-## Current Milestone: v4.1 Flash All Safety & Cleanup (started 2026-02-01)
+## Previous Milestone: v4.1 Flash All Safety & Cleanup (shipped 2026-02-01)
 
-**Goal:** Close safety gaps in Flash All targeting, add hardware MCU cross-check, align safety prompts for Moonraker failures, and remove dead settings — all blocking issues from beta review.
-
-**Target fixes:**
-- Preflight checks in Flash All (reuse `_preflight_flash()`)
-- Moonraker unreachable confirmation in Flash All (align with single-device flow)
-- Hardware MCU cross-check before flashing (use existing `extract_mcu_from_serial()`)
-- Surface build errors in Flash All (show tail of build output on failure)
-- Remove dead `config_cache_dir` setting (unused, confusing)
-- Used-path tracking in Flash All (prevent same USB device targeted twice)
+**Goal:** Close safety gaps in Flash All targeting, add hardware MCU cross-check, align safety prompts for Moonraker failures, and remove dead settings.
+**Outcome:** All 6 requirements shipped. Flash All now has preflight validation, Moonraker safety prompts, duplicate USB guards, MCU cross-checks, and build error display. Dead config_cache_dir removed.
 
 ## Previous Milestone: v4.0 Remove CLI & Internalize Device Keys (shipped 2026-02-01)
 
 **Goal:** Remove all CLI/argparse elements and make device keys auto-generated internal identifiers — the tool operates exclusively through TUI
 **Outcome:** All CLI infrastructure removed. Device keys auto-generated from display names. Tool is now purely TUI-driven.
 
-## Previous State (v4.0 shipped)
+## Current State (v4.1 shipped)
 
 **Shipped:** 2026-02-01
-**Modules:** 14 Python modules (including validation.py)
-**LOC:** ~6,371 lines of Python
-**Status:** Pure TUI application. No CLI flags. Device keys auto-generated internally. All documentation reflects TUI-only operation.
+**Modules:** 14 Python modules
+**LOC:** ~6,472 lines of Python
+**Status:** Pure TUI application with full Flash All safety: preflight validation, MCU cross-check, duplicate USB guard, build error capture. Dead settings removed.
 
 ## Requirements
 
@@ -123,6 +116,15 @@ One command to build and flash any registered board — no remembering serial pa
 - ✓ README, CLAUDE.md, install.sh updated for TUI-only operation — v4.0
 - ✓ Error recovery messages reference TUI actions — v4.0
 
+### Validated (v4.1 Flash All Safety & Cleanup)
+
+- ✓ Flash All preflight environment validation (Klipper dir, Makefile, make, Katapult) — v4.1
+- ✓ Flash All Moonraker unreachable safety prompt matching single-device flow — v4.1
+- ✓ Hardware MCU cross-check before flashing (USB identity vs registry) — v4.1
+- ✓ Flash All duplicate USB path guard (used_paths tracking) — v4.1
+- ✓ Build error output capture with inline display in Flash All summary — v4.1
+- ✓ Dead config_cache_dir setting removed from codebase — v4.1
+
 ### Future Candidates
 
 - [ ] SHA256 change detection to skip rebuild when config unchanged
@@ -204,6 +206,9 @@ python3 ~/katapult/scripts/flashtool.py -f ~/klipper/out/klipper.bin -d /dev/ser
 | Thin TUI launcher with TTY guard | No arg parsing at all, clean entry point | ✓ Good |
 | TUI action names in error recovery text | Users see "Add Device from the main menu" not key shortcuts | ✓ Good |
 | Preserve existing device keys on load | No re-derivation risk, backward compatible | ✓ Good |
+| MCU cross-check best-effort (skip when None) | Not all USB filenames contain extractable MCU info | ✓ Good |
+| Build output capture only in quiet/batch mode | Interactive mode already shows output live | ✓ Good |
+| Remove config_cache_dir rather than implement | Dead code, XDG convention already handled by get_config_dir() | ✓ Good |
 
 ---
-*Last updated: 2026-02-01 after v4.1 milestone start*
+*Last updated: 2026-02-01 after v4.1 milestone*
