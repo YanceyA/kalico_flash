@@ -24,7 +24,7 @@ class GlobalConfig:
 class DeviceEntry:
     """A registered device in the registry."""
 
-    key: str  # "octopus-pro" (user-chosen, used as --device flag)
+    key: str  # "octopus-pro" (auto-generated slug from display name)
     name: str  # "Octopus Pro v1.1" (display name)
     mcu: str  # "stm32h723" (extracted from serial path)
     serial_pattern: str  # "usb-Klipper_stm32h723xx_29001A*"
