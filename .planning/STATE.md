@@ -4,16 +4,18 @@
 
 See: .planning/PROJECT.md (updated 2026-02-01)
 
-**Core value:** One command to build and flash any registered board — no remembering serial paths, flash commands, or config locations.
+**Core value:** One command to build and flash any registered board -- no remembering serial paths, flash commands, or config locations.
 **Current focus:** v4.1 Flash All Safety & Cleanup
 
 ## Current Position
 
 Milestone: v4.1 Flash All Safety & Cleanup
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-02-01 — Milestone v4.1 started
+Phase: 28 of 30 (Flash All Preflight)
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-02-01 -- Roadmap created for v4.1
+
+Progress: [░░░░░░░░░░] 0%
 
 ## Shipped Milestones
 
@@ -49,9 +51,9 @@ Last activity: 2026-02-01 — Milestone v4.1 started
 ## Session Continuity
 
 Last session: 2026-02-01
-Stopped at: Milestone v4.1 initialization
+Stopped at: Roadmap created for v4.1
 Resume file: None
-Next step: Define requirements and roadmap for v4.1
+Next step: Plan phase 28
 
 ---
-*Last updated: 2026-02-01 after v4.1 milestone start*
+*Last updated: 2026-02-01 after v4.1 roadmap creation*
