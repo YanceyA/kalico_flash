@@ -1,336 +1,170 @@
 # Project Research Summary
 
-**Project:** kalico-flash v4.0 (CLI Removal and Device Key Internalization)
-**Domain:** Python CLI-to-TUI refactor for firmware build/flash tool
-**Researched:** 2026-01-31
+**Project:** kalico-flash v4.2 (Test Framework)
+**Domain:** Test suite for safety-critical firmware flash tool
+**Researched:** 2026-02-01
 **Confidence:** HIGH
 
 ## Executive Summary
 
-The v4.0 milestone removes argparse CLI flags and internalizes device keys, transforming kalico-flash from a hybrid CLI/TUI tool into a TUI-only application. Research shows this is a simplification exercise, not feature addition. The entire change requires zero new dependencies—only deletion of argparse and addition of a 4-line slugification function using stdlib `re.sub()`. Device keys transition from user-typed CLI arguments to auto-generated internal identifiers derived from display names.
+This research evaluated how to add comprehensive testing to kalico-flash, a Python TUI tool that automates firmware building and flashing for Klipper/Kalico MCU boards. The tool has zero tests currently despite operating in a safety-critical domain where bugs can physically brick expensive boards. The recommended approach is pytest-based unit testing focused on pure function logic, using real filesystem fixtures for I/O validation and deliberately avoiding TUI/subprocess testing.
 
-The recommended approach: remove `build_parser()` and all CLI flag handling from `flash.py`, making `main()` launch straight to TUI. Add `generate_device_key()` in `validation.py` that slugifies display names ("Octopus Pro v1.1" → "octopus-pro-v1-1") with numeric suffixes for collisions. Crucially, existing devices.json keys remain unchanged—only new devices added after migration get auto-generated keys. Config cache directories stay where they are. No migration scripts needed. This preserves all existing user data while preventing future CLI complexity.
+The codebase is well-architected for testing: 22 pure functions handle critical safety logic (MCU extraction, pattern matching, slug generation, config validation), existing dataclass contracts enable clean test fixtures, and the hub-and-spoke module structure prevents cross-dependencies. The highest ROI comes from testing these pure functions with parametrized test cases covering edge cases, real-world serial device naming variants, and the subtle bidirectional MCU prefix matching that prevents wrong-firmware-on-wrong-board scenarios.
 
-The primary risk is partial data corruption during the transition: user-facing strings still referencing `--device` flags, entry.key displayed instead of entry.name, or collision handling missing. Prevention requires systematic audit of all 30+ instances of `entry.key` in user output (must show `entry.name` instead), comprehensive grep for `--device`/`--add-device`/`--list-devices` in error messages (replace with TUI instructions like "Press F to flash"), and collision check in slug generation (append `-2`, `-3` until unique). The architectural patterns needed already exist—this is surgical deletion plus one validation function, not invention.
+Key risks are over-mocking (coupling tests to implementation details rather than behavior), testing TUI rendering instead of business logic, and chasing coverage metrics instead of safety value. The recommended MVP is 50-65 focused tests targeting the 9 safety-critical functions where bugs cause hardware damage, followed by 40-50 additional tests for confidence/regression coverage. This achieves comprehensive safety validation without the maintenance burden of hundreds of low-value tests.
 
 ## Key Findings
 
 ### Recommended Stack
 
-No new stack elements required. All capabilities exist in Python 3.9+ stdlib, already imported in the codebase.
+Research confirms pytest as the optimal test framework based on three decisive factors: (1) native `@pytest.mark.parametrize` support which is critical for data-driven testing of MCU extraction and pattern matching functions with their many input variants, (2) built-in `tmp_path` fixture for real filesystem testing without cleanup boilerplate, and (3) rich assertion introspection that provides clear failure context. The stdlib `unittest.mock` handles all mocking needs without additional dependencies.
 
 **Core technologies:**
-- `re.sub()` — Slug generation from display name - single regex `[^a-z0-9]+` replaces all non-alphanumeric with hyphens, already imported
-- `str.lower()` + `str.strip('-')` — Case normalization and edge cleanup for filesystem-safe keys
-- `sys.argv` — Minimal `--help` detection without argparse - two string comparisons replace entire parser
-- `shutil.move()` — Config cache migration IF key rename feature included (optional for v4.0) - already imported in config.py
+- **pytest >=7.0** - Test runner, parametrize, fixtures; best fit for pure function data-driven testing with minimal boilerplate
+- **unittest.mock** - All mocking needs; already in stdlib, works natively with pytest
+- **tmp_path fixture** - Temp directory management; tests Registry persistence, config cache, atomic writes with real files
+- **monkeypatch fixture** - Environment isolation; XDG_CONFIG_HOME, SERIAL_BY_ID constant, time-dependent functions
 
-**What to remove:**
-- `argparse` module import and `build_parser()` function (~60 lines)
-- All CLI flag routing in `main()` (--device, --add-device, --list-devices, --remove-device, --exclude-device, --include-device)
-- Device key prompt from add-device wizard (step 4, lines 1814-1827 in flash.py)
-- Device key editing from device config screen (DEVICE_SETTINGS index 2 in screen.py)
-
-**Integration points (existing files only):**
-- `flash.py` — Simplify `main()` to TUI-only launcher, remove argparse dispatch
-- `validation.py` — Add `generate_device_key(name, registry)` with collision handling
-- `tui.py` — Remove key editing from `_device_config_screen()`, adjust setting indices
-- `screen.py` — Remove key from `DEVICE_SETTINGS` list
-- `errors.py` — Update ERROR_TEMPLATES to replace CLI flag references with TUI instructions
-
-**Key architectural decision:** Existing device keys are immutable. The JSON dict key from devices.json becomes the permanent internal identifier. Only NEW devices registered after v4.0 get auto-generated slugs. No registry migration code required—this preserves backward compatibility and avoids config cache rename complexity.
+**Critical decision: pytest vs unittest**
+Parametrize is the deciding factor. High-value test targets (`extract_mcu_from_serial`, `validate_mcu`, `generate_device_key`) are pure functions with 8-10 input/output pairs each. With pytest, each case becomes a distinct test in output. With unittest's `subTest`, they share a single pass/fail. This difference is critical for debugging failures in CI or during development.
 
 ### Expected Features
 
-Research identified clear must-haves (transition requirements) vs should-haves (polish) vs anti-features (scope creep to avoid).
+Testing requirements split into table stakes (safety-critical) and differentiators (confidence/UX). Research identified 9 table-stakes test targets totaling 51-65 tests and 9 differentiator targets adding 36-46 tests.
 
-**Must have (transition blockers):**
-- `kflash` launches TUI directly - with CLI removed, non-TTY should print brief usage message and exit
-- Auto-generate key from display name during add-device - slugify function: lowercase, regex replace non-alphanumeric, strip edges
-- Uniqueness handling for generated keys - check registry, append `-2`, `-3` if collision
-- Preserve existing devices.json keys - existing keys stay as-is, no migration or regeneration
-- Preserve existing config cache directories - no directory renames, paths continue working
-- Remove key prompt from add-device wizard - user only provides display name, system generates key silently
-- Remove key editing from device config screen - keys are internal, not user-editable
-- Update all CLI flag references in error messages - replace `--device KEY` with TUI action instructions ("Press F")
-- Show display name everywhere keys were shown - audit all `entry.key` in output, replace with `entry.name`
+**Must have (table stakes - blocks first release):**
+- `extract_mcu_from_serial()` tests - Wrong MCU extraction = wrong firmware on wrong chip = bricked board (8-10 tests)
+- `validate_mcu()` + `parse_mcu_from_config()` - Guards "is this config for this board?" check with bidirectional prefix match (6-8 + 5-7 tests)
+- `match_devices()` + `generate_serial_pattern()` - Device targeting logic; wrong match = wrong board flashed (5-6 + 4-5 tests)
+- `generate_device_key()` - Slug collision = one device's config overwrites another's (8-10 tests)
+- Flash All safety guards - Batch automation 4-guard system (ambiguous pattern, duplicate path, MCU cross-check, missing config) (8-10 tests)
+- `is_supported_device()` - Gatekeeper preventing non-Klipper devices entering flash pipeline (4-5 tests)
+- Registry round-trip - JSON corruption = lost device registrations (3-4 tests)
 
-**Should have (polish):**
-- Show key in device config as read-only - power users debugging config cache paths benefit from visibility
-- Minimal `--help` flag handling - graceful message even without argparse, not Python traceback
-- Show generated key in add-device success - transparency: "Registered 'Octopus Pro v1.1' (key: octopus-pro-v1-1)"
+**Should have (confidence/regression):**
+- `validate_device_key()` - Prevents invalid registry keys; bad UX not data loss (5-6 tests)
+- Version parsing (`_parse_git_describe`, `is_mcu_outdated`, `detect_firmware_flavor`) - Informational only, never blocks flash (14-18 tests)
+- Validation functions (`validate_numeric_setting`, blocklist matching) - Input safety and policy enforcement (11-14 tests)
+- `find_registered_devices()` - TUI status display accuracy (3-4 tests)
 
-**Anti-features (explicitly excluded):**
-- Let users edit auto-generated keys - re-introduces user-facing identifier complexity, requires config cache rename logic
-- Keep any CLI flags "just in case" - creates confusion about CLI vs TUI operations, maintains two code paths
-- Auto-rename existing keys to match names - breaks existing config cache paths, unnecessary migration complexity
-- Generate keys from MCU type or serial - MCU types repeat across devices, serial patterns are long/ugly
-- Add CLI entry point later - scope creep, defeats simplification purpose
-- Prompt for confirmation of auto-generated key - key is internal, user doesn't need to approve it
-
-**Deferred to post-v4.0:**
-- Smarter slug generation (strip version suffixes like "v1.1") - low impact refinement
-- Key rename with migration - complex feature requiring atomic registry + directory operations, can be separate milestone
+**Defer (anti-features - deliberately NOT testing):**
+- TUI rendering (ansi.py, theme.py, panels.py, screen.py, tui.py) - Visual testing, zero safety impact, pure maintenance cost
+- Subprocess calls (build.py, service.py, flasher.py) - Trivial wrappers; mocking provides false confidence; hardware interaction risk unmockable
+- `scan_serial_devices()` - 5-line `Path.iterdir()` wrapper; test consumers instead
+- Moonraker HTTP calls - Graceful degradation (return None); test pure response processors instead
+- Atomic write primitives - Testing OS `os.replace()` semantics, not our code
+- Interactive prompts - Test validation functions, not input/output flow
+- Error message formatting - String formatting with no logic
 
 ### Architecture Approach
 
-The transition preserves the hub-and-spoke architecture. `flash.py` becomes a thinner launcher, `tui.py` remains the menu loop orchestrator. No new modules, no cross-module imports. This is surgical deletion of argparse plus one utility function, not a refactor.
+The codebase exhibits excellent testability through pure function extraction, dependency injection, and dataclass contracts. Architecture analysis identified 5 tiers of testability: Tier 1 pure functions (22 functions, zero mocking), Tier 2 filesystem dependencies (6 functions, tmp_path fixtures), Tier 3 subprocess (11 functions, defer to Phase 3), Tier 4 network (4 functions, defer to Phase 4), and Tier 5 TUI-coupled (skip entirely).
 
-**Entry flow transformation:**
+**Major test architecture components:**
+1. **Pure function tests** - 22 functions (discovery, validation, moonraker parsing, flash helpers, errors, models) take inputs/return outputs with no side effects; test with direct calls and parametrize
+2. **Filesystem integration tests** - Registry and ConfigManager use injectable paths; test with real temp files via `tmp_path`, monkeypatch for `XDG_CONFIG_HOME`
+3. **Stub registry for validation** - `generate_device_key()` and `validate_device_key()` need registry.get(); use simple stub class, not MagicMock
+4. **Test seams already exist** - No refactoring needed: Registry(registry_path), ConfigManager(device_key, klipper_dir), Output protocol with NullOutput, dataclass contracts, hub-and-spoke module structure
 
-BEFORE (hybrid CLI/TUI):
-```
-kflash.py -> flash.main() -> argparse
-  if --add-device    -> cmd_add_device()
-  if --device KEY    -> cmd_flash()
-  if --list-devices  -> cmd_list_devices()
-  if --remove-device -> cmd_remove_device()
-  if no args + TTY   -> tui.run_menu()
-  if no args + !TTY  -> print help
-```
-
-AFTER (TUI-only):
-```
-kflash.py -> flash.main()
-  if not TTY -> exit("kalico-flash requires an interactive terminal.")
-  -> load registry
-  -> tui.run_menu()
-  (all operations route through TUI action handlers)
-```
-
-**Component modifications (5 files):**
-1. **flash.py** — Delete `build_parser()`, simplify `main()` to 15 lines (TTY check, load registry, launch TUI), update `cmd_add_device()` to call `generate_device_key()` instead of prompting
-2. **validation.py** — Add `generate_device_key(name, registry)` function with slugification + collision handling (~25 lines)
-3. **tui.py** — Remove key edit handler from `_device_config_screen()`, adjust setting indices from 1-5 to 1-4
-4. **screen.py** — Remove key entry from `DEVICE_SETTINGS` list (4 items instead of 5)
-5. **errors.py** + all output strings — Replace all `--device`/`--add-device` references with TUI instructions ("Press F to flash", "Press A to add")
-
-**Data flow changes:**
-
-Key generation (new):
-```
-User enters display name "Octopus Pro v1.1"
-  -> generate_device_key("Octopus Pro v1.1", registry)
-  -> slug = "octopus-pro-v1-1"
-  -> check registry.devices: not present
-  -> return "octopus-pro-v1-1"
-  -> DeviceEntry(key="octopus-pro-v1-1", name="Octopus Pro v1.1", ...)
-  -> config cache at ~/.config/kalico-flash/configs/octopus-pro-v1-1/
-```
-
-Key collision (new):
-```
-User enters "Nitehawk 36" (second device with this name)
-  -> slug = "nitehawk-36"
-  -> check registry: "nitehawk-36" exists
-  -> try "nitehawk-36-2", check registry: available
-  -> return "nitehawk-36-2"
-```
-
-Existing device flow (unchanged):
-```
-Registry load reads devices.json
-  -> "octopus-pro": { "name": "Octopus Pro v1.1", ... }
-  -> DeviceEntry(key="octopus-pro", name="Octopus Pro v1.1", ...)
-  -> User-typed key from v3.x preserved forever
-  -> Config cache at ~/.config/kalico-flash/configs/octopus-pro/ (unchanged)
-```
-
-**Migration strategy:** No migration needed. The `DeviceEntry.key` field persists in JSON. Existing keys continue working. The change only affects new devices added post-v4.0. If a user edits an existing device name in the config screen, the key does NOT regenerate (keys are immutable after creation). Key regeneration only happens during the add-device flow.
+**Key architectural insight:** The dependency chain shows `extract_mcu_from_serial` is the most upstream safety function. If it returns wrong output, both single-flash and batch-flash safety checks are compromised. This determines test priority ordering.
 
 ### Critical Pitfalls
 
-From PITFALLS.md v5.0 research, the top 5 risks:
+**Top 5 pitfalls from research:**
 
-1. **Existing devices.json Keys Don't Match Slug Algorithm (CLI-1)** — Existing user-typed keys like `octopus-pro` won't match `slugify("Octopus Pro v1.1")` producing `octopus-pro-v1-1`. If code regenerates keys on load, all devices lose cached configs. **Prevention:** Keep existing keys immutable. Only slugify for NEW devices. On `registry.py` load, use JSON dict key directly as `entry.key` (already the case). Never call `slugify()` on existing device names. Test: grep for `slugify` calls—they should only appear in add-device flow.
+1. **Mocking implementation details instead of testing behavior (CRITICAL)** - Tests that mock internal function calls (`@patch('kflash.discovery.Path.iterdir')`) and assert call sequences break on any refactor. Prevention: Test pure functions with direct calls; use tmp_path for filesystem; reserve mocking for subprocess/network boundaries only.
 
-2. **Slug Collision Silently Overwrites Device (CLI-2)** — Two devices with similar names ("Octopus Pro" and "Octopus-Pro") both become `octopus-pro`. Second device overwrites first in devices.json and clobbers config cache. **Prevention:** Check slug uniqueness against existing registry keys before insert. On collision, append numeric suffix (`octopus-pro-2`). Never silently overwrite. Test: add two devices with names that slugify identically, verify second gets `-2` suffix.
+2. **Testing TUI rendering instead of business logic (CRITICAL)** - TUI is largest module (1400 lines) but has zero safety impact. Tests for ANSI output, cursor positioning, panel layout are brittle and catch no real bugs. Prevention: DO NOT test tui.py, panels.py, screen.py, ansi.py; DO test discovery.py, validation.py, config.py, registry.py safety functions.
 
-3. **Argparse Removal Breaks External Callers (CLI-3)** — User shell aliases, cron jobs, or Moonraker configs invoke `kflash --device octopus-pro`. Removing argparse causes tracebacks. **Prevention:** Keep minimal `sys.argv` check—if any args passed, print clear migration message ("CLI flags removed. Run kflash with no arguments.") and exit cleanly. Test: run `kflash --help`, `kflash --device foo`, verify graceful message not traceback.
+3. **Forgetting bidirectional prefix match is the whole point (CRITICAL)** - `validate_mcu()` line 196 implements `actual_mcu.startswith(expected_mcu) or expected_mcu.startswith(actual_mcu)`. Testing only exact matches misses the production scenario (registry says "stm32h723", config says "stm32h723xx"). Prevention: Required test cases must cover both directions of prefix match AND rejection of different families.
 
-4. **30+ Instances of entry.key in User-Facing Output (CLI-4)** — `flash.py` displays `entry.key` in device_line calls, info messages, batch results. After internalization, users see ugly slugs (`octopus-pro-v1-1`) instead of display names. **Prevention:** Audit every `entry.key` in output formatting. Replace user-facing displays with `entry.name`. Keep `entry.key` for: dict lookups, config cache paths, debug logs only. Test: grep `entry\.key` in any f-string or output call, classify each as internal vs display.
+4. **Mocking subprocess where tmp_path would work (MODERATE)** - Mocking Path.exists(), open(), json.loads() for Registry/ConfigManager is fragile and doesn't catch real bugs (path encoding, missing parents, atomic write races). Prevention: Use real files in tmp_path for all filesystem operations; reserve @patch for subprocess.run, urlopen.
 
-5. **Slug Generation Edge Cases (CLI-5)** — Empty result after stripping (all-emoji name), filesystem-unsafe characters, path traversal (`../../../etc/passwd`), very long names. **Prevention:** Implementation: `re.sub(r'[^a-z0-9]+', '-', name.lower()).strip('-')` with consecutive hyphen collapse. Reject empty result (require at least one alphanumeric). Limit slug length (64 chars). Block path-traversal before slugification. Test: empty string, all-special-chars, `"../../../etc"`, unicode, 200-char names.
-
-**Additional critical pitfall:**
-- **skip_menuconfig Flag Lost Without CLI (CLI-6)** — The `-s`/`--skip-menuconfig` CLI flag currently controls runtime behavior. After argparse removal, this capability must exist in GlobalConfig. **Prevention:** `skip_menuconfig` already exists in GlobalConfig (models.py). Verify TUI flow respects `global_config.skip_menuconfig`. No action needed if already wired—just verify during testing.
+5. **Writing hundreds of trivial tests for coverage numbers (MODERATE)** - Aiming for "90% coverage" produces tests that check dataclass defaults or duplicate implementation. Target is ~50-65 focused tests (Phase 1) growing to ~90-110 (Phase 1+2), not 200+ tests. Prevention: Every test must answer "What bug does this catch?"
 
 ## Implications for Roadmap
 
-Based on research, suggested phase structure for v4.0:
+Based on research, suggested phase structure follows testability tiers and risk priority:
 
-### Phase 1: Add Slug Generation (Additive, Safe)
-**Rationale:** Build the slug generation function first as a standalone utility. Pure function with no side effects, testable in isolation. Adds capability without changing existing behavior—no risk of breaking working code.
+### Phase 1: Safety-Critical Pure Functions
+**Rationale:** These 5 test targets block first release. They cover every path where a bug causes hardware damage or data loss. All are pure functions (zero mocking, fastest to write) with established test patterns.
+**Delivers:** 40-50 tests covering MCU extraction/validation, device pattern matching, slug generation, Flash All guards
+**Addresses:** Table-stakes features #1-5, #7 (extract_mcu, validate_mcu, parse_mcu, match_devices, generate_serial_pattern, generate_device_key, Flash All guards)
+**Avoids:** Pitfall TEST-2 (testing TUI instead of logic), TEST-7 (missing bidirectional prefix match)
+**Complexity:** LOW - all pure functions, direct calls, parametrize-driven
 
-**Delivers:**
-- `generate_device_key(name, registry)` in validation.py with slugification logic
-- Collision handling: check existing registry keys, append numeric suffix until unique
-- Edge case handling: empty slugs, long names, path-traversal characters, unicode
+### Phase 2: Remaining Table Stakes + Top Differentiators
+**Rationale:** Completes safety coverage (is_supported_device, Registry round-trip) then adds highest-value regression tests (version parsing is most complex differentiator logic).
+**Delivers:** 15-20 tests for remaining safety + 14-18 tests for version parsing
+**Uses:** tmp_path for Registry tests, stub registry for validation
+**Implements:** Filesystem integration testing pattern, real JSON round-trips
+**Addresses:** Table-stakes #6, #9; differentiators #4, #5 (is_supported_device, Registry, version parsing)
+**Avoids:** Pitfall TEST-6 (mocking JSON instead of real files)
 
-**Addresses:**
-- Pitfall CLI-2 (collision check prevents overwrites)
-- Pitfall CLI-5 (edge case handling prevents filesystem errors)
+### Phase 3: Remaining Differentiators
+**Rationale:** Completes test suite with lower-priority validation and blocklist tests. These improve confidence but bugs here cause bad UX, not data loss.
+**Delivers:** 15-20 tests for validation functions, blocklist matching, find_registered_devices
+**Addresses:** Differentiators #1, #2, #3, #9 (validate_device_key, validate_numeric_setting, blocklist, find_registered_devices)
+**Complexity:** LOW - mostly pure functions with edge case focus
 
-**Avoids:** Building removal phases before the replacement function exists
-
-**Research flag:** No additional research needed—slugification is 4 lines of stdlib re.sub(), collision handling is dict lookup loop. All patterns documented in STACK.md.
-
----
-
-### Phase 2: Internalize Key in Add-Device Flow
-**Rationale:** Replace key prompt with auto-generation. Isolated to one workflow (add-device wizard). Existing devices unaffected. Can be tested independently before touching CLI or config screen.
-
-**Delivers:**
-- Remove step 4 (key prompt loop) from `cmd_add_device()` in flash.py
-- Call `generate_device_key(display_name, registry)` instead
-- Show generated key in success message for transparency
-
-**Uses:**
-- Foundation from Phase 1: `generate_device_key()` function
-- Existing validation infrastructure
-
-**Implements:** Key internalization without breaking existing devices
-
-**Addresses:**
-- Table stakes: auto-generate keys from names
-- Pitfall CLI-1 (existing keys untouched, only new devices get slugs)
-
-**Research flag:** No additional research needed—add-device wizard structure already analyzed in ARCHITECTURE.md.
-
----
-
-### Phase 3: Remove Key from Device Config Screen
-**Rationale:** Keys are now internal identifiers. Remove user editing capability. Self-contained change to TUI module. No dependencies on Phase 4 (CLI removal).
-
-**Delivers:**
-- Remove key entry from `DEVICE_SETTINGS` in screen.py
-- Remove key edit handler from `_device_config_screen()` in tui.py
-- Optionally add key as read-only to identity panel (show but don't edit)
-- Adjust keypress range from 1-5 to 1-4
-
-**Addresses:**
-- Table stakes: keys are internal, not user-editable
-- Pitfall CLI-4 (key shown for debugging, not edited)
-
-**Avoids:** Exposing auto-generated slugs as user-editable fields
-
-**Research flag:** No additional research needed—device config screen patterns verified in FEATURES.md.
-
----
-
-### Phase 4: Remove CLI/Argparse
-**Rationale:** The breaking change. By this point, all functionality is TUI-native (Phases 1-3). This phase removes the redundant CLI entry path. Single atomic change—all argparse removal in one commit.
-
-**Delivers:**
-- Delete `build_parser()` function from flash.py
-- Simplify `main()` to TUI-only launcher (TTY check, load registry, run_menu)
-- Remove `--device`, `--add-device`, `--list-devices`, `--remove-device`, `--exclude-device`, `--include-device` handling
-- Minimal `sys.argv` check for graceful error on any arguments passed
-
-**Addresses:**
-- Table stakes: kflash launches TUI directly
-- Pitfall CLI-3 (graceful migration message for external callers)
-
-**Avoids:** Half-removing CLI (creates confusion which operations work from CLI vs TUI)
-
-**Research flag:** No additional research needed—argparse removal is deletion, TUI launch pattern verified in ARCHITECTURE.md main() flow.
-
----
-
-### Phase 5: Update User-Facing Strings
-**Rationale:** Systematic audit and replacement of all CLI references in output. Must happen AFTER Phase 4 (CLI removal) to ensure no missed references. This is cleanup, not functional change.
-
-**Delivers:**
-- Replace all `--device KEY` references with TUI instructions ("Press F to flash")
-- Replace all `entry.key` in user-facing output with `entry.name`
-- Update flash.py module docstring (remove CLI command examples)
-- Update CLAUDE.md "CLI Commands" section to "TUI Menu"
-- Update error recovery templates in errors.py
-
-**Addresses:**
-- Pitfall CLI-4 (30+ instances of entry.key in output)
-- Pitfall CLI-7 (documentation references removed flags)
-
-**Avoids:** Leaving stale `--device` instructions that confuse users
-
-**Research flag:** No additional research needed—systematic grep for `--device`, `--add-device`, `entry\.key`, replace with approved alternatives.
-
----
+### Phase 4 (Optional): Subprocess/Network Mocking
+**Rationale:** DEFER unless specific regression needs arise. These tests mock subprocess.run/urlopen extensively for minimal safety value. The real risk is hardware interaction, which mocks don't capture.
+**Delivers:** Mocked tests for build.py, flasher.py, service.py, moonraker.py API calls
+**Uses:** unittest.mock.patch for subprocess/urllib
+**Complexity:** MEDIUM - complex mocking, low confidence value
 
 ### Phase Ordering Rationale
 
-- **Additive before destructive:** Phase 1-2 add slug generation and integrate it into add-device. Phase 3 removes key editing. Phase 4 removes CLI. Each builds on previous without breaking existing functionality.
-- **Isolated testing:** Phase 1 is pure function (unit testable). Phase 2 is one workflow (add-device testable). Phase 3 is one screen (config screen testable). Phase 4 is entry point (integration testable). Phase 5 is string replacement (grep verification).
-- **Fail-fast progression:** If slug generation (Phase 1) has issues, stop before changing any user-facing behavior. If add-device integration (Phase 2) fails, existing devices still work. If CLI removal (Phase 4) breaks something, Phases 1-3 are unrelated.
-- **Atomic breaking change:** CLI removal (Phase 4) happens all at once after foundation is proven. No partial CLI—clean before/after split.
-
-**Dependency graph:**
-```
-Phase 1 (Slug Generation) ──> Phase 2 (Add-Device) ──┐
-                                                       ├──> Phase 4 (CLI Removal) ──> Phase 5 (String Cleanup)
-Phase 3 (Config Screen) ───────────────────────────────┘
-```
-
-Phase 2 depends on Phase 1 (needs slug function). Phases 2+3 can be parallelized (independent). Phase 4 waits for 2+3 (all TUI paths must be key-internalized before CLI removal). Phase 5 waits for Phase 4 (can't update CLI references until CLI is removed).
+- **Pure functions first (Phase 1):** Zero infrastructure needed, fastest to write, highest safety ROI. Validates core logic that all other code depends on.
+- **Filesystem integration second (Phase 2):** Depends on understanding dataclass contracts from Phase 1. Registry round-trips test actual I/O and catch real corruption bugs.
+- **Differentiators third (Phase 3):** Once safety is solid, add regression/UX tests. These are lower priority but easy wins.
+- **Subprocess/network last (Phase 4):** DEFER by default. Only add if specific bugs justify the mocking complexity. The orchestrator functions are integration-tested manually on hardware.
 
 ### Research Flags
 
-**All phases have standard patterns (skip research-phase):**
-- **Phase 1:** Slugification pattern verified—4 lines of `re.sub()`, collision is dict lookup loop. Edge cases documented in PITFALLS.md CLI-5.
-- **Phase 2:** Add-device wizard structure analyzed in ARCHITECTURE.md (step 4 removal, lines 1813-1827). Slug generation callable from Phase 1.
-- **Phase 3:** Device config screen pattern verified in FEATURES.md v3.3 research (DEVICE_SETTINGS list, _device_config_screen handler).
-- **Phase 4:** Argparse removal is deletion. TUI-only entry point pattern in ARCHITECTURE.md (simplified main() example lines 32-49).
-- **Phase 5:** String replacement is systematic grep. No patterns to research—just find-replace with approved text.
+**Phases with standard patterns (skip research-phase):**
+- **Phase 1:** Well-documented pytest parametrize patterns; pure function testing is textbook
+- **Phase 2:** Standard tmp_path fixture usage; JSON round-trip testing is established
+- **Phase 3:** Straightforward edge case enumeration; no novel patterns
 
-**No phase requires additional research.** All patterns exist in codebase, all pitfalls documented, all stack elements verified (re.sub, sys.argv, dict operations all stdlib). This is surgical deletion plus one utility function.
+**No phases need deeper research.** The testing patterns are mature and well-documented. The main implementation questions ("Which 22 pure functions?" "What are the edge cases?") are already answered by code analysis in FEATURES.md and PITFALLS.md.
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | All operations use Python 3.9+ stdlib. re.sub for slugs, sys.argv for arg check, dict operations for collision. Zero new dependencies. |
-| Features | HIGH | Feature requirements derived from codebase analysis of 30+ entry.key usages, argparse dispatch structure, add-device wizard flow. Must-haves are removal tasks with clear verification. |
-| Architecture | HIGH | Direct codebase analysis of flash.py (argparse lines 92-157), validation.py (existing validation patterns), tui.py (config screen), screen.py (DEVICE_SETTINGS). Hub-and-spoke maintained. |
-| Pitfalls | HIGH | Seven specific pitfalls researched via codebase analysis of key usage patterns (registry.py dict keys, config.py paths, models.py DeviceEntry.key field). Prevention strategies documented with test cases. |
+| Stack | HIGH | pytest and unittest.mock are mature, stable tools with 10+ years of ecosystem validation |
+| Features | HIGH | Based on direct code analysis of all 14 modules; test targets identified by tracing dependency chains and safety-critical paths |
+| Architecture | HIGH | Direct source code analysis confirmed existing test seams (injectable paths, dataclass contracts, Output protocol); no refactoring needed |
+| Pitfalls | HIGH | Concrete examples drawn from actual codebase functions (config.py:196 bidirectional match, discovery.py:80 MCU regex, validation.py slug pipeline) |
 
 **Overall confidence:** HIGH
 
 ### Gaps to Address
 
-Minor validation points to resolve during implementation:
+No critical gaps. All research questions resolved:
 
-- **Slug suffix start value:** Start numeric suffix at 2 (first device gets clean slug, second gets `-2`) or 1 (second gets `-1`)? **Resolution:** Start at 2 per STACK.md recommendation—matches common conventions (file copies, URLs). First device gets `octopus-pro`, second gets `octopus-pro-2`.
+- **Stack choice rationale:** Confirmed pytest wins on parametrize alone; no further framework evaluation needed
+- **Test target identification:** Complete; 22 pure functions catalogued with complexity ratings and test estimates
+- **Mocking strategy:** Clear boundaries established (tmp_path for filesystem, monkeypatch for env, stub for registry, defer subprocess/network)
+- **Test count target:** Quantified as 50-65 (Phase 1) to 90-110 (Phase 1+2), avoiding coverage-metric trap
 
-- **Empty slug handling:** If user enters all-emoji name or all-special-chars name, slug becomes empty string after strip. **Resolution:** Reject during add-device validation: "Display name must contain at least one letter or number." Or default to `device` as slug base if empty (then `device-2`, `device-3`). Prefer rejection—forces user to provide meaningful name.
-
-- **Long slug truncation:** If display name is 200 chars, slug could exceed filesystem limits. **Resolution:** Limit slug to 64 chars after slugification. Truncate before adding numeric suffix if needed. Config cache directory names must be portable.
-
-- **Unicode handling:** Device names may contain unicode (e.g., `"Voron™ Octopus"`). **Resolution:** `str.lower()` handles unicode correctly in Python 3. The `re.sub(r'[^a-z0-9]+', '-', ...)` pattern strips non-ASCII, so `"Voron™ Octopus"` becomes `voron-octopus`. No special unicode normalization needed per STACK.md (NFKD unnecessary for ASCII board names).
-
-- **Existing key format validation:** Existing devices.json may have keys that don't match slug format (e.g., `octopus_pro_v1` with underscores instead of hyphens). **Resolution:** Accept all existing keys as-is. The slug format only applies to NEW devices added post-v4.0. Validate existing keys are filesystem-safe (no `/`, `..`, null bytes) but don't enforce slug format retroactively.
-
-- **Skip menuconfig after CLI removal:** Verify TUI respects `global_config.skip_menuconfig` for flash operations. **Resolution:** Check flash workflow in flash.py—if already wired to GlobalConfig, no change needed. Just verify during Phase 4 testing.
+**Minor validation during implementation:**
+- Confirm pytest >=7.0 installs cleanly on both Windows dev environment and Pi (expected: yes, pytest is universal)
+- Verify tmp_path works correctly with Path vs str serialization in dataclasses (expected: yes, use str(tmp_path) when passing to constructors)
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- **Codebase analysis** — Direct inspection of all affected modules:
-  - `kflash/flash.py` — Argparse parser lines 92-157, main dispatch lines 1986-2041, add-device wizard key prompt lines 1813-1827
-  - `kflash/validation.py` — Existing validate_device_key regex spec `^[a-z0-9][a-z0-9_-]*$` at lines 55-80
-  - `kflash/tui.py` — Device config screen lines 730-890, config screen pattern in _config_screen
-  - `kflash/screen.py` — DEVICE_SETTINGS definition lines 479-490 with key edit item
-  - `kflash/config.py` — get_config_dir using device_key lines 16-27, rename_device_config_cache lines 30-48
-  - `kflash/registry.py` — Devices dict key usage lines 43-51, DeviceEntry.key field reading
-  - `kflash/models.py` — DeviceEntry.key field definition, GlobalConfig.skip_menuconfig field
-  - `kflash/errors.py` — ERROR_TEMPLATES with CLI flag references in recovery text
-- **Python stdlib documentation** — re.sub() regex replacement, sys.argv argument checking, str methods for case/strip
+- Direct source code analysis: All 14 kflash modules examined for testability, dependency patterns, and safety-critical logic paths
+- pytest stable API documentation - mature framework with unchanged core features across major versions
+- unittest.mock stdlib documentation - Python standard library guarantees
+- CLAUDE.md project architecture documentation - confirms hub-and-spoke structure, dataclass contracts, existing Output protocol
 
 ### Secondary (MEDIUM confidence)
-- **Slug generation conventions** — Common URL/filename slugification patterns (lowercase, hyphen-separated, numeric suffixes for duplicates). Not Python-specific but industry standard.
-
-### Tertiary (LOW confidence)
-- None—all research based on direct codebase analysis and stdlib documentation.
+- Python testing best practices - general industry consensus on pure-function-first testing, mocking boundaries, fixture composition
+- Domain knowledge: firmware flashing tools where wrong-device-flash = bricked MCU requiring physical recovery (BOOT0 pin jumper, serial bootloader)
 
 ---
-*Research completed: 2026-01-31*
+*Research completed: 2026-02-01*
 *Ready for roadmap: yes*

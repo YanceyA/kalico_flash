@@ -1,225 +1,275 @@
-# Architecture Patterns: CLI Removal and Device Key Internalization
+# Architecture Patterns: Test Framework for kalico-flash
 
-**Domain:** kalico-flash CLI-to-TUI-only refactor
-**Researched:** 2026-01-31
-**Confidence:** HIGH (based on direct codebase analysis of all 16 source files)
+**Domain:** Test suite integration for existing Python TUI tool
+**Researched:** 2026-02-01
+**Overall confidence:** HIGH (based on direct source code analysis of all modules)
 
-## Current Architecture Summary
+## Testability Analysis by Module
 
-Hub-and-spoke: `flash.py` is the hub containing `main()` with argparse, all `cmd_*` functions, preflight checks, and blocked-device logic. `tui.py` provides the interactive menu loop. Modules do not cross-import except through flash.py orchestration.
+### Tier 1: Pure Functions (Zero Mocking, Highest ROI)
 
-**Entry flow today:**
+These functions take inputs and return outputs with no side effects. Test first.
+
+| Module | Function | What It Does | Test Complexity |
+|--------|----------|-------------|-----------------|
+| `discovery.py` | `is_supported_device(filename)` | Prefix check against string | Trivial |
+| `discovery.py` | `match_device(pattern, devices)` | fnmatch against DiscoveredDevice list | Trivial |
+| `discovery.py` | `match_devices(pattern, devices)` | fnmatch, returns all matches | Trivial |
+| `discovery.py` | `find_registered_devices(devices, registry_devices)` | Cross-reference two lists | Low |
+| `discovery.py` | `extract_mcu_from_serial(filename)` | Regex extraction | Trivial |
+| `discovery.py` | `generate_serial_pattern(filename)` | Regex replace + wildcard | Trivial |
+| `config.py` | `parse_mcu_from_config(config_path)` | Regex on file content | Low (needs temp file) |
+| `validation.py` | `validate_numeric_setting(raw, min, max)` | Parse + range check | Trivial |
+| `validation.py` | `generate_device_key(name, registry)` | Unicode normalization + slug | Low (needs mock registry.get) |
+| `validation.py` | `validate_device_key(key, registry, current_key)` | Regex + registry lookup | Low (needs mock registry.get) |
+| `moonraker.py` | `detect_firmware_flavor(version)` | Regex classification | Trivial |
+| `moonraker.py` | `_parse_git_describe(version)` | Regex parse to tuple | Trivial |
+| `moonraker.py` | `is_mcu_outdated(host, mcu)` | Compare parsed versions | Trivial |
+| `flash.py` | `_normalize_pattern(pattern)` | strip + lower | Trivial |
+| `flash.py` | `_build_blocked_list(registry_data)` | Combine defaults + registry | Low |
+| `flash.py` | `_blocked_reason_for_filename(filename, blocked_list)` | fnmatch against blocked list | Trivial |
+| `flash.py` | `_blocked_reason_for_entry(entry, blocked_list)` | fnmatch bidirectional | Low |
+| `flash.py` | `_resolve_flash_method(entry, global_config)` | String resolution with fallback | Trivial |
+| `flash.py` | `_short_path(path_value)` | Path.name extraction | Trivial |
+| `errors.py` | `format_error(...)` | String formatting | Trivial |
+| `errors.py` | `get_recovery_text(template_key)` | Dict lookup | Trivial |
+| `models.py` | All dataclasses | Construction, field access | Trivial |
+
+**Count: ~22 pure functions.** This is the bulk of testable logic and should be Phase 1.
+
+### Tier 2: Filesystem Dependencies (Need tmpdir Fixtures)
+
+| Module | Class/Function | Dependency | Fixture Strategy |
+|--------|---------------|------------|-----------------|
+| `registry.py` | `Registry` (all methods) | JSON file read/write | `tmp_path` with sample devices.json |
+| `config.py` | `ConfigManager` | Two directories (cache + klipper) | `tmp_path` with mock .config files |
+| `config.py` | `get_config_dir(device_key)` | `XDG_CONFIG_HOME` env var | `monkeypatch.setenv` |
+| `config.py` | `rename_device_config_cache(old, new)` | Directory rename | `tmp_path` |
+| `config.py` | `_atomic_copy(src, dst)` | Temp file + fsync + rename | `tmp_path` |
+| `validation.py` | `validate_path_setting(raw, key)` | `os.path.isdir`, `os.path.isfile` | `tmp_path` with mock dirs |
+
+**Note:** `Registry` is highly testable with tmpdir -- constructor takes `registry_path: str`, so just point it at a temp file. No seam changes needed.
+
+**Note:** `ConfigManager.__init__` takes `device_key` and `klipper_dir` -- fully injectable. Set `XDG_CONFIG_HOME` via monkeypatch to control cache_path.
+
+### Tier 3: Subprocess Dependencies (Need unittest.mock)
+
+| Module | Function | Subprocess Call | Mock Strategy |
+|--------|----------|----------------|--------------|
+| `build.py` | `run_menuconfig()` | `make menuconfig` (inherited stdio) | Mock `subprocess.run`, verify args |
+| `build.py` | `run_build()` | `make clean` + `make -jN` | Mock `subprocess.run`, return codes |
+| `flasher.py` | `_try_katapult_flash()` | `python3 flashtool.py` | Mock `subprocess.run` |
+| `flasher.py` | `_try_make_flash()` | `make flash` | Mock `subprocess.run` |
+| `flasher.py` | `flash_device()` | Delegates to above two | Mock the two inner functions |
+| `flasher.py` | `check_katapult()` | `flashtool.py -r` + sysfs | Complex -- mock subprocess + filesystem |
+| `flasher.py` | `_usb_sysfs_reset()` | `sudo tee` | Mock `subprocess.run` |
+| `service.py` | `verify_passwordless_sudo()` | `sudo -n true` | Mock `subprocess.run` |
+| `service.py` | `_stop_klipper()` | `sudo systemctl stop` | Mock `subprocess.run` |
+| `service.py` | `_start_klipper()` | `sudo systemctl start` | Mock `subprocess.run` |
+| `service.py` | `klipper_service_stopped()` | Context manager wrapping above | Mock stop/start |
+| `moonraker.py` | `get_host_klipper_version()` | `git describe` | Mock `subprocess.run` |
+
+### Tier 4: Network Dependencies (Need urllib mock)
+
+| Module | Function | Network Call | Mock Strategy |
+|--------|----------|-------------|--------------|
+| `moonraker.py` | `get_print_status()` | `urlopen` to localhost:7125 | Mock `urllib.request.urlopen` |
+| `moonraker.py` | `get_mcu_versions()` | Two `urlopen` calls | Mock `urlopen` with JSON responses |
+| `moonraker.py` | `get_mcu_version_for_device()` | Calls `get_mcu_versions()` | Mock `get_mcu_versions` directly |
+
+### Tier 5: TUI-Coupled (Skip or Minimal Testing)
+
+| Module | Reason to Skip |
+|--------|---------------|
+| `tui.py` | Main loop, input handling, screen rendering -- deeply interactive |
+| `screen.py` | Device config screen -- curses-like interaction |
+| `panels.py` | Panel rendering -- visual output, low logic |
+| `ansi.py` | ANSI escape codes -- trivial utilities |
+| `theme.py` | Color constants -- no logic |
+| `flash.py` `cmd_flash()` | 400+ line orchestrator with TUI imports, interactive prompts |
+| `flash.py` `cmd_flash_all()` | Similar -- deeply coupled to user interaction |
+| `flash.py` `cmd_add_device()` | Interactive wizard with multiple prompts |
+
+**Exception:** `cmd_build()` in flash.py is moderately testable with mocked registry, config manager, build module, and NullOutput. Worth considering for Phase 3.
+
+## Existing Test Seams (No Refactoring Needed)
+
+The architecture is already well-suited for testing:
+
+1. **`Registry(registry_path: str)`** -- Path injection via constructor. Point at tmpdir.
+2. **`ConfigManager(device_key, klipper_dir)`** -- Both params injectable. Set `XDG_CONFIG_HOME` for cache path.
+3. **`Output` Protocol + `NullOutput`** -- Already exists in output.py. Perfect for suppressing output in tests.
+4. **Dataclass contracts** -- All cross-module data uses plain dataclasses. Easy to construct test fixtures.
+5. **Hub-and-spoke architecture** -- Modules don't cross-import (except flash.py importing everything). Each module testable in isolation.
+6. **`discovery.py` functions accept lists** -- `match_device(pattern, devices)` takes a device list, not scanning the filesystem. Pure by design.
+
+## Seams That Would Improve Testability (Small Refactors)
+
+### Seam 1: `scan_serial_devices()` hardcodes `/dev/serial/by-id`
+
+**Current:** `SERIAL_BY_ID = "/dev/serial/by-id"` module constant, used directly.
+**Improvement:** Add optional `serial_dir` parameter with default.
+**Impact:** Enables testing scan logic with tmpdir instead of mocking Path.iterdir.
+**Priority:** LOW -- callers already use the pure `match_device`/`find_registered_devices` with injected lists.
+
+### Seam 2: `moonraker.py` hardcodes `MOONRAKER_URL`
+
+**Current:** Module-level constant `http://localhost:7125`.
+**Improvement:** Not needed for testing -- mock `urlopen` at the urllib level.
+**Priority:** SKIP -- mocking urlopen is standard and sufficient.
+
+### Seam 3: `flash.py` orchestrators do late imports
+
+**Current:** `cmd_flash()` does `from .discovery import scan_serial_devices` inside function body.
+**Improvement:** These are already mockable via `unittest.mock.patch`. No change needed.
+**Priority:** SKIP.
+
+## Recommended Test Directory Structure
+
 ```
-kflash.py -> flash.main() -> argparse
-  if --add-device    -> cmd_add_device()
-  if --device KEY    -> cmd_flash()
-  if --list-devices  -> cmd_list_devices()
-  if --remove-device -> cmd_remove_device()
-  if --exclude/include -> cmd_exclude/include_device()
-  if no args + TTY   -> tui.run_menu()
-  if no args + !TTY  -> print help
+tests/
+    __init__.py
+    conftest.py                    # Shared fixtures: factories, tmp registry, NullOutput
+    test_models.py                 # Dataclass construction, field defaults
+    test_discovery.py              # Pure matching/extraction functions
+    test_validation.py             # Slug generation, input validation
+    test_moonraker_parsing.py      # detect_firmware_flavor, _parse_git_describe, is_mcu_outdated
+    test_errors.py                 # format_error, ERROR_TEMPLATES
+    test_flash_helpers.py          # _normalize_pattern, _blocked_reason_*, _resolve_flash_method
+    test_registry.py               # Registry CRUD with tmpdir
+    test_config.py                 # ConfigManager with tmpdir, parse_mcu_from_config
+    test_build.py                  # run_build, run_menuconfig with mocked subprocess
+    test_flasher.py                # flash_device, _try_katapult_flash with mocked subprocess
+    test_service.py                # klipper_service_stopped with mocked subprocess
+    test_moonraker_api.py          # get_print_status, get_mcu_versions with mocked urlopen
 ```
 
-**Key observation:** The TUI (`run_menu`) already handles every operation through action handlers (`_action_flash_device`, `_action_add_device`, `_action_remove_device`). These handlers call back into `flash.py`'s `cmd_*` functions. The CLI flags are a parallel entry path that duplicates the TUI's capabilities.
+## Fixture Strategy (conftest.py)
 
-## What Changes
-
-### 1. Entry Point (`flash.py` -> simplified)
-
-**Remove:** `build_parser()`, `argparse` import, all CLI flag handling in `main()`.
-
-**New `main()`:**
 ```python
-def main() -> int:
-    if not sys.stdin.isatty():
-        sys.exit("kalico-flash requires an interactive terminal.")
-    from .output import CliOutput
-    from .registry import Registry
-    from .tui import run_menu
-    out = CliOutput()
-    registry_path = Path(__file__).parent / "devices.json"
-    registry = Registry(str(registry_path))
-    try:
-        return run_menu(registry, out)
-    except KeyboardInterrupt:
-        return 130
-    except KlipperFlashError as e:
-        out.error(str(e))
-        return 1
+# Key fixtures for conftest.py:
+
+# 1. Dataclass factories
+def make_device_entry(**overrides) -> DeviceEntry:
+    defaults = {
+        "key": "test-device",
+        "name": "Test Device",
+        "mcu": "stm32h723",
+        "serial_pattern": "usb-Klipper_stm32h723xx_TEST*",
+    }
+    defaults.update(overrides)
+    return DeviceEntry(**defaults)
+
+def make_discovered_device(**overrides) -> DiscoveredDevice:
+    defaults = {
+        "path": "/dev/serial/by-id/usb-Klipper_stm32h723xx_TEST-if00",
+        "filename": "usb-Klipper_stm32h723xx_TEST-if00",
+    }
+    defaults.update(overrides)
+    return DiscoveredDevice(**defaults)
+
+# 2. Registry fixture (tmpdir-based)
+@pytest.fixture
+def tmp_registry(tmp_path):
+    path = tmp_path / "devices.json"
+    return Registry(str(path))
+
+# 3. Config fixture (tmpdir-based)
+@pytest.fixture
+def tmp_config(tmp_path, monkeypatch):
+    klipper_dir = tmp_path / "klipper"
+    klipper_dir.mkdir()
+    config_home = tmp_path / "config"
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(config_home))
+    return klipper_dir, config_home
+
+# 4. NullOutput (already exists in output.py)
+@pytest.fixture
+def null_output():
+    from kflash.output import NullOutput
+    return NullOutput()
+
+# 5. Sample .config content
+SAMPLE_CONFIG_STM32 = 'CONFIG_MCU="stm32h723xx"\nCONFIG_BOARD_DIRECTORY="stm32"\n'
+SAMPLE_CONFIG_RP2040 = 'CONFIG_BOARD_DIRECTORY="rp2040"\n'
 ```
 
-**Rationale:** `flash.py` becomes a thin launcher. All routing lives in `tui.run_menu()` where it already exists. The `cmd_*` functions remain in flash.py as the orchestration layer -- the TUI calls them, no change needed there.
+## Build Order for Tests
 
-**Impact:** ~60 lines removed (parser + flag routing). Zero changes to any `cmd_*` function signatures.
+Tests should be built in this order, each phase adding confidence for the next:
 
-### 2. Device Key Internalization (`cmd_add_device` in `flash.py`)
+### Phase 1: Pure Functions (No Dependencies)
+Files: `test_models.py`, `test_discovery.py`, `test_validation.py`, `test_moonraker_parsing.py`, `test_errors.py`, `test_flash_helpers.py`
 
-**Current:** User manually types a device key at "Device key" prompt (step 4, line 1815-1827).
+**Rationale:** Zero infrastructure needed. Validates the core logic that everything else depends on. ~22 functions, probably ~80+ test cases. This alone covers the majority of branching logic in the codebase.
 
-**New:** Auto-generate key from device name using a `slugify` function.
+### Phase 2: Filesystem Integration
+Files: `test_registry.py`, `test_config.py`
 
-**Where to add `generate_device_key()`:** `validation.py` (already has `validate_device_key`).
+**Rationale:** Depends on understanding dataclass contracts (Phase 1). Uses tmpdir fixtures. Tests Registry CRUD round-trips and ConfigManager load/save/validate cycles. High value because registry corruption = data loss.
 
-```python
-def generate_device_key(display_name: str, registry) -> str:
-    """Generate a unique device key from display name.
+### Phase 3: Subprocess Mocking
+Files: `test_build.py`, `test_flasher.py`, `test_service.py`
 
-    'Octopus Pro v1.1' -> 'octopus-pro-v1-1'
-    If collision, appends -2, -3, etc.
-    """
-    slug = re.sub(r'[^a-z0-9]+', '-', display_name.lower()).strip('-')
-    if not slug:
-        slug = 'device'
-    candidate = slug
-    counter = 2
-    while registry.get(candidate) is not None:
-        candidate = f"{slug}-{counter}"
-        counter += 1
-    return candidate
+**Rationale:** Depends on understanding FlashResult/BuildResult models (Phase 1). Tests the "dangerous" operations with mocked subprocess. Key scenarios: timeout handling, return code propagation, fallback logic in `flash_device()`.
+
+### Phase 4: Network Mocking
+Files: `test_moonraker_api.py`
+
+**Rationale:** Lower priority -- Moonraker functions already degrade gracefully (return None). But worth testing the JSON parsing and error handling paths.
+
+## Component Boundaries Diagram
+
 ```
-
-**Impact on `cmd_add_device`:** Remove step 4 (key prompt loop, lines 1814-1827). Replace with:
-```python
-device_key = generate_device_key(display_name, registry)
-out.info("Registry", f"Device key: {device_key}")
+                    +------------------+
+                    |    tui.py        |  (SKIP - interactive)
+                    |    screen.py     |
+                    +--------+---------+
+                             |
+                    +--------v---------+
+                    |    flash.py      |  Orchestrator
+                    |  (cmd_flash,     |  (Tier 5 for orchestrators,
+                    |   cmd_build,     |   Tier 1 for helpers)
+                    |   cmd_add, etc.) |
+                    +--+--+--+--+--+--+
+                       |  |  |  |  |
+          +------------+  |  |  |  +------------+
+          |               |  |  |               |
+    +-----v-----+  +-----v--v--v-----+  +------v------+
+    | discovery  |  | config    build |  | moonraker   |
+    | (Tier 1)   |  | (Tier 2) (T 3) |  | (Tier 1+4)  |
+    +-----+------+  +-----+----+-----+  +------+------+
+          |               |    |                |
+    +-----v------+  +-----v----v-----+  +------v------+
+    | models     |  | registry       |  | service     |
+    | (Tier 1)   |  | (Tier 2)       |  | (Tier 3)    |
+    +------------+  +-------+--------+  +------+------+
+                            |                  |
+                    +-------v--------+  +------v------+
+                    | errors         |  | flasher     |
+                    | (Tier 1)       |  | (Tier 3)    |
+                    +----------------+  +-------------+
 ```
-
-**Impact on `DeviceEntry.key`:** Field remains. Still used as dict key in registry, config cache dir name, and internal references. Users just no longer see or type it.
-
-### 3. Device Key in Device Config Screen (`tui.py` `_device_config_screen`)
-
-**Current:** DEVICE_SETTINGS index 1 is `{"key": "key", ...}` allowing key editing.
-
-**New:** Remove key from DEVICE_SETTINGS. Key becomes read-only, derived from name. When user edits name, key auto-regenerates.
-
-**Changes in `screen.py`:**
-- Remove `{"key": "key", ...}` from `DEVICE_SETTINGS` (line 481)
-- Adjust numbering (settings become 1-4 instead of 1-5)
-
-**Changes in `tui.py` `_device_config_screen`:**
-- Remove key editing branch (lines 833-846)
-- When name changes, auto-derive new key: `pending["key"] = generate_device_key(new_name, registry)`
-- Adjust keypress range from `("1","2","3","4","5")` to `("1","2","3","4")`
-
-### 4. References to `--device KEY` in User-Facing Strings
-
-Grep for `--device` in output strings that will need updating:
-
-| File | Line | Current Text | Action |
-|------|------|-------------|--------|
-| `flash.py` | 1816 | `"Device key (used with --device flag..."` | Remove (step eliminated) |
-| `flash.py` | 681 | `"run \`kflash --include-device {device_key}\`"` | Change to TUI instructions |
-| `flash.py` | 543 | `"Register new device: kflash --add-device"` | Change to "Press A to add" |
-| `flash.py` | 541 | `"List registered devices: kflash --list-devices"` | Change to "Press D to refresh" |
-| `errors.py` | Various | recovery templates referencing CLI flags | Update all to TUI instructions |
-
-**Note:** `from_tui` parameter on several `cmd_*` functions already switches between CLI and TUI recovery text. After CLI removal, the `from_tui` parameter can be removed and all paths default to TUI text.
-
-## Component Boundaries (Post-Change)
-
-| Component | Responsibility | Changes |
-|-----------|---------------|---------|
-| `flash.py` | Thin launcher + `cmd_*` orchestration | Remove argparse, simplify `main()` |
-| `tui.py` | Menu loop, action dispatch, input handling | No structural change |
-| `screen.py` | Panel rendering, settings definitions | Remove key from DEVICE_SETTINGS |
-| `registry.py` | JSON CRUD, atomic writes | No change |
-| `config.py` | Config caching keyed by device key | No change (still uses key internally) |
-| `validation.py` | Input validation | Add `generate_device_key()` |
-| `models.py` | Dataclass contracts | No change (`DeviceEntry.key` stays) |
-| `discovery.py` | USB scanning | No change |
-| All other modules | build, flash, service, moonraker, etc. | No change |
-
-## Data Flow Changes
-
-### Before (CLI path):
-```
-User types: kflash --device octopus-pro
-  -> argparse extracts key
-  -> cmd_flash(registry, "octopus-pro", out)
-  -> registry.get("octopus-pro")
-```
-
-### After (TUI-only path, unchanged):
-```
-User presses F, selects device #1
-  -> _prompt_device_number returns key from DeviceRow.key
-  -> _action_flash_device calls cmd_flash(registry, key, out)
-  -> registry.get(key)
-```
-
-### Key generation (new):
-```
-User enters display name "Octopus Pro v1.1"
-  -> generate_device_key("Octopus Pro v1.1", registry)
-  -> returns "octopus-pro-v1-1"
-  -> DeviceEntry(key="octopus-pro-v1-1", name="Octopus Pro v1.1", ...)
-  -> registry.add(entry)
-  -> config cache at ~/.config/kalico-flash/configs/octopus-pro-v1-1/
-```
-
-### Key rename on name edit:
-```
-User edits name from "Octopus Pro v1.1" to "Octopus Pro 446"
-  -> generate_device_key("Octopus Pro 446", registry)
-  -> returns "octopus-pro-446"
-  -> pending["key"] = "octopus-pro-446", pending["name"] = "Octopus Pro 446"
-  -> _save_device_edits renames config cache + registry entry
-```
-
-## Migration Strategy for Existing devices.json
-
-**No migration needed.** The `DeviceEntry.key` field persists in JSON. Existing keys like `"octopus-pro"` continue to work. The only change is that new devices get auto-generated keys instead of user-typed ones. The device config screen still allows name editing which triggers key regeneration, but existing devices keep their keys unless the user edits the name.
-
-**Edge case:** If a user edits an existing device name, the key will be regenerated from the new name. The `_save_device_edits` function already handles key rename with config cache migration (lines 730-761 of tui.py). No new migration code required.
 
 ## Anti-Patterns to Avoid
 
-### Do Not Remove DeviceEntry.key
-The key is the primary identifier throughout the codebase: registry dict keys, config cache directory names, `cmd_*` function parameters, `_prompt_device_number` return values. Removing it would cascade changes through every module. Keep it as an internal implementation detail -- just stop exposing it to users.
+### Anti-Pattern 1: Testing Orchestrators End-to-End
+**What:** Trying to test `cmd_flash()` or `cmd_flash_all()` as unit tests.
+**Why bad:** 400+ lines, 10+ dependencies, interactive prompts, deep coupling.
+**Instead:** Test the helper functions they call. The orchestrators are integration-tested manually on hardware.
 
-### Do Not Move cmd_* Functions to tui.py
-The `cmd_*` functions in flash.py are the orchestration layer. They contain preflight checks, phase sequencing, error handling with recovery text. Moving them to tui.py would violate the hub-and-spoke pattern and make tui.py a 2000+ line file. Keep the current separation: tui.py dispatches, flash.py orchestrates.
+### Anti-Pattern 2: Mocking Too Deep
+**What:** Mocking `os.path.exists` globally to test `ConfigManager`.
+**Why bad:** Brittle, breaks when implementation changes internal calls.
+**Instead:** Use real tmpdir with real files. Only mock at the subprocess/network boundary.
 
-### Do Not Remove from_tui Parameter in Phase 1
-While `from_tui` becomes always-true after CLI removal, removing it in the same change adds risk. Remove it in a follow-up cleanup phase to keep each change small and reviewable.
-
-## Suggested Build Order
-
-### Phase 1: Add key generation (safe, additive)
-- Add `generate_device_key()` to `validation.py`
-- No existing behavior changes
-- Testable in isolation on Pi
-
-### Phase 2: Internalize key in add-device flow
-- Replace key prompt in `cmd_add_device` with auto-generation
-- Show generated key as info message
-- Existing devices unaffected
-
-### Phase 3: Remove key editing from device config screen
-- Remove key from `DEVICE_SETTINGS` in `screen.py`
-- Add auto-key-regeneration on name edit in `tui.py`
-- Adjust keypress range in `_device_config_screen`
-
-### Phase 4: Remove CLI/argparse
-- Simplify `main()` in `flash.py` to TUI-only launcher
-- Remove `build_parser()` and argparse import
-- Update all `--flag` references in user-facing strings
-- Remove `from_tui` parameter (optional, can defer)
-
-### Phase 5: Cleanup
-- Remove dead CLI-only code paths (non-TTY help printing)
-- Update CLAUDE.md CLI usage section
-- Remove `--device`, `--add-device`, etc. from docstrings
-
-**Why this order:** Phase 1-2 are purely additive (no breaking changes). Phase 3 changes TUI behavior but is self-contained. Phase 4 is the breaking change (CLI removal) but by this point all functionality is already TUI-native. Phase 5 is cosmetic cleanup.
+### Anti-Pattern 3: Testing ANSI/Theme Output
+**What:** Asserting exact ANSI escape sequences in output.
+**Why bad:** Theme changes break all tests. Zero logic to validate.
+**Instead:** Use `NullOutput` in tests. Theme is visual-only.
 
 ## Sources
 
-- Direct codebase analysis of all files in `C:\dev_projects\kalico_flash\kflash\`
-- `flash.py` lines 92-157 (argparse parser), 1986-2041 (main entry point)
-- `flash.py` lines 1813-1827 (device key prompt in add-device wizard)
-- `tui.py` lines 455-621 (run_menu dispatch), 730-889 (device config screen)
-- `screen.py` lines 479-490 (DEVICE_SETTINGS definition)
-- `validation.py` (existing validate_device_key function)
-- `config.py` lines 16-27 (get_config_dir uses device_key), 30-48 (rename_device_config_cache)
-- `registry.py` lines 43-51 (device key as dict key in JSON)
+- Direct source code analysis of all 14 modules in `kflash/`
+- `output.py` already provides `NullOutput` class (line 132) for test use
+- Architecture follows hub-and-spoke pattern per CLAUDE.md
