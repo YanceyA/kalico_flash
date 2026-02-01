@@ -319,7 +319,7 @@ def render_device_rows(row: DeviceRow, host_version: Optional[str] = None) -> li
 
     # Third line: exclusion warning for non-flashable registered devices
     if row.group == "registered" and not row.flashable:
-        lines.append(f"{indent}{theme.warning}Excluded from flash operations{theme.reset}")
+        lines.append(f"{indent}{theme.caution}Excluded from flash operations{theme.reset}")
 
     return lines
 

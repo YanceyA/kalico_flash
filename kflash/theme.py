@@ -120,6 +120,7 @@ PALETTE: dict[str, tuple[int, int, int]] = {
     "subtle": (100, 120, 130),
     "green": (80, 200, 120),
     "yellow": (220, 190, 60),
+    "orange": (200, 140, 60),
     "red": (200, 80, 80),
 }
 
@@ -233,6 +234,7 @@ class Theme:
     # Semantic message styles
     success: str = ""  # [OK] messages
     warning: str = ""  # [!!] warnings
+    caution: str = ""  # [~~] caution/exclusion notices
     error: str = ""  # [FAIL] errors
     info: str = ""  # [section] info
     phase: str = ""  # [Discovery], [Build], etc.
@@ -273,6 +275,7 @@ def _build_theme(tier: ColorTier) -> Theme:
     header = bold + c("header")
     success = c("green")
     warning = c("yellow")
+    caution = c("orange")
     error = c("red")
 
     return Theme(
@@ -286,6 +289,7 @@ def _build_theme(tier: ColorTier) -> Theme:
         subtle=c("subtle"),
         success=success,
         warning=warning,
+        caution=caution,
         error=error,
         info=c("header"),
         phase=border,
