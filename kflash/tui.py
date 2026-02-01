@@ -941,7 +941,9 @@ def wait_for_device(
 
         devices = scan_serial_devices()
         for device in devices:
-            if fnmatch.fnmatch(device.filename, serial_pattern):
+            from .discovery import _prefix_variants
+            variants = _prefix_variants(serial_pattern)
+            if any(fnmatch.fnmatch(device.filename, v) for v in variants):
                 if out is None:
                     print()
 

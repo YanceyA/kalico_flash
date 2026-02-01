@@ -203,8 +203,10 @@ def _poll_for_serial_device(
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         try:
+            from .discovery import _prefix_variants
+            variants = _prefix_variants(pattern)
             for name in os.listdir(serial_dir):
-                if fnmatch.fnmatch(name, pattern):
+                if any(fnmatch.fnmatch(name, v) for v in variants):
                     return os.path.join(serial_dir, name)
         except FileNotFoundError:
             pass  # Directory may vanish briefly during USB reset

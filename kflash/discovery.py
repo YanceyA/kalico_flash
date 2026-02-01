@@ -43,9 +43,35 @@ def match_device(pattern: str, devices: list) -> Optional[DiscoveredDevice]:
     return matches[0] if matches else None
 
 
+def _prefix_variants(pattern: str) -> list[str]:
+    """Return pattern variants with both Klipper_ and katapult_ prefixes.
+
+    A pattern like ``usb-katapult_rp2040_30*`` returns both itself and
+    ``usb-Klipper_rp2040_30*`` so matching works regardless of which
+    bootloader mode the device booted into.
+    """
+    lower = pattern.lower()
+    if lower.startswith("usb-klipper_"):
+        alt = "usb-katapult_" + pattern[len("usb-Klipper_"):]
+        return [pattern, alt]
+    if lower.startswith("usb-katapult_"):
+        alt = "usb-Klipper_" + pattern[len("usb-katapult_"):]
+        return [pattern, alt]
+    return [pattern]
+
+
 def match_devices(pattern: str, devices: list) -> list[DiscoveredDevice]:
-    """Find all devices whose filename matches a glob pattern."""
-    return [device for device in devices if fnmatch.fnmatch(device.filename, pattern)]
+    """Find all devices whose filename matches a glob pattern.
+
+    Matching is prefix-agnostic: a ``usb-katapult_*`` pattern will also
+    match ``usb-Klipper_*`` filenames and vice-versa so that devices are
+    found regardless of which bootloader mode they booted into.
+    """
+    variants = _prefix_variants(pattern)
+    return [
+        device for device in devices
+        if any(fnmatch.fnmatch(device.filename, v) for v in variants)
+    ]
 
 
 def find_registered_devices(devices: list, registry_devices: dict) -> tuple:
@@ -67,8 +93,9 @@ def find_registered_devices(devices: list, registry_devices: dict) -> tuple:
     unmatched_devices = list(devices)  # copy
 
     for entry in registry_devices.values():
+        variants = _prefix_variants(entry.serial_pattern)
         for device in devices:
-            if fnmatch.fnmatch(device.filename, entry.serial_pattern):
+            if any(fnmatch.fnmatch(device.filename, v) for v in variants):
                 matched.append((entry, device))
                 if device in unmatched_devices:
                     unmatched_devices.remove(device)

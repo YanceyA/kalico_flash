@@ -1807,7 +1807,9 @@ def cmd_add_device(registry, out, selected_device=None) -> int:
                 "Remove it first or choose a different device."
             )
             return 1
-        if fnmatch.fnmatch(selected.filename, existing_entry.serial_pattern):
+        from .discovery import _prefix_variants
+        existing_variants = _prefix_variants(existing_entry.serial_pattern)
+        if any(fnmatch.fnmatch(selected.filename, v) for v in existing_variants):
             out.error(
                 f"Selected device matches existing entry '{existing_key}'. "
                 "Remove it first or replace it."
