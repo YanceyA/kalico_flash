@@ -348,6 +348,7 @@ def cmd_flash(
 
     # Late imports for fast startup
     from .discovery import (
+        extract_mcu_from_serial,
         find_registered_devices,
         is_supported_device,
         match_device,
@@ -629,6 +630,13 @@ def cmd_flash(
             return 1
 
         device_path = usb_device.path
+
+    # === MCU Cross-Check (SAFE-03) ===
+    usb_mcu = extract_mcu_from_serial(usb_device.filename)
+    if usb_mcu is not None and usb_mcu.lower() != entry.mcu.lower():
+        out.warn(f"MCU mismatch: USB device reports '{usb_mcu}' but registry has '{entry.mcu}'")
+        if not out.confirm("Continue with flash anyway?", default=False):
+            return 0
 
     # Load the device entry for the rest of the workflow
     entry = registry.get(device_key)
@@ -983,7 +991,7 @@ def cmd_flash_all(registry, out) -> int:
 
     # Late imports
     from .config import ConfigManager
-    from .discovery import match_device, scan_serial_devices
+    from .discovery import extract_mcu_from_serial, match_device, scan_serial_devices
     from .flasher import TIMEOUT_FLASH, flash_device
     from .models import BatchDeviceResult
     from .moonraker import (
@@ -1208,6 +1216,7 @@ def cmd_flash_all(registry, out) -> int:
                 print(f"  \u2713 {entry.name} built ({i + 1}/{total})")
             else:
                 result.error_message = build_result.error_message or "Build failed"
+                result.error_output = build_result.error_output
                 print(f"  \u2717 {entry.name} build failed ({i + 1}/{total})")
 
         # Check if any builds succeeded
@@ -1252,6 +1261,13 @@ def cmd_flash_all(registry, out) -> int:
                     out.warn(f"Skipping {entry.name}: duplicate USB path")
                     continue
                 used_paths.add(real_path)
+
+                # MCU cross-check (SAFE-03)
+                usb_mcu = extract_mcu_from_serial(usb_device.filename)
+                if usb_mcu is not None and usb_mcu.lower() != entry.mcu.lower():
+                    result.error_message = f"MCU mismatch: USB='{usb_mcu}', registry='{entry.mcu}'"
+                    out.warn(f"Skipping {entry.name}: {result.error_message}")
+                    continue
 
                 # Determine flash method
                 method = entry.flash_method or global_config.default_flash_method or "katapult"
@@ -1321,6 +1337,14 @@ def cmd_flash_all(registry, out) -> int:
 
         name = result.device_name[:20].ljust(20)
         out.info("", f"  {name}  {build_str:6s}  {flash_str:6s}  {verify_str}")
+
+        # Show build error output inline for failed builds (DBUG-01)
+        if not result.build_ok and result.error_output:
+            lines = result.error_output.strip().splitlines()
+            tail = lines[-20:]
+            out.info("", f"  Build output (last {len(tail)} lines):")
+            for line in tail:
+                out.info("", f"    {line}")
 
     passed = sum(1 for r in results if r.build_ok and r.flash_ok and r.verify_ok)
     failed = len(results) - passed
