@@ -83,19 +83,31 @@ def run_build(klipper_dir: str, timeout: int = TIMEOUT_BUILD, quiet: bool = Fals
             timeout=timeout,
             capture_output=quiet,
         )
-    except subprocess.TimeoutExpired:
+    except subprocess.TimeoutExpired as exc:
+        error_output = None
+        if quiet:
+            raw = (exc.stdout or b"") + (exc.stderr or b"")
+            lines = raw.decode("utf-8", errors="replace").splitlines()
+            error_output = "\n".join(lines[-200:])
         return BuildResult(
             success=False,
             elapsed_seconds=time.monotonic() - start_time,
             error_message=f"make clean timed out after {timeout}s",
+            error_output=error_output,
         )
 
     if clean_result.returncode != 0:
         elapsed = time.monotonic() - start_time
+        error_output = None
+        if quiet:
+            raw = (clean_result.stdout or b"") + (clean_result.stderr or b"")
+            lines = raw.decode("utf-8", errors="replace").splitlines()
+            error_output = "\n".join(lines[-200:])
         return BuildResult(
             success=False,
             elapsed_seconds=elapsed,
             error_message=f"make clean failed with exit code {clean_result.returncode}",
+            error_output=error_output,
         )
 
     # Run make -j with all available cores
@@ -107,20 +119,32 @@ def run_build(klipper_dir: str, timeout: int = TIMEOUT_BUILD, quiet: bool = Fals
             timeout=timeout,
             capture_output=quiet,
         )
-    except subprocess.TimeoutExpired:
+    except subprocess.TimeoutExpired as exc:
+        error_output = None
+        if quiet:
+            raw = (exc.stdout or b"") + (exc.stderr or b"")
+            lines = raw.decode("utf-8", errors="replace").splitlines()
+            error_output = "\n".join(lines[-200:])
         return BuildResult(
             success=False,
             elapsed_seconds=time.monotonic() - start_time,
             error_message=f"Build timed out after {timeout}s",
+            error_output=error_output,
         )
 
     elapsed = time.monotonic() - start_time
 
     if build_result.returncode != 0:
+        error_output = None
+        if quiet:
+            raw = (build_result.stdout or b"") + (build_result.stderr or b"")
+            lines = raw.decode("utf-8", errors="replace").splitlines()
+            error_output = "\n".join(lines[-200:])
         return BuildResult(
             success=False,
             elapsed_seconds=elapsed,
             error_message=f"make failed with exit code {build_result.returncode}",
+            error_output=error_output,
         )
 
     # Check for firmware output

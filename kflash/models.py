@@ -66,6 +66,7 @@ class BuildResult:
     firmware_size: int = 0  # Size in bytes if success
     elapsed_seconds: float = 0.0  # Build duration
     error_message: Optional[str] = None  # Error details if failed
+    error_output: Optional[str] = None  # Captured build output on failure
 
 
 @dataclass
@@ -89,6 +90,7 @@ class BatchDeviceResult:
     flash_ok: bool = False
     verify_ok: bool = False
     error_message: Optional[str] = None
+    error_output: Optional[str] = None  # Captured build output on failure
     skipped: bool = False  # User chose to skip (version match)
 
 
