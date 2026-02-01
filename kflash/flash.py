@@ -1128,6 +1128,12 @@ def cmd_flash_all(registry, out) -> int:
 
     out.phase("Flash All", f"{len(flashable_devices)} device(s) validated")
 
+    # Confirm before proceeding
+    device_names = ", ".join(e.name for e in flashable_devices)
+    if not out.confirm(f"Flash {len(flashable_devices)} device(s) ({device_names})?", default=True):
+        out.phase("Flash All", "Cancelled")
+        return 0
+
     out.step_divider()
 
     # === Stage 2: Version check ===
