@@ -991,7 +991,7 @@ def cmd_flash_all(registry, out) -> int:
 
     # Late imports
     from .config import ConfigManager
-    from .discovery import extract_mcu_from_serial, match_device, scan_serial_devices
+    from .discovery import extract_mcu_from_serial, match_device, match_devices, scan_serial_devices
     from .flasher import TIMEOUT_FLASH, flash_device
     from .models import BatchDeviceResult
     from .moonraker import (
@@ -1241,11 +1241,24 @@ def cmd_flash_all(registry, out) -> int:
             # Re-scan USB after Klipper stop
             usb_devices = scan_serial_devices()
 
+            # Duplicate USB match detection (mirrors cmd_flash logic)
+            ambiguous_keys: set[str] = set()
+            for entry, _ in built_results:
+                matches = match_devices(entry.serial_pattern, usb_devices)
+                if len(matches) > 1:
+                    ambiguous_keys.add(entry.key)
+
             for entry, result in built_results:
                 if flash_idx > 0:
                     out.device_divider(flash_idx + 1, flash_total, entry.name)
                     time.sleep(global_config.stagger_delay)
                 flash_idx += 1
+
+                # Ambiguous pattern guard
+                if entry.key in ambiguous_keys:
+                    result.error_message = "Pattern matches multiple connected USB devices"
+                    out.warn(f"Skipping {entry.name}: ambiguous USB pattern")
+                    continue
 
                 # Find device
                 usb_device = match_device(entry.serial_pattern, usb_devices)
