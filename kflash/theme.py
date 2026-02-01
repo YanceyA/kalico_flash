@@ -122,6 +122,7 @@ PALETTE: dict[str, tuple[int, int, int]] = {
     "yellow": (220, 190, 60),
     "orange": (200, 140, 60),
     "red": (200, 80, 80),
+    "key_info": (160, 150, 200),
 }
 
 
@@ -230,6 +231,7 @@ class Theme:
     text: str = ""
     value: str = ""
     subtle: str = ""
+    key_info: str = ""  # MCU type accent
 
     # Semantic message styles
     success: str = ""  # [OK] messages
@@ -287,6 +289,7 @@ def _build_theme(tier: ColorTier) -> Theme:
         text=c("text"),
         value=c("value"),
         subtle=c("subtle"),
+        key_info=c("key_info"),
         success=success,
         warning=warning,
         caution=caution,
