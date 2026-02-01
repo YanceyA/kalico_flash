@@ -48,13 +48,14 @@ Progress: [░░░░░░░░░░] 0%
 | 012 | Menuconfig prompt after add-device | 2026-01-31 | 9cd8ded | [012-menuconfig-prompt-after-add-device](./quick/012-menuconfig-prompt-after-add-device/) |
 | 013 | MCU mismatch check after menuconfig | 2026-01-31 | 18d9ad8 | [013-mcu-mismatch-check-after-menuconfig](./quick/013-mcu-mismatch-check-after-menuconfig/) |
 | 014 | MCU mismatch R/D/K prompt | 2026-01-31 | 538417b | [014-mcu-mismatch-reopen-discard-keep](./quick/014-mcu-mismatch-reopen-discard-keep/) |
+| 015 | Redesign TUI device row layout | 2026-02-01 | ada51dc | [015-redesign-tui-menu-layout-box-borders](./quick/015-redesign-tui-menu-layout-box-borders/) |
 
 ## Session Continuity
 
 Last session: 2026-02-01
-Stopped at: Milestone v4.2 initialized, entering research
+Stopped at: Completed quick task 015
 Resume file: None
 Next step: Research → Requirements → Roadmap
 
 ---
-*Last updated: 2026-02-01 after v4.2 milestone start*
+*Last updated: 2026-02-01 after quick task 015*
