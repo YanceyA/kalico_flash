@@ -35,10 +35,10 @@ Plans:
   2. Flash All skips a device and reports it when USB-derived MCU type does not match registry entry
   3. MCU cross-check is skipped gracefully when extraction returns None (best-effort)
   4. Flash All shows last 20 lines of build output inline when a build fails, and full output is available in BuildResult.error_output
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
-- [ ] 29-01: TBD
+- [ ] 29-01-PLAN.md — MCU cross-check before flashing and build error output capture
 
 ### Phase 30: Dead Setting Removal
 **Goal**: config_cache_dir setting no longer exists anywhere in the codebase
@@ -59,5 +59,5 @@ Plans:
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 28. Flash All Preflight | v4.1 | 1/1 | Complete | 2026-02-01 |
-| 29. Flash Workflow Hardening | v4.1 | 0/? | Not started | - |
+| 29. Flash Workflow Hardening | v4.1 | 0/1 | Not started | - |
 | 30. Dead Setting Removal | v4.1 | 0/? | Not started | - |
