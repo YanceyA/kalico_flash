@@ -12,7 +12,7 @@ See: .planning/PROJECT.md (updated 2026-02-01)
 Milestone: v4.1 Flash All Safety & Cleanup
 Phase: 29 of 30 (Flash Workflow Hardening)
 Plan: 1 of 1 in phase 29
-Status: Plan 29-01 complete
+Status: Phase 29 complete
 Last activity: 2026-02-01 -- Completed 29-01-PLAN.md
 
 Progress: [██████░░░░] 67%
@@ -53,7 +53,7 @@ Progress: [██████░░░░] 67%
 Last session: 2026-02-01
 Stopped at: Completed 29-01-PLAN.md
 Resume file: None
-Next step: Execute remaining phase 29 plans or phase 30
+Next step: Plan phase 30
 
 ---
 *Last updated: 2026-02-01 after 29-01 MCU Cross-Check & Build Error Output completion*

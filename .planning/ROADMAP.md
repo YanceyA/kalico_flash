@@ -8,7 +8,7 @@
 ## Phases
 
 - [x] **Phase 28: Flash All Preflight** - Preflight checks and duplicate guard before batch loop
-- [ ] **Phase 29: Flash Workflow Hardening** - MCU cross-check and build error surfacing
+- [x] **Phase 29: Flash Workflow Hardening** - MCU cross-check and build error surfacing
 - [ ] **Phase 30: Dead Setting Removal** - Remove unused config_cache_dir from codebase
 
 ## Phase Details
@@ -38,7 +38,7 @@ Plans:
 **Plans**: 1 plan
 
 Plans:
-- [ ] 29-01-PLAN.md — MCU cross-check before flashing and build error output capture
+- [x] 29-01-PLAN.md — MCU cross-check before flashing and build error output capture
 
 ### Phase 30: Dead Setting Removal
 **Goal**: config_cache_dir setting no longer exists anywhere in the codebase
@@ -59,5 +59,5 @@ Plans:
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 28. Flash All Preflight | v4.1 | 1/1 | Complete | 2026-02-01 |
-| 29. Flash Workflow Hardening | v4.1 | 0/1 | Not started | - |
+| 29. Flash Workflow Hardening | v4.1 | 1/1 | Complete | 2026-02-01 |
 | 30. Dead Setting Removal | v4.1 | 0/? | Not started | - |

@@ -9,12 +9,12 @@
 
 - [x] **SAFE-01**: Flash All calls `_preflight_flash()` (or batch-safe variant) once before entering the batch loop -- fails early if Klipper dir, Makefile, make command, or Katapult flashtool are missing
 - [x] **SAFE-02**: Flash All prompts for confirmation when Moonraker is unreachable (`get_print_status()` returns None), matching the single-device flow behavior
-- [ ] **SAFE-03**: Hardware MCU cross-check before flashing -- derive MCU type from connected USB device via `extract_mcu_from_serial()` and compare to registry `entry.mcu`. Single-device interactive: warn and require confirmation on mismatch. Flash All: skip device and report mismatch. Best-effort (skip check if extraction returns None).
+- [x] **SAFE-03**: Hardware MCU cross-check before flashing -- derive MCU type from connected USB device via `extract_mcu_from_serial()` and compare to registry `entry.mcu`. Single-device interactive: warn and require confirmation on mismatch. Flash All: skip device and report mismatch. Best-effort (skip check if extraction returns None).
 - [x] **SAFE-04**: Flash All tracks used USB paths (`used_paths: set[str]`) to prevent the same physical USB device being targeted by two different registry entries
 
 ### Flash All Debuggability
 
-- [ ] **DBUG-01**: Flash All captures build stdout/stderr and on failure shows the last 20 lines inline in the batch summary. Full output stored in `BuildResult.error_output`.
+- [x] **DBUG-01**: Flash All captures build stdout/stderr and on failure shows the last 20 lines inline in the batch summary. Full output stored in `BuildResult.error_output`.
 
 ### Settings Cleanup
 
@@ -35,9 +35,9 @@
 |-------------|-------|--------|
 | SAFE-01 | Phase 28 | Complete |
 | SAFE-02 | Phase 28 | Complete |
-| SAFE-03 | Phase 29 | Pending |
+| SAFE-03 | Phase 29 | Complete |
 | SAFE-04 | Phase 28 | Complete |
-| DBUG-01 | Phase 29 | Pending |
+| DBUG-01 | Phase 29 | Complete |
 | CONF-01 | Phase 30 | Pending |
 
 **Coverage:**
@@ -47,4 +47,4 @@
 
 ---
 *Requirements defined: 2026-02-01*
-*Last updated: 2026-02-01 after roadmap creation*
+*Last updated: 2026-02-01 after phase 29 completion*
