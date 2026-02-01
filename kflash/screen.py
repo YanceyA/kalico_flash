@@ -286,7 +286,7 @@ def render_device_rows(row: DeviceRow, host_version: Optional[str] = None) -> li
     indent = "      "  # 6 spaces to align under name (past "● #N  ")
 
     if row.group == "blocked":
-        return [f"{icon} {indent}{theme.subtle}{truncate_serial(row.serial_path)}{theme.reset}"]
+        return [f"{icon} {indent}{theme.text}{truncate_serial(row.serial_path)}{theme.reset}"]
 
     num = f"#{row.number}" if row.number > 0 else ""
 
@@ -323,9 +323,9 @@ def render_device_rows(row: DeviceRow, host_version: Optional[str] = None) -> li
     # -- Line 2: (mcu)  serial --
     line2_parts: list[str] = []
     if row.mcu and row.mcu != "unknown":
-        line2_parts.append(f"{theme.subtle}({row.mcu}){theme.reset}")
+        line2_parts.append(f"{theme.text}({row.mcu}){theme.reset}")
     if row.serial_path and (row.group == "new" or row.serial_path != row.name):
-        line2_parts.append(f"{theme.subtle}{truncate_serial(row.serial_path)}{theme.reset}")
+        line2_parts.append(f"{theme.text}{truncate_serial(row.serial_path)}{theme.reset}")
     if line2_parts:
         lines.append(f"{indent}{'  '.join(line2_parts)}")
 
@@ -415,7 +415,7 @@ def _host_version_line(host_version: Optional[str]) -> str:
         from .moonraker import detect_firmware_flavor
 
         flavor = detect_firmware_flavor(host_version)
-        return f"{theme.subtle}Host Firmware: {flavor} {host_version}{theme.reset}"
+        return f"{theme.text}Host Firmware:{theme.reset} {theme.subtle}{flavor} {host_version}{theme.reset}"
     return f"{theme.subtle}Host version: unavailable{theme.reset}"
 
 
