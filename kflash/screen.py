@@ -38,7 +38,6 @@ SETTINGS: list[dict] = [
     },
     {"key": "klipper_dir", "label": "Klipper directory", "type": "path"},
     {"key": "katapult_dir", "label": "Katapult directory", "type": "path"},
-    {"key": "config_cache_dir", "label": "Config cache directory", "type": "path"},
 ]
 
 

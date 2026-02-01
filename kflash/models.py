@@ -17,7 +17,6 @@ class GlobalConfig:
     skip_menuconfig: bool = False
     stagger_delay: float = 2.0
     return_delay: float = 5.0
-    config_cache_dir: str = "~/.config/kalico-flash/configs"
 
 
 @dataclass
