@@ -1006,6 +1006,38 @@ def cmd_flash_all(registry, out) -> int:
     klipper_dir = global_config.klipper_dir
     katapult_dir = global_config.katapult_dir
 
+    # === Preflight: Environment validation (SAFE-01) ===
+    preferred_method = (global_config.default_flash_method or "katapult").strip().lower()
+    allow_fallback = global_config.allow_flash_fallback
+    if not _preflight_flash(out, klipper_dir, katapult_dir, preferred_method, allow_fallback):
+        return 1
+
+    # === Preflight: Moonraker safety check (SAFE-02) ===
+    print_status = get_print_status()
+
+    if print_status is None:
+        out.warn("Moonraker unreachable - print status and version check unavailable")
+        if not out.confirm("Continue without safety checks?", default=False):
+            out.phase("Flash All", "Cancelled")
+            return 0
+    elif print_status.state in ("printing", "paused"):
+        progress_pct = int(print_status.progress * 100)
+        filename = print_status.filename or "unknown"
+        out.error_with_recovery(
+            "Printer busy",
+            f"Print in progress: {filename} ({progress_pct}%)",
+            recovery=(
+                "1. Wait for current print to complete\n"
+                "2. Or cancel print in Fluidd/Mainsail dashboard\n"
+                "3. Then re-run flash command"
+            ),
+        )
+        return 1
+    else:
+        out.phase("Safety", f"Printer state: {print_status.state} - OK to flash")
+
+    out.step_divider()
+
     # === Stage 1: Validate cached configs ===
     out.phase("Flash All", "Validating cached configs...")
 
@@ -1188,20 +1220,13 @@ def cmd_flash_all(registry, out) -> int:
         out.step_divider()
         out.phase("Flash All", f"Flashing {len(built_results)} device(s)...")
 
-        # Safety check: print status
-        print_status = get_print_status()
-        if print_status is not None and print_status.state in ("printing", "paused"):
-            progress_pct = int(print_status.progress * 100)
-            filename = print_status.filename or "unknown"
-            out.error(f"Print in progress: {filename} ({progress_pct}%). Aborting flash.")
-            return 1
-
         # Verify passwordless sudo
         if not verify_passwordless_sudo():
             out.phase("Flash All", "Note: sudo may prompt for password")
 
         flash_idx = 0
         flash_total = len(built_results)
+        used_paths: set[str] = set()
 
         with klipper_service_stopped(out=out):
             # Re-scan USB after Klipper stop
@@ -1219,6 +1244,14 @@ def cmd_flash_all(registry, out) -> int:
                     result.error_message = "Device not found on USB"
                     print(f"  \u2717 {entry.name} not found ({flash_idx}/{flash_total})")
                     continue
+
+                # Duplicate USB path guard (SAFE-04)
+                real_path = os.path.realpath(usb_device.path)
+                if real_path in used_paths:
+                    result.error_message = "USB path already targeted by prior device"
+                    out.warn(f"Skipping {entry.name}: duplicate USB path")
+                    continue
+                used_paths.add(real_path)
 
                 # Determine flash method
                 method = entry.flash_method or global_config.default_flash_method or "katapult"
