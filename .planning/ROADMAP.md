@@ -21,10 +21,10 @@
   1. Flash All aborts before flashing any device if Klipper dir, Makefile, make, or Katapult flashtool are missing
   2. Flash All prompts user for confirmation when Moonraker is unreachable, matching single-device behavior
   3. Flash All skips a device when its resolved USB path was already used by a prior device in the batch, and reports the skip
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
-- [ ] 28-01: TBD
+- [ ] 28-01-PLAN.md — Preflight checks, Moonraker prompt, and duplicate USB path guard
 
 ### Phase 29: Flash Workflow Hardening
 **Goal**: Flash workflows detect MCU mismatches and surface build failures clearly
