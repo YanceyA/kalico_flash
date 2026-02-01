@@ -267,7 +267,13 @@ def build_device_list(
 def render_device_rows(row: DeviceRow, host_version: Optional[str] = None) -> list[str]:
     """Render a single device as one or more lines.
 
-    Returns a list of strings (main line + optional version line).
+    Layout per group:
+      registered: Line 1 = icon #N  name - flavor version  status_icon
+                  Line 2 =       (mcu)  serial
+                  Line 3 =       Excluded from flash operations (if applicable)
+      new:        Line 1 = icon #N  Unregistered Device - flavor version  status_icon
+                  Line 2 =       (mcu)  serial
+      blocked:    Line 1 = icon      serial (indented to align with other line-2 content)
     """
     theme = get_theme()
 
@@ -277,31 +283,22 @@ def render_device_rows(row: DeviceRow, host_version: Optional[str] = None) -> li
     else:
         icon = f"{theme.subtle}\u25cb{theme.reset}"  # ○ grey
 
+    indent = "      "  # 6 spaces to align under name (past "● #N  ")
+
     if row.group == "blocked":
-        return [f"{icon}  {theme.subtle}{truncate_serial(row.name)}{theme.reset}"]
+        return [f"{icon} {indent}{theme.subtle}{truncate_serial(row.serial_path)}{theme.reset}"]
 
     num = f"#{row.number}" if row.number > 0 else ""
 
-    parts = [icon]
-    if num:
-        parts.append(f" {theme.label}{num}{theme.reset}")
-    display_name = truncate_serial(row.name) if row.group == "new" else row.name
-    parts.append(f"  {theme.text}{display_name}{theme.reset}")
-    if row.mcu and row.mcu != "unknown":
-        parts.append(f" {theme.subtle}({row.mcu}){theme.reset}")
-    if row.serial_path != row.name:
-        parts.append(f"  {theme.subtle}{truncate_serial(row.serial_path)}{theme.reset}")
+    # -- Line 1: name + firmware info + status icon --
+    display_name = "Unregistered Device" if row.group == "new" else row.name
 
-    lines = ["".join(parts)]
-
-    # Second line: firmware version + status icon
-    # Indent to align with device name (past "● #N  ")
-    indent = "      "  # 6 spaces to align under name
+    # Build firmware portion
     if row.version:
         from .moonraker import detect_firmware_flavor
 
         ver_display = f"{detect_firmware_flavor(row.version)} {row.version}"
-        if host_version and row.version:
+        if host_version:
             from .moonraker import is_mcu_outdated
 
             if is_mcu_outdated(host_version, row.version):
@@ -310,14 +307,29 @@ def render_device_rows(row: DeviceRow, host_version: Optional[str] = None) -> li
                 status_icon = f"{theme.success}\u2713{theme.reset}"  # ✓ good
         else:
             status_icon = f"{theme.subtle}\u25d0{theme.reset}"  # ◐ unknown
-        lines.append(f"{indent}{theme.subtle}{ver_display}{theme.reset}  {status_icon}")
-    elif row.group != "blocked":
-        lines.append(
-            f"{indent}{theme.subtle}Firmware Unknown{theme.reset}"
-            f"  {theme.subtle}\u25d0{theme.reset}"
-        )
+        firmware_part = f" - {theme.subtle}{ver_display}{theme.reset}  {status_icon}"
+    else:
+        status_icon = f"{theme.subtle}\u25d0{theme.reset}"
+        firmware_part = f" - {theme.subtle}Firmware Unknown{theme.reset}  {status_icon}"
 
-    # Third line: exclusion warning for non-flashable registered devices
+    parts = [icon]
+    if num:
+        parts.append(f" {theme.label}{num}{theme.reset}")
+    parts.append(f"  {theme.text}{display_name}{theme.reset}")
+    parts.append(firmware_part)
+
+    lines = ["".join(parts)]
+
+    # -- Line 2: (mcu)  serial --
+    line2_parts: list[str] = []
+    if row.mcu and row.mcu != "unknown":
+        line2_parts.append(f"{theme.subtle}({row.mcu}){theme.reset}")
+    if row.serial_path and (row.group == "new" or row.serial_path != row.name):
+        line2_parts.append(f"{theme.subtle}{truncate_serial(row.serial_path)}{theme.reset}")
+    if line2_parts:
+        lines.append(f"{indent}{'  '.join(line2_parts)}")
+
+    # -- Line 3: exclusion warning --
     if row.group == "registered" and not row.flashable:
         lines.append(f"{indent}{theme.caution}Excluded from flash operations{theme.reset}")
 
@@ -403,7 +415,7 @@ def _host_version_line(host_version: Optional[str]) -> str:
         from .moonraker import detect_firmware_flavor
 
         flavor = detect_firmware_flavor(host_version)
-        return f"{theme.subtle}Host: {flavor} {host_version}{theme.reset}"
+        return f"{theme.subtle}Host Firmware: {flavor} {host_version}{theme.reset}"
     return f"{theme.subtle}Host version: unavailable{theme.reset}"
 
 
