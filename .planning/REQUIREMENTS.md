@@ -18,7 +18,7 @@
 
 ### Settings Cleanup
 
-- [ ] **CONF-01**: Remove `config_cache_dir` setting from GlobalConfig (models.py), registry serialization (registry.py), settings UI (screen.py), and validation (validation.py). `get_config_dir()` continues using XDG convention.
+- [x] **CONF-01**: Remove `config_cache_dir` setting from GlobalConfig (models.py), registry serialization (registry.py), settings UI (screen.py), and validation (validation.py). `get_config_dir()` continues using XDG convention.
 
 ## Out of Scope
 
@@ -38,7 +38,7 @@
 | SAFE-03 | Phase 29 | Complete |
 | SAFE-04 | Phase 28 | Complete |
 | DBUG-01 | Phase 29 | Complete |
-| CONF-01 | Phase 30 | Pending |
+| CONF-01 | Phase 30 | Complete |
 
 **Coverage:**
 - v4.1 requirements: 6 total
@@ -47,4 +47,4 @@
 
 ---
 *Requirements defined: 2026-02-01*
-*Last updated: 2026-02-01 after phase 29 completion*
+*Last updated: 2026-02-01 after phase 30 completion*

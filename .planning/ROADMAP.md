@@ -9,7 +9,7 @@
 
 - [x] **Phase 28: Flash All Preflight** - Preflight checks and duplicate guard before batch loop
 - [x] **Phase 29: Flash Workflow Hardening** - MCU cross-check and build error surfacing
-- [ ] **Phase 30: Dead Setting Removal** - Remove unused config_cache_dir from codebase
+- [x] **Phase 30: Dead Setting Removal** - Remove unused config_cache_dir from codebase
 
 ## Phase Details
 
@@ -49,10 +49,10 @@ Plans:
   2. Registry serialization in registry.py neither reads nor writes config_cache_dir
   3. Settings screen in screen.py does not show config_cache_dir option
   4. Validation in validation.py has no config_cache_dir references
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
-- [ ] 30-01: TBD
+- [x] 30-01-PLAN.md — Remove config_cache_dir from models, registry, and settings screen
 
 ## Progress
 
@@ -60,4 +60,4 @@ Plans:
 |-------|-----------|----------------|--------|-----------|
 | 28. Flash All Preflight | v4.1 | 1/1 | Complete | 2026-02-01 |
 | 29. Flash Workflow Hardening | v4.1 | 1/1 | Complete | 2026-02-01 |
-| 30. Dead Setting Removal | v4.1 | 0/? | Not started | - |
+| 30. Dead Setting Removal | v4.1 | 1/1 | Complete | 2026-02-01 |
