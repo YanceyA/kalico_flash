@@ -2,19 +2,16 @@
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-01-31)
+See: .planning/PROJECT.md (updated 2026-02-01)
 
 **Core value:** One command to build and flash any registered board — no remembering serial paths, flash commands, or config locations.
-**Current focus:** v4.0 Remove CLI & Internalize Device Keys (complete)
+**Current focus:** Planning next milestone
 
 ## Current Position
 
-Milestone: v4.0 Remove CLI & Internalize Device Keys (complete)
-Phase: 27 of 27 (Documentation & Cleanup) — complete, verified ✓
-Plan: 2/2 complete
-Status: All phases complete — milestone ready for audit
-
-Progress: [██████████████████████████] 50/50 plans (through 27-02)
+Milestone: v4.0 shipped — no active milestone
+Status: Ready for next milestone planning
+Last activity: 2026-02-01 — v4.0 milestone complete
 
 ## Shipped Milestones
 
@@ -28,6 +25,7 @@ Progress: [███████████████████████
 | v3.2 | Action Dividers | 16-17 | 2026-01-31 |
 | v3.3 | Config Device | 18-20 | 2026-01-31 |
 | v3.4 | Check Katapult (parked) | 21-23 | 2026-01-31 |
+| v4.0 | Remove CLI & Internalize Device Keys | 24-27 | 2026-02-01 |
 
 ## Quick Tasks Completed
 
@@ -49,9 +47,9 @@ Progress: [███████████████████████
 ## Session Continuity
 
 Last session: 2026-02-01
-Stopped at: Completed phase 27 (documentation & cleanup) — verified ✓
+Stopped at: v4.0 milestone completed and archived
 Resume file: None
-Next step: Milestone audit (/gsd:audit-milestone)
+Next step: /gsd:new-milestone (when ready for next feature set)
 
 ---
-*Last updated: 2026-02-01 after phase 27 verification*
+*Last updated: 2026-02-01 after v4.0 milestone completion*

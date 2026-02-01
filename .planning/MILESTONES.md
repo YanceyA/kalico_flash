@@ -1,5 +1,32 @@
 # Project Milestones: kalico-flash
 
+## v4.0 Remove CLI & Internalize Device Keys (Shipped: 2026-02-01)
+
+**Delivered:** Removed all CLI/argparse infrastructure and made device keys auto-generated internal identifiers. The tool now operates exclusively through TUI — `kflash` launches directly into the interactive menu with no argument parsing.
+
+**Phases completed:** 24-27 (6 plans total)
+
+**Key accomplishments:**
+
+- Auto-generated device keys from display names via Unicode-aware slugification with collision handling
+- Device keys fully internalized — users interact only with display names across all TUI surfaces
+- All argparse, CLI flags, and CLI-only code paths deleted; main() reduced to thin TUI launcher
+- Documentation (README, CLAUDE.md, install.sh) and error recovery messages updated for TUI-only operation
+- Net code reduction: -229 lines (352 deleted, 123 added) across 6 source files
+
+**Stats:**
+
+- 6 files modified
+- 6,371 lines of Python (total project)
+- 4 phases, 6 plans
+- 1 day (2026-02-01)
+
+**Git range:** `feat(24-01)` → `docs(27)`
+
+**What's next:** TBD
+
+---
+
 ## v3.4 Check Katapult (Shipped: 2026-01-31)
 
 **Delivered:** Katapult bootloader detection engine with live hardware research, tri-state check function, and TUI integration. Feature parked after testing revealed device recovery limitations — code retained in codebase for future revisit.
