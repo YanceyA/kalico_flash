@@ -58,6 +58,7 @@ class DeviceRow:
     version: Optional[str]  # Firmware version if known
     connected: bool  # Whether device is currently connected
     group: str  # "registered", "new", "blocked"
+    flashable: bool = True  # Whether device is included in flash operations
 
 
 @dataclass
@@ -209,6 +210,7 @@ def build_device_list(
             version=version,
             connected=connected,
             group="registered",
+            flashable=entry.flashable,
         )
         if connected:
             registered_connected.append(row)
@@ -314,6 +316,10 @@ def render_device_rows(row: DeviceRow, host_version: Optional[str] = None) -> li
             f"{indent}{theme.subtle}Firmware Unknown{theme.reset}"
             f"  {theme.subtle}\u25d0{theme.reset}"
         )
+
+    # Third line: exclusion warning for non-flashable registered devices
+    if row.group == "registered" and not row.flashable:
+        lines.append(f"{indent}{theme.warning}Excluded from flash operations{theme.reset}")
 
     return lines
 
