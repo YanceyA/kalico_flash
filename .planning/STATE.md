@@ -10,12 +10,12 @@ See: .planning/PROJECT.md (updated 2026-02-01)
 ## Current Position
 
 Milestone: v4.1 Flash All Safety & Cleanup
-Phase: 28 of 30 (Flash All Preflight)
-Plan: 1 of 1 in phase 28
-Status: Phase 28 complete
-Last activity: 2026-02-01 -- Completed 28-01-PLAN.md
+Phase: 29 of 30 (Flash Workflow Hardening)
+Plan: 1 of 1 in phase 29
+Status: Plan 29-01 complete
+Last activity: 2026-02-01 -- Completed 29-01-PLAN.md
 
-Progress: [███░░░░░░░] 33%
+Progress: [██████░░░░] 67%
 
 ## Shipped Milestones
 
@@ -51,9 +51,9 @@ Progress: [███░░░░░░░] 33%
 ## Session Continuity
 
 Last session: 2026-02-01
-Stopped at: Completed 28-01-PLAN.md
+Stopped at: Completed 29-01-PLAN.md
 Resume file: None
-Next step: Plan phase 29
+Next step: Execute remaining phase 29 plans or phase 30
 
 ---
-*Last updated: 2026-02-01 after 28-01 Flash All Preflight completion*
+*Last updated: 2026-02-01 after 29-01 MCU Cross-Check & Build Error Output completion*
