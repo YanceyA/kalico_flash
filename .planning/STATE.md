@@ -5,13 +5,15 @@
 See: .planning/PROJECT.md (updated 2026-02-01)
 
 **Core value:** One command to build and flash any registered board — no remembering serial paths, flash commands, or config locations.
-**Current focus:** Planning next milestone
+**Current focus:** v4.1 Flash All Safety & Cleanup
 
 ## Current Position
 
-Milestone: v4.0 shipped — no active milestone
-Status: Ready for next milestone planning
-Last activity: 2026-02-01 — v4.0 milestone complete
+Milestone: v4.1 Flash All Safety & Cleanup
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-02-01 — Milestone v4.1 started
 
 ## Shipped Milestones
 
@@ -47,9 +49,9 @@ Last activity: 2026-02-01 — v4.0 milestone complete
 ## Session Continuity
 
 Last session: 2026-02-01
-Stopped at: v4.0 milestone completed and archived
+Stopped at: Milestone v4.1 initialization
 Resume file: None
-Next step: /gsd:new-milestone (when ready for next feature set)
+Next step: Define requirements and roadmap for v4.1
 
 ---
-*Last updated: 2026-02-01 after v4.0 milestone completion*
+*Last updated: 2026-02-01 after v4.1 milestone start*

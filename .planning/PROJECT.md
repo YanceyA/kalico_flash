@@ -8,6 +8,18 @@ A Python TUI tool that automates Klipper/Kalico firmware building and flashing f
 
 One command to build and flash any registered board — no remembering serial paths, flash commands, or config locations.
 
+## Current Milestone: v4.1 Flash All Safety & Cleanup (started 2026-02-01)
+
+**Goal:** Close safety gaps in Flash All targeting, add hardware MCU cross-check, align safety prompts for Moonraker failures, and remove dead settings — all blocking issues from beta review.
+
+**Target fixes:**
+- Preflight checks in Flash All (reuse `_preflight_flash()`)
+- Moonraker unreachable confirmation in Flash All (align with single-device flow)
+- Hardware MCU cross-check before flashing (use existing `extract_mcu_from_serial()`)
+- Surface build errors in Flash All (show tail of build output on failure)
+- Remove dead `config_cache_dir` setting (unused, confusing)
+- Used-path tracking in Flash All (prevent same USB device targeted twice)
+
 ## Previous Milestone: v4.0 Remove CLI & Internalize Device Keys (shipped 2026-02-01)
 
 **Goal:** Remove all CLI/argparse elements and make device keys auto-generated internal identifiers — the tool operates exclusively through TUI
@@ -194,4 +206,4 @@ python3 ~/katapult/scripts/flashtool.py -f ~/klipper/out/klipper.bin -d /dev/ser
 | Preserve existing device keys on load | No re-derivation risk, backward compatible | ✓ Good |
 
 ---
-*Last updated: 2026-02-01 after v4.0 milestone*
+*Last updated: 2026-02-01 after v4.1 milestone start*
