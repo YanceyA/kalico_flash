@@ -18,6 +18,17 @@ One command to build and flash any registered board — no remembering serial pa
 **Goal:** Remove all CLI/argparse elements and make device keys auto-generated internal identifiers — the tool operates exclusively through TUI
 **Outcome:** All CLI infrastructure removed. Device keys auto-generated from display names. Tool is now purely TUI-driven.
 
+## Current Milestone: v4.2 Test Framework
+
+**Goal:** Add a high-value test suite covering safety-critical code paths, using research-driven test strategy to maximize coverage quality over quantity.
+
+**Target features:**
+- Research best test approach (framework, patterns, scope)
+- Unit tests for safety-critical pure functions (MCU extraction, pattern matching, validation, slug generation)
+- Integration-level tests where research identifies high value (e.g., Flash All candidate selection pipeline)
+- pytest as dev dependency (not shipped to Pi)
+- Local execution only (no CI)
+
 ## Current State (v4.1 shipped)
 
 **Shipped:** 2026-02-01
@@ -211,4 +222,4 @@ python3 ~/katapult/scripts/flashtool.py -f ~/klipper/out/klipper.bin -d /dev/ser
 | Remove config_cache_dir rather than implement | Dead code, XDG convention already handled by get_config_dir() | ✓ Good |
 
 ---
-*Last updated: 2026-02-01 after v4.1 milestone*
+*Last updated: 2026-02-01 after v4.2 milestone start*
